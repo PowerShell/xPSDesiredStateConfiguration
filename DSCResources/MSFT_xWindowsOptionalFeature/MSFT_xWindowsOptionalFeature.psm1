@@ -1,4 +1,10 @@
-# This PS module contains functions for Desired State Configuration Windows Optional Feature provider. It enables configuring optional features on Windows Client SKUs.
+# This module contains functions for Desired State Configuration Windows Optional Feature provider.
+# It enables configuring optional features on Windows Client SKUs.
+
+# Suppress PSSA issue PSAvoidGlobalVars because setting $global:DSCMachineStatus must be used
+# for this resource to notify the LCM about a required restart to complete the action.
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', '')]
+param ()
 
 # Fallback message strings in en-US
 DATA localizedData
@@ -20,10 +26,19 @@ DATA localizedData
         TestTargetResourceEndMessage = End executing Test functionality on the {0} feature.
         FeatureInstalled = Installed feature {0}.
         FeatureUninstalled = Uninstalled feature {0}.
+        EnableFeature = Enable a Windows optional feature
+        DisableFeature = Disable a Windows optional feature
 '@
 }
 Import-Module Dism -Force -ErrorAction SilentlyContinue
 
+<#
+    .SYNOPSIS
+    Gets the state of a Windows optional feature
+
+    .PARAMETER Name
+    Specify the name of the Windows optional feature
+#>
 function Get-TargetResource
 {
     [CmdletBinding()]
@@ -35,16 +50,17 @@ function Get-TargetResource
         $Name
     )
 
-    Write-Debug ($LocalizedData.GetTargetResourceStartMessage -f $Name)
+    Write-Verbose ($LocalizedData.GetTargetResourceStartMessage -f $Name)
 
-    ValidatePrerequisites
+    Assert-ResourcePrerequisitesValid
 
     $result = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
 
     $returnValue = @{
         LogPath = $result.LogPath
-        Ensure = ConvertStateToEnsure $result.State
-        CustomProperties = SerializeCustomProperties $result.CustomProperties
+        Ensure = Convert-FeatureStateToEnsure $result.State
+        CustomProperties =
+            Get-SerializedCustomPropertyList -CustomProperties $result.CustomProperties
         Name = $result.FeatureName
         LogLevel = $result.LogLevel
         Description = $result.Description
@@ -53,22 +69,35 @@ function Get-TargetResource
 
     $returnValue
 
-    Write-Debug ($LocalizedData.GetTargetResourceEndMessage -f $Name)
+    Write-Verbose ($LocalizedData.GetTargetResourceEndMessage -f $Name)
 }
 
-# Serializes a list of CustomProperty objects into [System.String[]]
-function SerializeCustomProperties
+<#
+    .SYNOPSIS
+    Serializes a list of CustomProperty objects serialized into [System.String[]]
+
+    .PARAMETER CustomProperties
+    Provide a list of CustomProperty objects to be serialized
+#>
+function Get-SerializedCustomPropertyList
 {
     param
     (
         $CustomProperties
     )
 
-    $CustomProperties | ? {$_ -ne $null} | % { "Name = $($_.Name), Value = $($_.Value), Path = $($_.Path)" }
+    $CustomProperties | Where-Object { $_ -ne $null } |
+        ForEach-Object { "Name = $($_.Name), Value = $($_.Value), Path = $($_.Path)" }
 }
 
-# Converts state returned by Dism Get-WindowsOptionalFeature cmdlet to Present/Absent
-function ConvertStateToEnsure
+<#
+    .SYNOPSIS
+    Converts state returned by Dism Get-WindowsOptionalFeature cmdlet to Present/Absent
+
+    .PARAMETER State
+    Provide a valid state Enabled or Disabled to be converted to either Present or Absent
+#>
+function Convert-FeatureStateToEnsure
 {
     param
     (
@@ -90,10 +119,39 @@ function ConvertStateToEnsure
     }
 }
 
+<#
+    .SYNOPSIS
+    Enable or disable a Windows optional feature
 
+    .PARAMETER Source
+    Not implemented.
+
+    .PARAMETER RemoveFilesOnDisable
+    Set to $true to remove all files associated with the feature when it is disabled (that is,
+    when Ensure is set to "Absent").
+
+    .PARAMETER LogPath
+    The path to a log file where you want the resource provider to log the operation.
+
+    .PARAMETER Ensure
+    Specifies whether the feature is enabled. To ensure that the feature is enabled, set this
+    property to "Present". To ensure that the feature is disabled, set the property to "Absent".
+
+    .PARAMETER NoWindowsUpdateCheck
+    Specifies whether DISM contacts Windows Update (WU) when searching for the source files to
+    enable a feature. If $true, DISM does not contact WU.
+
+    .PARAMETER Name
+    Indicates the name of the feature that you want to ensure is enabled or disabled.
+
+    .PARAMETER LogLevel
+    The maximum output level shown in the logs. The accepted values are: "ErrorsOnly" (only errors
+    are logged), "ErrorsAndWarning" (errors and warnings are logged), and
+    "ErrorsAndWarningAndInformation" (errors, warnings, and debug information are logged).
+#>
 function Set-TargetResource
 {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     param
     (
         [System.String[]]
@@ -121,9 +179,9 @@ function Set-TargetResource
         $LogLevel
     )
 
-    Write-Debug ($LocalizedData.SetTargetResourceStartMessage -f $Name)
+    Write-Verbose ($LocalizedData.SetTargetResourceStartMessage -f $Name)
 
-    ValidatePrerequisites
+    Assert-ResourcePrerequisitesValid
 
     switch ($LogLevel)
     {
@@ -133,46 +191,42 @@ function Set-TargetResource
         '' { $DismLogLevel = 'WarningsInfo' }
     }
 
-    # construct parameters for Dism cmdlets
-    $PSBoundParameters.Remove('Name') > $null
-    $PSBoundParameters.Remove('Ensure') > $null
-    if ($PSBoundParameters.ContainsKey('RemoveFilesOnDisable'))
+    # Construct splatting hashtable for Dism cmdlets
+    $cmdletParams = $PSBoundParameters.psobject.Copy()
+    $cmdletParams['FeatureName'] = $Name
+    $cmdletParams['Online'] = $true
+    $cmdletParams['LogLevel'] = $DismLogLevel
+    $cmdletParams['NoRestart'] = $true
+    foreach ($key in @('Name', 'Ensure','RemoveFilesOnDisable','NoWindowsUpdateCheck'))
     {
-        $PSBoundParameters.Remove('RemoveFilesOnDisable')
-    }
-
-    if ($PSBoundParameters.ContainsKey('NoWindowsUpdateCheck'))
-    {
-        $PSBoundParameters.Remove('NoWindowsUpdateCheck')
-    }
-
-    if ($PSBoundParameters.ContainsKey('LogLevel'))
-    {
-        $PSBoundParameters.Remove('LogLevel')
+        if ($cmdletParams.ContainsKey($key))
+        {
+           $cmdletParams.Remove($key)
+        }
     }
 
     if ($Ensure -eq 'Present')
     {
-        if ($NoWindowsUpdateCheck)
+        if ($PSCmdlet.ShouldProcess($Name, $LocalizedData.EnableFeature))
         {
-            $feature = Dism\Enable-WindowsOptionalFeature -FeatureName $Name -Online -LogLevel $DismLogLevel @PSBoundParameters -LimitAccess -NoRestart
-        }
-        else
-        {
-            $feature = Dism\Enable-WindowsOptionalFeature -FeatureName $Name -Online -LogLevel $DismLogLevel @PSBoundParameters -NoRestart
+            if ($NoWindowsUpdateCheck)
+            {
+                $cmdletParams['LimitAccess'] =  $true
+            }
+            $feature = Dism\Enable-WindowsOptionalFeature @cmdletParams
         }
 
         Write-Verbose ($LocalizedData.FeatureInstalled -f $Name)
     }
     elseif ($Ensure -eq 'Absent')
     {
-        if ($RemoveFilesOnDisable)
+        if ($PSCmdlet.ShouldProcess($Name, $LocalizedData.DisableFeature))
         {
-            $feature = Dism\Disable-WindowsOptionalFeature -FeatureName $Name -Online -LogLevel $DismLogLevel @PSBoundParameters -Remove -NoRestart
-        }
-        else
-        {
-            $feature = Dism\Disable-WindowsOptionalFeature -FeatureName $Name -Online -LogLevel $DismLogLevel @PSBoundParameters -NoRestart
+            if ($RemoveFilesOnDisable)
+            {
+                $cmdletParams['Remove'] = $true
+            }
+            $feature = Dism\Disable-WindowsOptionalFeature @cmdletParams
         }
 
         Write-Verbose ($LocalizedData.FeatureUninstalled -f $Name)
@@ -189,10 +243,39 @@ function Set-TargetResource
         $global:DSCMachineStatus = 1
     }
 
-    Write-Debug ($LocalizedData.SetTargetResourceEndMessage -f $Name)
+    Write-Verbose ($LocalizedData.SetTargetResourceEndMessage -f $Name)
 }
 
+<#
+    .SYNOPSIS
+    Test if a Windows optional feature is in the desired state (enabled or disabled)
 
+    .PARAMETER Source
+    Not implemented.
+
+    .PARAMETER RemoveFilesOnDisable
+    Set to $true to remove all files associated with the feature when it is disabled (that is,
+    when Ensure is set to "Absent").
+
+    .PARAMETER LogPath
+    The path to a log file where you want the resource provider to log the operation.
+
+    .PARAMETER Ensure
+    Specifies whether the feature is enabled.     To ensure that the feature is enabled, set this
+    property to "Present". To ensure that the feature is disabled, set the property to "Absent".
+
+    .PARAMETER NoWindowsUpdateCheck
+    Specifies whether DISM contacts Windows Update (WU) when searching for the source files to
+    enable a feature. If $true, DISM does not contact WU.
+
+    .PARAMETER Name
+    Indicates the name of the feature that you want to ensure is enabled or disabled.
+
+    .PARAMETER LogLevel
+    The maximum output level shown in the logs. The accepted values are: "ErrorsOnly" (only errors
+    are logged), "ErrorsAndWarning" (errors and warnings are logged), and
+    "ErrorsAndWarningAndInformation" (errors, warnings, and debug information are logged).
+#>
 function Test-TargetResource
 {
     [CmdletBinding()]
@@ -224,14 +307,14 @@ function Test-TargetResource
         $LogLevel
     )
 
-    Write-Debug ($LocalizedData.TestTargetResourceStartMessage -f $Name)
+    Write-Verbose ($LocalizedData.TestTargetResourceStartMessage -f $Name)
 
-    ValidatePrerequisites
+    Assert-ResourcePrerequisitesValid
 
     $featureState = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
     [bool] $result = $false
 
-    if ($featureState -eq $null)
+    if ($null -eq $featureState)
     {
         $result = $Ensure -eq 'Absent'
     }
@@ -240,13 +323,15 @@ function Test-TargetResource
     {
         $result = $true
     }
-    Write-Debug ($LocalizedData.TestTargetResourceEndMessage -f $Name)
+    Write-Verbose ($LocalizedData.TestTargetResourceEndMessage -f $Name)
     return $result
 }
 
-
-# ValidatePrerequisites is a helper function used to validate if the MSFT_WindowsOptionalFeature is supported on the target machine.
-function ValidatePrerequisites
+<#
+    .SYNOPSIS
+    Helper function to test if the MSFT_WindowsOptionalFeature is supported on the target machine.
+#>
+function Assert-ResourcePrerequisitesValid
 {
     Write-Verbose $LocalizedData.ValidatingPrerequisites
 
@@ -277,8 +362,4 @@ function ValidatePrerequisites
     }
 }
 
-
 Export-ModuleMember -Function *-TargetResource
-
-
-
