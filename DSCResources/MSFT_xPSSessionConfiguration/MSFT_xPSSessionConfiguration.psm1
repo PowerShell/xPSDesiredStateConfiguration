@@ -65,7 +65,7 @@ function Get-TargetResource
         # If runAsUser is specified, return only the username in the credential property
         if ($endpoint.RunAsUser)
         {
-            $params = @{
+            $newCimInstanceParams = @{
                 ClassName = 'MSFT_Credential'
                 Property = @{
                     Username = [String] $endpoint.RunAsUser
@@ -74,7 +74,7 @@ function Get-TargetResource
                 Namespace = 'root/microsoft/windows/desiredstateconfiguration'
                 ClientOnly = $true
             }
-            $convertToCimCredential = New-CimInstance @params
+            $convertToCimCredential = New-CimInstance @newCimInstanceParams
         }
         $accessMode = Get-EndpointAccessMode -Endpoint $endpoint
     }
@@ -183,13 +183,13 @@ function Set-TargetResource
                     $oldVerbosePreference = $VerbosePreference
                     $DebugPreference = $VerbosePreference = "SilentlyContinue"
 
-                    $params = @{
+                    $unregisterPSSessionConfigParams = @{
                         Name = $Name
                         Force = $true
                         NoServiceRestart = $true
                         ErrorAction = 'Stop'
                     }
-                    $null = Unregister-PSSessionConfiguration @params
+                    $null = Unregister-PSSessionConfiguration @unregisterPSSessionConfigParams
 
                     # Reset the following preference to older values
                     $DebugPreference = $oldDebugPrefernce
@@ -201,12 +201,12 @@ function Set-TargetResource
                 }
                 catch
                 {
-                    $params = @{
+                    $invokeThrowErrorHelperParams = @{
                         ErrorId = 'UnregisterPSSessionConfigurationFailed'
                         ErrorMessage = $_.Exception
                         ErrorCategory = 'InvalidOperation'
                     }
-                    Invoke-ThrowErrorHelper @params
+                    Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
                 }
 
             }
@@ -224,29 +224,33 @@ function Set-TargetResource
                     $null = $PSBoundParameters.Remove('Ensure')
                 }
 
-                [Hashtable]$Parameters = (
+                [Hashtable]$validatedProperties = (
                     Get-ResourcePropertyTable -Endpoint $endpoint @PSBoundParameters -Apply)
-                $null = $Parameters.Add('Name',$Name)
+                $null = $validatedProperties.Add('Name',$Name)
 
-                # If the $Parameters contain more than 1 key, something needs to be changed
-                if ($Parameters.count -gt 1)
+                # If the $validatedProperties contain more than 1 key, something needs to be changed
+                if ($validatedProperties.count -gt 1)
                 {
                     try
                     {
-                        $null = Set-PSSessionConfiguration @Parameters -Force -NoServiceRestart -Verbose:$false
+                        $setPSSessionConfigurationParams = $validatedProperties.psobject.Copy()
+                        $setPSSessionConfigurationParams['Force'] = $true
+                        $setPSSessionConfigurationParams['NoServiceRestart'] = $true
+                        $setPSSessionConfigurationParams['Verbose'] = $false
+                        $null = Set-PSSessionConfiguration @setPSSessionConfigurationParams
                         $restartNeeded = $true
 
                         # Write verbose message for all the properties, except Name, that are changing
-                        Write-EndpointMessage -Parameters $Parameters -keysToSkip 'Name'
+                        Write-EndpointMessage -Parameters $validatedProperties -keysToSkip 'Name'
                     }
                     catch
                     {
-                        $params = @{
+                        $invokeThrowErrorHelperParams = @{
                             ErrorId = 'SetPSSessionConfigurationFailed'
                             ErrorMessage = $_.Exception
                             ErrorCategory = 'InvalidOperation'
                         }
-                        Invoke-ThrowErrorHelper @params
+                        Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
                     }
                 }
             }
@@ -286,34 +290,34 @@ function Set-TargetResource
                     # If access mode is specified, set it on the endpoint
                     if ($PSBoundParameters.ContainsKey('AccessMode') -and $AccessMode -ne 'Remote')
                     {
-                        $params = @{
+                        $setPSSessionConfigurationParams = @{
                             Name = $Name
                             AccessMode = $AccessMode
                             Force = $true
                             NoServiceRestart = $true
                             Verbose = $false
                         }
-                        $null = Set-PSSessionConfiguration @params
+                        $null = Set-PSSessionConfiguration @setPSSessionConfigurationParams
                     }
 
                     $restartNeeded = $true
 
-                    # If the $Parameters contain more than 1 key, something needs to be changed
-                    if ($Parameters.count -gt 1)
+                    # If the $validatedProperties contain more than 1 key, something needs to be changed
+                    if ($validatedProperties.count -gt 1)
                     {
-                        Write-EndpointMessage -Parameters $Parameters -keysToSkip 'Name'
+                        Write-EndpointMessage -Parameters $validatedProperties -keysToSkip 'Name'
                     }
 
                     Write-Verbose -Message ($LocalizedData.EndpointNameMessage -f $Name,'present')
                 }
                 catch
                 {
-                    $params = @{
+                    $invokeThrowErrorHelperParams = @{
                         ErrorId = 'RegisterOrSetPSSessionConfigurationFailed'
                         ErrorMessage = $_.Exception
                         ErrorCategory = 'InvalidOperation'
                     }
-                    Invoke-ThrowErrorHelper @params
+                    Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
                 }
             }
         }
@@ -396,12 +400,12 @@ function Test-TargetResource
     # Check if the endpoint name is blank/whitespaced string
     if ([String]::IsNullOrWhiteSpace($Name))
     {
-        $params = @{
+        $invokeThrowErrorHelperParams = @{
             ErrorId = 'BlankString'
             ErrorMessage = $LocalizedData.WhitespacedStringMessage -f 'name'
             ErrorCategory = 'SyntaxError'
         }
-        Invoke-ThrowErrorHelper @params
+        Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
     }
 
     # Check for Startup script path and extension
@@ -410,25 +414,25 @@ function Test-TargetResource
         # Check if startup script path is valid
         if (!(Test-Path $StartupScript))
         {
-            $params = @{
+            $invokeThrowErrorHelperParams = @{
                 ErrorId = 'PathNotFound'
                 ErrorMessage = $LocalizedData.StartupPathNotFoundMessage -f $StartupScript
                 ErrorCategory = 'ObjectNotFound'
             }
-            Invoke-ThrowErrorHelper @params
+            Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
         }
 
         # Check the startup script extension
         $startupScriptFileExtension = $StartupScript.Split('.')[-1]
         if ($startupScriptFileExtension -ne 'ps1')
         {
-            $params = @{
+            $invokeThrowErrorHelperParams = @{
                 ErrorId = 'WrongFileExtension'
                 ErrorMessage =
                     $LocalizedData.WrongStartupScriptExtensionMessage -f $startupScriptFileExtension
                 ErrorCategory = 'InvalidData'
             }
-            Invoke-ThrowErrorHelper @params
+            Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
         }
     }
 
@@ -436,24 +440,24 @@ function Test-TargetResource
     if ($PSBoundParameters.ContainsKey('SecurityDescriptorSDDL') -and
         [String]::IsNullOrWhiteSpace($SecurityDescriptorSDDL))
     {
-        $params = @{
+        $invokeThrowErrorHelperParams = @{
             ErrorId = 'BlankString'
             ErrorMessage = $LocalizedData.WhitespacedStringMessage -f 'securityDescriptorSddl'
             ErrorCategory = 'SyntaxError'
         }
-        Invoke-ThrowErrorHelper -
+        Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
     }
 
     # Check if the RunAsCredential is not empty
     if ($PSBoundParameters.ContainsKey('RunAsCredential') -and
         ($RunAsCredential -eq [PSCredential]::Empty))
     {
-        $params = @{
+        $invokeThrowErrorHelperParams = @{
             ErrorId = 'EmptyCredential'
             ErrorMessage = $LocalizedData.EmptyCredentialMessage
             ErrorCategory = 'InvalidArgument'
         }
-        Invoke-ThrowErrorHelper @params
+        Invoke-ThrowErrorHelper @invokeThrowErrorHelperParams
     }
 #endregion
 
@@ -546,18 +550,18 @@ function Write-EndpointMessage
     (
         [Parameter(Mandatory)]
         [Hashtable]
-        $Parameters,
+        $validatedProperties,
 
         [Parameter(Mandatory)]
         [String[]]
         $KeysToSkip
     )
 
-    foreach($key in $Parameters.keys)
+    foreach($key in $validatedProperties.keys)
     {
         if ($KeysToSkip -notcontains $key)
         {
-            Write-Verbose -Message ($LocalizedData.SetPropertyMessage -f $key, $Parameters[$key])
+            Write-Verbose -Message ($LocalizedData.SetPropertyMessage -f $key, $validatedProperties[$key])
         }
     }
 }
@@ -589,6 +593,8 @@ function Write-EndpointMessage
         - Remote
 
     .PARAMETER Apply
+        Indicates that this function should return a hashtable of validated endpoint properties.
+        By default, this function returns the value $false.
 #>
 function Get-ResourcePropertyTable
 {
@@ -616,7 +622,7 @@ function Get-ResourcePropertyTable
 
     if ($Apply)
     {
-        $Parameters = @{}
+        $validatedProperties = @{}
     }
 
     # Check if the SDDL is same as specified
@@ -636,7 +642,7 @@ function Get-ResourcePropertyTable
 
                 if ($Apply)
                 {
-                    $Parameters['SecurityDescriptorSddl'] = $SecurityDescriptorSDDL
+                    $validatedProperties['SecurityDescriptorSddl'] = $SecurityDescriptorSDDL
                 }
                 else
                 {
@@ -665,7 +671,7 @@ function Get-ResourcePropertyTable
 
                 if ($Apply)
                 {
-                    $Parameters['RunAsCredential'] = $RunAsCredential
+                    $validatedProperties['RunAsCredential'] = $RunAsCredential
                 }
                 else
                 {
@@ -694,7 +700,7 @@ function Get-ResourcePropertyTable
 
             if ($Apply)
             {
-                $Parameters['StartupScript'] = $StartupScript
+                $validatedProperties['StartupScript'] = $StartupScript
             }
             else
             {
@@ -724,7 +730,7 @@ function Get-ResourcePropertyTable
 
             if ($Apply)
             {
-                $Parameters['AccessMode'] = $AccessMode
+                $validatedProperties['AccessMode'] = $AccessMode
             }
             else
             {
@@ -741,7 +747,7 @@ function Get-ResourcePropertyTable
 
     if ($Apply)
     {
-        return $Parameters
+        return $validatedProperties
     }
     else
     {
