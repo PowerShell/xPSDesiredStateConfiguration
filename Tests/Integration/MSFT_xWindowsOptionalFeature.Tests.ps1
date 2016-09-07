@@ -6,8 +6,8 @@
 Describe "xWindowsOptionalFeature Integration Tests" {
     It "Install a valid Windows optional feature" {
         $configurationName = "InstallOptionalFeature"
-        $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
-        $logPath = Join-Path -Path (Get-Location) -ChildPath 'InstallOptionalFeatureLog'
+        $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+        $logPath = Join-Path -Path $TestDrive -ChildPath 'InstallOptionalFeature.log'
 
         $validFeatureName = 'TelnetClient'
 
@@ -59,8 +59,8 @@ Describe "xWindowsOptionalFeature Integration Tests" {
 
     It "Install an incorrect Windows optional feature" {
         $configurationName = "InstallIncorrectWindowsFeature"
-        $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
-        $logPath = Join-Path -Path (Get-Location) -ChildPath 'InstallIncorrectWindowsFeatureLog'
+        $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+        $logPath = Join-Path -Path $TestDrive -ChildPath 'InstallIncorrectWindowsFeature.log'
 
         try
         {

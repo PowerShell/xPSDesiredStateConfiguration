@@ -6,8 +6,8 @@
 Describe "xWindowsOptionalFeatureSet Integration Tests" {
     It "Install two valid Windows optional features" {
         $configurationName = "InstallOptionalFeature"
-        $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
-        $logPath = Join-Path -Path (Get-Location) -ChildPath 'InstallOptionalFeatureLog'
+        $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+        $logPath = Join-Path -Path $TestDrive -ChildPath 'InstallOptionalFeature.log'
 
         $validFeatureName1 = 'MicrosoftWindowsPowerShellV2'
         $validFeatureName2 = 'Internet-Explorer-Optional-amd64'
@@ -69,8 +69,8 @@ Describe "xWindowsOptionalFeatureSet Integration Tests" {
 
     It "Install an incorrect Windows optional feature" {
         $configurationName = "InstallIncorrectWindowsFeature"
-        $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
-        $logPath = Join-Path -Path (Get-Location) -ChildPath 'InstallIncorrectWindowsFeatureLog'
+        $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+        $logPath = Join-Path -Path $TestDrive -ChildPath 'InstallIncorrectWindowsFeature.log'
 
         try
         {

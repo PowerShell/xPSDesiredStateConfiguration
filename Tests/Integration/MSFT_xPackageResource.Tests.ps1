@@ -21,7 +21,7 @@ try
 
             $script:msiName = 'DSCSetupProject.msi'
             $script:msiLocation = Join-Path -Path $script:testDirectoryPath -ChildPath $script:msiName
-            
+
             $script:packageName = 'DSCUnitTestPackage'
             $script:packageId = '{deadbeef-80c6-41e6-a1b9-8bdb8a05027f}'
 
@@ -38,7 +38,7 @@ try
                 Start-Process -FilePath 'msiexec.exe' -ArgumentList @("/x$script:packageId", '/passive') -Wait | Out-Null
                 Start-Sleep -Seconds 1 | Out-Null
             }
-        
+
             if (Test-PackageInstalledByName -Name $script:packageName)
             {
                 throw 'Package could not be removed.'
@@ -58,7 +58,7 @@ try
                 Start-Process -FilePath 'msiexec.exe' -ArgumentList @("/x$script:packageId", '/passive') -Wait | Out-Null
                 Start-Sleep -Seconds 1 | Out-Null
             }
-        
+
             if (Test-PackageInstalledByName -Name $script:packageName)
             {
                 throw 'Test output will not be valid - package could not be removed.'
@@ -67,9 +67,9 @@ try
 
         It "Install a .msi package" {
             $configurationName = "EnsurePackageIsPresent"
-            $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
-            $errorPath = Join-Path -Path (Get-Location) -ChildPath "StdErrorPath.txt"
-            $outputPath = Join-Path -Path (Get-Location) -ChildPath "StdOutputPath.txt"
+            $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+            $errorPath = Join-Path -Path $TestDrive -ChildPath "StdErrorPath.txt"
+            $outputPath = Join-Path -Path $TestDrive -ChildPath "StdOutputPath.txt"
 
             try
             {

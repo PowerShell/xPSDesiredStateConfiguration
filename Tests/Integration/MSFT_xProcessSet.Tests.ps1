@@ -30,9 +30,9 @@ Describe "xProcessSet Integration Tests" {
 
     It "Ensure a set of processes is present" {
         $configurationName = "EnsureProcessIsPresent"
-        $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
-        $errorPath = Join-Path -Path (Get-Location) -ChildPath "StdErrorPath.txt"
-        $outputPath = Join-Path -Path (Get-Location) -ChildPath "StdOutputPath.txt"
+        $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+        $errorPath = Join-Path -Path $TestDrive -ChildPath "StdErrorPath.txt"
+        $outputPath = Join-Path -Path $TestDrive -ChildPath "StdOutputPath.txt"
 
         try
         {
@@ -70,7 +70,7 @@ Describe "xProcessSet Integration Tests" {
 
     It "Ensure a set of processes is absent" {
         $configurationName = "EnsureProcessIsAbsent"
-        $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
+        $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
         try
         {
