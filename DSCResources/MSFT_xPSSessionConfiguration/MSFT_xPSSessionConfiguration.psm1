@@ -177,8 +177,10 @@ function Set-TargetResource
             {
                 try
                 {
-                    # Set the following preference so the functions inside Unregister-PSSessionConfig
-                    # doesn't get these settings
+                    <#
+                        Set the following preference so the functions inside Unregister-PSSessionConfig
+                        doesn't get these settings
+                    #>
                     $oldDebugPrefernce = $DebugPreference
                     $oldVerbosePreference = $VerbosePreference
                     $DebugPreference = $VerbosePreference = "SilentlyContinue"
@@ -225,7 +227,7 @@ function Set-TargetResource
                 }
 
                 [Hashtable]$validatedProperties = (
-                    Get-ResourcePropertyTable -Endpoint $endpoint @PSBoundParameters -Apply)
+                    Get-ValidatedResourcePropertyTable -Endpoint $endpoint @PSBoundParameters -Apply)
                 $null = $validatedProperties.Add('Name',$Name)
 
                 # If the $validatedProperties contain more than 1 key, something needs to be changed
@@ -264,7 +266,7 @@ function Set-TargetResource
             if ($Ensure -eq 'Present')
             {
                 # Remove Ensure,Verbose,Debug from the bound Parameters for splatting
-                foreach ($key in @('Ensure','Verbose','Debug'))
+                foreach ($key in @('Ensure', 'Verbose', 'Debug'))
                 {
                     if ($PSBoundParameters.ContainsKey($key))
                     {
@@ -275,8 +277,10 @@ function Set-TargetResource
                 # Register the endpoint with specified properties
                 try
                 {
-                    # Set the following preference so the functions inside
-                    # Unregister-PSSessionConfig doesn't get these settings
+                    <#
+                        Set the following preference so the functions inside
+                        Unregister-PSSessionConfig doesn't get these settings
+                    #>
                     $oldDebugPrefernce = $DebugPreference
                     $oldVerbosePreference = $VerbosePreference
                     $DebugPreference = $VerbosePreference = "SilentlyContinue"
@@ -322,9 +326,11 @@ function Set-TargetResource
             }
         }
 
-        # Any change to existing endpoint or creating new endpoint requires WinRM restart.
-        # Since DSC(CIM) uses WSMan as well it will stop responding.
-        # Hence telling the DSC Engine to restart the machine
+        <#
+            Any change to existing endpoint or creating new endpoint requires WinRM restart.
+            Since DSC(CIM) uses WSMan as well it will stop responding.
+            Hence telling the DSC Engine to restart the machine
+        #>
         if ($restartNeeded)
         {
             $global:DscMachineStatus = 1
@@ -365,8 +371,8 @@ function Set-TargetResource
     .PARAMETER Ensure
         Indicates if the session configuration should exist.
 
-        To ensure that it does, set this property to "Present".
-        To ensure that it does not exist, set the property to "Absent".
+        To test that it does, set this property to "Present".
+        To test that it does not exist, set the property to "Absent".
 
         The default value is "Present".
 #>
@@ -489,7 +495,7 @@ function Test-TargetResource
                 $null = $PSBoundParameters.Remove('Ensure')
             }
 
-            return (Get-ResourcePropertyTable -Endpoint $endpoint @PSBoundParameters)
+            return (Get-ValidatedResourcePropertyTable -Endpoint $endpoint @PSBoundParameters)
         }
     }
     catch [Microsoft.PowerShell.Commands.WriteErrorException]
@@ -550,18 +556,18 @@ function Write-EndpointMessage
     (
         [Parameter(Mandatory)]
         [Hashtable]
-        $validatedProperties,
+        $Parameters,
 
         [Parameter(Mandatory)]
         [String[]]
         $KeysToSkip
     )
 
-    foreach($key in $validatedProperties.keys)
+    foreach($key in $Parameters.keys)
     {
         if ($KeysToSkip -notcontains $key)
         {
-            Write-Verbose -Message ($LocalizedData.SetPropertyMessage -f $key, $validatedProperties[$key])
+            Write-Verbose -Message ($LocalizedData.SetPropertyMessage -f $key, $Parameters[$key])
         }
     }
 }
@@ -596,7 +602,7 @@ function Write-EndpointMessage
         Indicates that this function should return a hashtable of validated endpoint properties.
         By default, this function returns the value $false.
 #>
-function Get-ResourcePropertyTable
+function Get-ValidatedResourcePropertyTable
 {
     param
     (
