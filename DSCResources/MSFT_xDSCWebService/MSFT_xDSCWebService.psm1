@@ -34,6 +34,22 @@ function Get-TargetResource
             $ConfigurationPath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "ConfigurationPath"
             $RegistrationKeyPath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "RegistrationKeyPath"
 
+            # Get database path
+            switch ((Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbprovider"))
+            {
+                "ESENT" {
+                    $databasePath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbconnectionstr" | Split-Path -Parent
+                }
+
+                "System.Data.OleDb" {
+                    $connectionString = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbconnectionstr"
+                    if ($connectionString -match 'Data Source=(.*)\\Devices\.mdb')
+                    {
+                        $databasePath = $Matches[0]
+                    }
+                }
+            }
+
             $UrlPrefix = $website.bindings.Collection[0].protocol + "://"
 
             $fqdn = $env:COMPUTERNAME
@@ -75,6 +91,7 @@ function Get-TargetResource
         Port                            = $iisPort
         PhysicalPath                    = $website.physicalPath
         State                           = $webSite.state
+        DatabasePath                    = $databasePath
         ModulePath                      = $modulePath
         ConfigurationPath               = $ConfigurationPath
         DSCServerUrl                    = $serverUrl
@@ -111,7 +128,11 @@ function Set-TargetResource
 
         [ValidateSet("Started", "Stopped")]
         [string]$State = "Started",
-    
+
+        # Location on the disk where the database is stored
+        [System.String]
+        $DatabasePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService",
+
         # Location on the disk where the Modules are stored            
         [string]$ModulePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules",
 
@@ -140,11 +161,10 @@ function Set-TargetResource
     $script:appCmd = "$env:windir\system32\inetsrv\appcmd.exe"
    
     $pathPullServer = "$pshome\modules\PSDesiredStateConfiguration\PullServer"
-    $rootDataPath ="$env:PROGRAMFILES\WindowsPowerShell\DscService"
     $jet4provider = "System.Data.OleDb"
-    $jet4database = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$env:PROGRAMFILES\WindowsPowerShell\DscService\Devices.mdb;"
+    $jet4database = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$DatabasePath\Devices.mdb;"
     $eseprovider = "ESENT";
-    $esedatabase = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Devices.edb";
+    $esedatabase = "$DatabasePath\Devices.edb";
 
     $culture = Get-Culture
     $language = $culture.TwoLetterISOLanguageName
@@ -221,7 +241,7 @@ function Set-TargetResource
         if($isDownlevelOfBlue)
         {
             Write-Verbose "Set values into the web.config that define the repository for non-BLUE Downlevel OS"
-            $repository = Join-Path "$rootDataPath" "Devices.mdb"
+            $repository = Join-Path "$DatabasePath" "Devices.mdb"
             Copy-Item "$pathPullServer\Devices.mdb" $repository -Force
 
             PSWSIISEndpoint\Set-AppSettingsInWebconfig -path $PhysicalPath -key "dbprovider" -value $jet4provider
@@ -240,7 +260,7 @@ function Set-TargetResource
     Write-Verbose "Pull Server: Set values into the web.config that indicate the location of repository, configuration, modules"
 
     # Create the application data directory calculated above
-    $null = New-Item -path $rootDataPath -itemType "directory" -Force
+    $null = New-Item -path $DatabasePath -itemType "directory" -Force
 
     $null = New-Item -path "$ConfigurationPath" -itemType "directory" -Force
 
@@ -303,7 +323,11 @@ function Test-TargetResource
 
         [ValidateSet("Started", "Stopped")]
         [string]$State = "Started",
-    
+
+        # Location on the disk where the database is stored
+        [System.String]
+        $DatabasePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService",
+
         # Location on the disk where the Modules are stored            
         [string]$ModulePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules",
 
@@ -377,6 +401,23 @@ function Test-TargetResource
         $webConfigFullPath = Join-Path $website.physicalPath "web.config"
         if ($IsComplianceServer -eq $false)
         {
+            Write-Verbose "Check DatabasePath"
+            switch ((Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbprovider"))
+            {
+                "ESENT" {
+                    $expectedConnectionString = "$DatabasePath\Devices.edb"
+                }
+
+                "System.Data.OleDb" {
+                    $expectedConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$DatabasePath\Devices.mdb;"
+                }
+            }
+            if (-not (Test-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbconnectionstr" -ExpectedAppSettingValue $expectedConnectionString))
+            {
+                $DesiredConfigurationMatch = $false
+                break
+            }
+
             Write-Verbose "Check ModulePath"
             if ($ModulePath)
             {
