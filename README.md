@@ -389,7 +389,8 @@ These parameters will be the same for each Windows optional feature in the set. 
 * xDSCWebService:
     * Added setting of enhanced security
     * Cleaned up Examples
-    * Cleaned up pull server verification test 
+    * Cleaned up pull server verification test
+    * xDscWebService: Add DatabasePath property to specific a custom database path and enable multiple pull server instances on one server.
 
 ### 3.13.0.0
 
@@ -452,7 +453,6 @@ These parameters will be the same for each Windows optional feature in the set. 
 * Merged the in-box Service resource with xService and added tests for xService
 * Merged the in-box Archive resource with xArchive and added tests for xArchive
 * Merged the in-box Group resource with xGroup and added tests for xGroup
-* xDscWebService: Add DatabasePath property to specific a custom database path and enable multiple pull server instances on one server.
 
 ### 3.10.0.0
 
