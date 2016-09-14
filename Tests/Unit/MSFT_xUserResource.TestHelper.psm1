@@ -1,11 +1,11 @@
 ﻿Import-Module "$PSScriptRoot\..\..\DSCResources\CommonResourceHelper.psm1" -Force
 
 <#
-    .SYNOPSIS
-    Tests if a scope represents the current machine.
+        .SYNOPSIS
+        Tests if a scope represents the current machine.
 
-    .PARAMETER Scope
-    The scope to test.
+        .PARAMETER Scope
+        The scope to test.
 #>
 function Test-IsLocalMachine
 {
@@ -63,23 +63,23 @@ function Test-IsLocalMachine
 }
 
 <#
-    .SYNOPSIS
-    Creates a user account.
+        .SYNOPSIS
+        Creates a user account.
 
-    .DESCRIPTION
-    This function creates a user on the local or remote machine.
+        .DESCRIPTION
+        This function creates a user on the local or remote machine.
 
-    .PARAMETER Credential
-    The credential containing the username and password to use to create the account.
+        .PARAMETER Credential
+        The credential containing the username and password to use to create the account.
 
-    .PARAMETER Description
-    The optional description to set on the user account.
+        .PARAMETER Description
+        The optional description to set on the user account.
 
-    .PARAMETER ComputerName
-    The optional name of the computer to update. Omit to create a user on the local machine.
+        .PARAMETER ComputerName
+        The optional name of the computer to update. Omit to create a user on the local machine.
 
-    .NOTES
-    For remote machines, the currently logged on user must have rights to create a user.
+        .NOTES
+        For remote machines, the currently logged on user must have rights to create a user.
 #>
 function New-User
 {
@@ -108,23 +108,23 @@ function New-User
 }
 
 <#
-    .SYNOPSIS
-    Creates a user account on a full server.
+        .SYNOPSIS
+        Creates a user account on a full server.
 
-    .DESCRIPTION
-    This function creates a user on the local or remote machine running a full server.
+        .DESCRIPTION
+        This function creates a user on the local or remote machine running a full server.
 
-    .PARAMETER Credential
-    The credential containing the username and password to use to create the account.
+        .PARAMETER Credential
+        The credential containing the username and password to use to create the account.
 
-    .PARAMETER Description
-    The optional description to set on the user account.
+        .PARAMETER Description
+        The optional description to set on the user account.
 
-    .PARAMETER ComputerName
-    The optional name of the computer to update. Omit to create a user on the local machine.
+        .PARAMETER ComputerName
+        The optional name of the computer to update. Omit to create a user on the local machine.
 
-    .NOTES
-    For remote machines, the currently logged on user must have rights to create a user.
+        .NOTES
+        For remote machines, the currently logged on user must have rights to create a user.
 #>
 function New-UserOnFullSKU
 {
@@ -163,20 +163,20 @@ function New-UserOnFullSKU
 }
 
 <#
-    .SYNOPSIS
-    Creates a user account on a Nano server.
+        .SYNOPSIS
+        Creates a user account on a Nano server.
 
-    .DESCRIPTION
-    This function creates a user on the local machine running a Nano server.
+        .DESCRIPTION
+        This function creates a user on the local machine running a Nano server.
 
-    .PARAMETER Credential
-    The credential containing the username and password to use to create the account.
+        .PARAMETER Credential
+        The credential containing the username and password to use to create the account.
 
-    .PARAMETER Description
-    The optional description to set on the user account.
+        .PARAMETER Description
+        The optional description to set on the user account.
 
-    .PARAMETER ComputerName
-    This parameter should not be used on NanoServer.
+        .PARAMETER ComputerName
+        This parameter should not be used on NanoServer.
 #>
 function New-UserOnNanoServer
 {
@@ -219,20 +219,20 @@ function New-UserOnNanoServer
 }
 
 <#
-    .SYNOPSIS
-    Removes a user account.
+        .SYNOPSIS
+        Removes a user account.
 
-    .DESCRIPTION
-    This function removes a local user from the local or remote machine.
+        .DESCRIPTION
+        This function removes a local user from the local or remote machine.
 
-    .PARAMETER UserName
-    The name of the user to remove.
+        .PARAMETER UserName
+        The name of the user to remove.
 
-    .PARAMETER ComputerName
-    The optional name of the computer to update. Omit to remove the user on the local machine.
+        .PARAMETER ComputerName
+        The optional name of the computer to update. Omit to remove the user on the local machine.
 
-    .NOTES
-    For remote machines, the currently logged on user must have rights to remove a user.
+        .NOTES
+        For remote machines, the currently logged on user must have rights to remove a user.
 #>
 function Remove-User
 {
@@ -257,20 +257,20 @@ function Remove-User
 }
 
 <#
-    .SYNOPSIS
-    Removes a user account on a full server.
+        .SYNOPSIS
+        Removes a user account on a full server.
 
-    .DESCRIPTION
-    This function removes a local user from the local or remote machine running a full server.
+        .DESCRIPTION
+        This function removes a local user from the local or remote machine running a full server.
 
-    .PARAMETER UserName
-    The name of the user to remove.
+        .PARAMETER UserName
+        The name of the user to remove.
 
-    .PARAMETER ComputerName
-    The optional name of the computer to update. Omit to remove the user on the local machine.
+        .PARAMETER ComputerName
+        The optional name of the computer to update. Omit to remove the user on the local machine.
 
-    .NOTES
-    For remote machines, the currently logged on user must have rights to remove a user.
+        .NOTES
+        For remote machines, the currently logged on user must have rights to remove a user.
 #>
 function Remove-UserOnFullSKU
 {
@@ -295,17 +295,17 @@ function Remove-UserOnFullSKU
 }
 
 <#
-    .SYNOPSIS
-    Removes a local user account on a Nano server.
+        .SYNOPSIS
+        Removes a local user account on a Nano server.
 
-    .DESCRIPTION
-    This function removes a local user from the local machine running a Nano Server.
+        .DESCRIPTION
+        This function removes a local user from the local machine running a Nano Server.
 
-    .PARAMETER UserName
-    The name of the user to remove.
+        .PARAMETER UserName
+        The name of the user to remove.
 
-    .PARAMETER ComputerName
-    This parameter should not be used on NanoServer.
+        .PARAMETER ComputerName
+        This parameter should not be used on NanoServer.
 #>
 function Remove-UserOnNanoServer
 {
@@ -333,17 +333,17 @@ function Remove-UserOnNanoServer
 }
 
 <#
-    .SYNOPSIS
-    Determines if a user exists..
+        .SYNOPSIS
+        Determines if a user exists..
 
-    .DESCRIPTION
-    This function determines if a user exists on a local or remote machine running.
+        .DESCRIPTION
+        This function determines if a user exists on a local or remote machine running.
 
-    .PARAMETER UserName
-    The name of the user to test.
+        .PARAMETER UserName
+        The name of the user to test.
 
-    .PARAMETER ComputerName
-    The optional name of the computer to update.
+        .PARAMETER ComputerName
+        The optional name of the computer to update.
 #>
 function Test-User
 {
@@ -368,17 +368,17 @@ function Test-User
 }
 
 <#
-    .SYNOPSIS
-    Determines if a user exists on a full server.
+        .SYNOPSIS
+        Determines if a user exists on a full server.
 
-    .DESCRIPTION
-    This function determines if a user exists on a local or remote machine running a full server.
+        .DESCRIPTION
+        This function determines if a user exists on a local or remote machine running a full server.
 
-    .PARAMETER UserName
-    The name of the user to test.
+        .PARAMETER UserName
+        The name of the user to test.
 
-    .PARAMETER ComputerName
-    The optional name of the computer to update.
+        .PARAMETER ComputerName
+        The optional name of the computer to update.
 #>
 function Test-UserOnFullSKU
 {
@@ -404,17 +404,17 @@ function Test-UserOnFullSKU
 }
 
 <#
-    .SYNOPSIS
-    Determines if a user exists on a Nano server.
+        .SYNOPSIS
+        Determines if a user exists on a Nano server.
 
-    .DESCRIPTION
-    This function determines if a user exists on a local or remote machine running a Nano server.
+        .DESCRIPTION
+        This function determines if a user exists on a local or remote machine running a Nano server.
 
-    .PARAMETER UserName
-    The name of the user to test.
+        .PARAMETER UserName
+        The name of the user to test.
 
-    .PARAMETER ComputerName
-    This parameter should not be used on NanoServer.
+        .PARAMETER ComputerName
+        This parameter should not be used on NanoServer.
 #>
 function Test-UserOnNanoServer
 {
@@ -451,13 +451,15 @@ function Test-UserOnNanoServer
         }
         throw $_.Exception
     }
+    finally
+    {
+        Remove-LocalUser -Name $UserName
+    }
 
     return $false
-
-    Remove-LocalUser -Name $UserName
 }
 
 Export-ModuleMember -Function `
     New-User, `
     Remove-User, `
-    Test-User
+    Test-*
