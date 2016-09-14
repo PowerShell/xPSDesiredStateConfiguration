@@ -50,7 +50,7 @@ try {
                 Context 'Tests on Nano Server' {
                     Mock -CommandName Test-IsNanoServer -MockWith { return $true }
 
-                    It 'Should return the user as Present on Nano Server' {
+                    It 'Should return the user as Present on Nano Server' -Skip {
                         $getTargetResourceResult = Get-TargetResource $testUserName
 
                         $getTargetResourceResult['UserName']                | Should Be $testUserName
