@@ -28,16 +28,35 @@ function Get-TargetResource
     Assert-ResourcePrerequisitesValid
 
     $windowsOptionalFeature = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
+    
+    <#
+        $windowsOptionalFeatureProperties and this section of code are needed because an error will be thrown if a property
+        is not found in WMF 4 instead of returning null.
+    #> 
+    $windowsOptionalFeatureProperties = @{}
+    $propertiesNeeded = @( 'LogPath', 'State', 'CustomProperties', 'FeatureName', 'LogLevel', 'Description', 'DisplayName' )
+
+    foreach ($property in $propertiesNeeded)
+    {
+        try
+        {
+            $windowsOptionalFeatureProperties[$property] = $windowsOptionalFeature.$property
+        }
+        catch
+        {
+            $windowsOptionalFeatureProperties[$property] = $null
+        }
+    }
 
     $windowsOptionalFeatureResource = @{
-        LogPath = $windowsOptionalFeature.LogPath
-        Ensure = Convert-FeatureStateToEnsure -State $windowsOptionalFeature.State
+        LogPath = $windowsOptionalFeatureProperties.LogPath
+        Ensure = Convert-FeatureStateToEnsure -State $windowsOptionalFeatureProperties.State
         CustomProperties =
-            Convert-CustomPropertyArrayToStringArray -CustomProperties $windowsOptionalFeature.CustomProperties
-        Name = $windowsOptionalFeature.FeatureName
-        LogLevel = $windowsOptionalFeature.LogLevel
-        Description = $windowsOptionalFeature.Description
-        DisplayName = $windowsOptionalFeature.DisplayName
+            Convert-CustomPropertyArrayToStringArray -CustomProperties $windowsOptionalFeatureProperties.CustomProperties
+        Name = $windowsOptionalFeatureProperties.FeatureName
+        LogLevel = $windowsOptionalFeatureProperties.LogLevel
+        Description = $windowsOptionalFeatureProperties.Description
+        DisplayName = $windowsOptionalFeatureProperties.DisplayName
     }
 
     Write-Verbose -Message ($script:localizedData.GetTargetResourceEndMessage -f $Name)
@@ -157,8 +176,21 @@ function Set-TargetResource
         Write-Verbose -Message ($script:localizedData.FeatureUninstalled -f $Name)
     }
 
+    <#
+        $restartNeeded and this section of code are needed because an error will be thrown if the
+        RestartNeeded property is not found in WMF 4.
+    #> 
+    try
+    {
+        $restartNeeded = $windowsOptionalFeature.RestartNeeded
+    }
+    catch
+    {
+        $restartNeeded = $false
+    }
+
     # Indicate we need a restart if needed
-    if ($windowsOptionalFeature.RestartNeeded)
+    if ($restartNeeded)
     {
         Write-Verbose -Message $script:localizedData.RestartNeeded
         $global:DSCMachineStatus = 1
