@@ -496,7 +496,7 @@ function Test-TargetResourceOnFullSKU
         if ($user -eq $null)
         {
             # A user with the provided name does not exist.
-            Write-Log -Message ($LocalizedData.UserDoesNotExist -f $UserName)
+            Write-Verbose -Message ($LocalizedData.UserDoesNotExist -f $UserName)
 
             if ($Ensure -eq 'Absent')
             {
@@ -509,24 +509,24 @@ function Test-TargetResourceOnFullSKU
         }
 
         # A user with the provided name exists.
-        Write-Log -Message ($LocalizedData.UserExists -f $UserName)
+        Write-Verbose -Message ($LocalizedData.UserExists -f $UserName)
 
         # Validate separate properties.
         if ($Ensure -eq 'Absent')
         {
-            Write-Log -Message ($LocalizedData.PropertyMismatch -f 'Ensure', 'Absent', 'Present')
+            Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'Ensure', 'Absent', 'Present')
             return $false; # The Ensure property does not match. Return $false;
         }
 
         if ($PSBoundParameters.ContainsKey('FullName') -and $FullName -ne $user.DisplayName)
         {
-            Write-Log -Message ($LocalizedData.PropertyMismatch -f 'FullName', $FullName, $user.DisplayName)
+            Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'FullName', $FullName, $user.DisplayName)
             return $false; # The FullName property does not match. Return $false;
         }
 
         if ($PSBoundParameters.ContainsKey('Description') -and $Description -ne $user.Description)
         {
-            Write-Log -Message ($LocalizedData.PropertyMismatch -f 'Description', $Description, $user.Description)
+            Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'Description', $Description, $user.Description)
             return $false; # The Description property does not match. Return $false;
         }
 
@@ -535,26 +535,26 @@ function Test-TargetResourceOnFullSKU
         {
             if (-not $principalContext.ValidateCredentials($UserName, $Password.GetNetworkCredential().Password))
             {
-                Write-Log -Message ($LocalizedData.PasswordPropertyMismatch -f 'Password')
+                Write-Verbose -Message ($LocalizedData.PasswordPropertyMismatch -f 'Password')
                 return $false; # The Password property does not match. Return $false;
             }
         }
 
         if ($PSBoundParameters.ContainsKey('Disabled') -and $Disabled -eq $user.Enabled)
         {
-            Write-Log -Message ($LocalizedData.PropertyMismatch -f 'Disabled', $Disabled, $user.Enabled)
+            Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'Disabled', $Disabled, $user.Enabled)
             return $false; # The Disabled property does not match. Return $false;
         }
 
         if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and $PasswordNeverExpires -ne $user.PasswordNeverExpires)
         {
-            Write-Log -Message ($LocalizedData.PropertyMismatch -f 'PasswordNeverExpires', $PasswordNeverExpires, $user.PasswordNeverExpires)
+            Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'PasswordNeverExpires', $PasswordNeverExpires, $user.PasswordNeverExpires)
             return $false; # The PasswordNeverExpires property does not match. Return $false;
         }
 
         if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and $PasswordChangeNotAllowed -ne $user.UserCannotChangePassword)
         {
-            Write-Log -Message ($LocalizedData.PropertyMismatch -f 'PasswordChangeNotAllowed', $PasswordChangeNotAllowed, $user.UserCannotChangePassword)
+            Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'PasswordChangeNotAllowed', $PasswordChangeNotAllowed, $user.UserCannotChangePassword)
             return $false; # The PasswordChangeNotAllowed property does not match. Return $false;
         }
     }
@@ -575,7 +575,7 @@ function Test-TargetResourceOnFullSKU
     }
 
     # All properties match. Return $true.
-    Write-Log -Message ($LocalizedData.AllUserPropertisMatch -f 'User', $UserName)
+    Write-Verbose -Message ($LocalizedData.AllUserPropertisMatch -f 'User', $UserName)
     return $true;
 }
 
@@ -701,7 +701,7 @@ function Set-TargetResourceOnNanoServer
         if ($_.CategoryInfo.ToString().Contains('UserNotFoundException'))
         {
             # The user is not found.
-            Write-Log -Message ($LocalizedData.UserDoesNotExist -f $UserName)
+            Write-Verbose -Message ($LocalizedData.UserDoesNotExist -f $UserName)
         }
         else
         {
@@ -887,24 +887,24 @@ function Test-TargetResourceOnNanoServer
     }
 
     # A user with the provided name exists.
-    Write-Log -Message ($LocalizedData.UserExists -f $UserName)
+    Write-Verbose -Message ($LocalizedData.UserExists -f $UserName)
 
     # Validate separate properties.
     if ($Ensure -eq 'Absent')
     {
-        Write-Log -Message ($LocalizedData.PropertyMismatch -f 'Ensure', 'Absent', 'Present')
+        Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'Ensure', 'Absent', 'Present')
         return $false; # The Ensure property does not match. Return $false;
     }
 
     if ($PSBoundParameters.ContainsKey('FullName') -and $FullName -ne $user.FullName)
     {
-        Write-Log -Message ($LocalizedData.PropertyMismatch -f 'FullName', $FullName, $user.FullName)
+        Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'FullName', $FullName, $user.FullName)
         return $false; # The FullName property does not match. Return $false;
     }
 
     if ($PSBoundParameters.ContainsKey('Description') -and $Description -ne $user.Description)
     {
-        Write-Log -Message ($LocalizedData.PropertyMismatch -f 'Description', $Description, $user.Description)
+        Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'Description', $Description, $user.Description)
         return $false; # The Description property does not match. Return $false;
     }
 
@@ -912,32 +912,32 @@ function Test-TargetResourceOnNanoServer
     {
         if(-not (Test-ValidCredentialsOnNanoServer -UserName $UserName -Password $Password.Password))
         {
-            Write-Log -Message ($LocalizedData.PasswordPropertyMismatch -f 'Password')
+            Write-Verbose -Message ($LocalizedData.PasswordPropertyMismatch -f 'Password')
             return $false; # The Password property does not match. Return $false;
         }
     }
 
     if ($PSBoundParameters.ContainsKey('Disabled') -and $Disabled -eq $user.Enabled)
     {
-        Write-Log -Message ($LocalizedData.PropertyMismatch -f 'Disabled', $Disabled, $user.Enabled)
+        Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'Disabled', $Disabled, $user.Enabled)
         return $false; # The Disabled property does not match. Return $false;
     }
 
     $existingUserPasswordNeverExpires = ($user.PasswordExpires -eq $null)
     if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and $PasswordNeverExpires -ne $existingUserPasswordNeverExpires)
     {
-        Write-Log -Message ($LocalizedData.PropertyMismatch -f 'PasswordNeverExpires', $PasswordNeverExpires, $existingUserPasswordNeverExpires)
+        Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'PasswordNeverExpires', $PasswordNeverExpires, $existingUserPasswordNeverExpires)
         return $false; # The PasswordNeverExpires property does not match. Return $false;
     }
 
     if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and $PasswordChangeNotAllowed -ne (-not $user.UserMayChangePassword))
     {
-        Write-Log -Message ($LocalizedData.PropertyMismatch -f 'PasswordChangeNotAllowed', $PasswordChangeNotAllowed, (-not $user.UserMayChangePassword))
+        Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'PasswordChangeNotAllowed', $PasswordChangeNotAllowed, (-not $user.UserMayChangePassword))
         return $false; # The PasswordChangeNotAllowed property does not match. Return $false;
     }
 
     # All properties match. Return $true.
-    Write-Log -Message ($LocalizedData.AllUserPropertisMatch -f 'User', $UserName)
+    Write-Verbose -Message ($LocalizedData.AllUserPropertisMatch -f 'User', $UserName)
     return $true;
 }
 
@@ -1061,27 +1061,6 @@ function New-TerminatingError
     
     $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, 'MachineStateIncorrect', 'InvalidOperation', $null
     throw $errorRecord
-}
-
-<#
-        .SYNOPSIS
-        Writes either to Verbose or ShouldProcess channel.
-#>
-function Write-Log
-{
-    [CmdletBinding(SupportsShouldProcess=$true)]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.String]
-        $Message
-    )
-
-    if ($PSCmdlet.ShouldProcess($Message, $null, $null))
-    {
-        Write-Verbose $Message
-    }
 }
 
 <#
