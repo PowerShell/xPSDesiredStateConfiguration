@@ -1,314 +1,316 @@
-$Global:DSCModuleName      = 'xPSDesiredStateConfiguration'
-$Global:DSCResourceName    = 'MSFT_xWindowsOptionalFeature'
+Import-Module -Name "$PSScriptRoot\..\CommonTestHelper.psm1"
 
-#region HEADER
-if ( (-not (Test-Path -Path '.\DSCResource.Tests\')) -or `
-     (-not (Test-Path -Path '.\DSCResource.Tests\TestHelper.psm1')) )
-{
-    & git @('clone','https://github.com/PowerShell/DscResource.Tests.git')
-}
-else
-{
-    & git @('-C',(Join-Path -Path (Get-Location) -ChildPath '\DSCResource.Tests\'),'pull')
-}
-Import-Module .\DSCResource.Tests\TestHelper.psm1 -Force
-$TestEnvironment = Initialize-TestEnvironment `
-    -DSCModuleName $Global:DSCModuleName `
-    -DSCResourceName $Global:DSCResourceName `
-    -TestType Unit
-#endregion
+$script:testEnvironment = Enter-DscResourceTestEnvironment `
+    -DscResourceModuleName 'xPSDesiredStateConfiguration' `
+    -DscResourceName 'MSFT_xWindowsOptionalFeature' `
+    -TestType 'Unit'
 
-# Begin Testing
 try
 {
+    InModuleScope 'MSFT_xWindowsOptionalFeature' {
+        Describe 'xWindowsOptionalFeature Unit Tests' {
+            BeforeAll {
+                $script:testFeatureName = 'TestFeature'
 
-    #region Pester Tests
+                $script:fakeEnabledFeature = [PSCustomObject] @{ 
+                    Name = $testFeatureName
+                    State = 'Enabled'
+                }
 
-    InModuleScope $Global:DSCResourceName {
-
-        $testFeatureName = 'TestFeature';
-        $fakeEnabledFeature = [PSCustomObject] @{ Name = $testFeatureName; State = 'Enabled'; }
-        $fakeDisabledFeature = [PSCustomObject] @{ Name = $testFeatureName; State = 'Disabled'; }
-
-        Describe "$($Global:DSCResourceName)\Convert-FeatureStateToEnsure" {
-
-            It 'Returns "Present" when state is "Enabled"' {
-                Convert-FeatureStateToEnsure -State 'Enabled' | Should Be 'Present';
+                $script:fakeDisabledFeature = [PSCustomObject] @{
+                    Name = $testFeatureName
+                    State = 'Disabled'
+                }
             }
 
-            It 'Returns "Absent" when state is "Disabled"' {
-                Convert-FeatureStateToEnsure -State 'Disabled' | Should Be 'Absent';
+            Context 'Get-TargetResource - Feature Enabled' {
+                Mock Assert-ResourcePrerequisitesValid -MockWith { }
+                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $script:testFeatureName } -MockWith { return $script:fakeEnabledFeature }
+
+                It 'Should return a Hashtable' {
+                    $getTargetResourceResult = Get-TargetResource -Name $script:testFeatureName
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
+                }
+
+                It 'Should call Assert-ResourcePrerequisitesValid with the feature name' {
+                    $getTargetResourceResult = Get-TargetResource -Name $script:testFeatureName
+                    Assert-MockCalled Dism\Get-WindowsOptionalFeature -ParameterFilter { $FeatureName -eq $script:testFeatureName } -Scope It
+                }
+
+                It 'Should return Ensure as Present' {
+                    $getTargetResourceResult = Get-TargetResource -Name $script:testFeatureName
+                    $getTargetResourceResult.Ensure | Should Be 'Present'
+                }
             }
 
-        } #end Describe Convert-FeatureStateToEnsure
+            
+            Context 'Get-TargetResource - Feature Disabled' {
+                Mock Assert-ResourcePrerequisitesValid -MockWith { }
+                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $script:testFeatureName } -MockWith { return $script:fakeDisabledFeature }
 
-        Describe "$($Global:DSCResourceName)\Assert-ResourcePrerequisitesValid" {
+                It 'Should return Ensure as Absent' {
+                    $getTargetResourceResult = Get-TargetResource -Name $script:testFeatureName
+                    $getTargetResourceResult.Ensure | Should Be 'Absent'
+                }
+            }
 
-            $fakeWindows7 = [PSCustomObject] @{ ProductType = 1; BuildNumber = 7601; }
-            $fakeServer2008R2 = [PSCustomObject] @{ ProductType = 2; BuildNumber = 7601; }
-            $fakeServer2012 = [PSCustomObject] @{ ProductType = 2; BuildNumber = 9200; }
-            $fakeWindows81 = [PSCustomObject] @{ ProductType = 1; BuildNumber = 9600; }
-            $fakeServer2012R2 = [PSCustomObject] @{ ProductType = 2; BuildNumber = 9600; }
+            Context 'Test-TargetResource - Feature Enabled' {
+                Mock Assert-ResourcePrerequisitesValid -MockWith { }
+                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $script:testFeatureName } -MockWith { return $script:fakeEnabledFeature }
 
-            It 'Throws when server operating system is Server 2008 R2' {
-                Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeServer2008R2; }
+                It 'Should return a Boolean' {
+                    $testTargetResourceResult = Test-TargetResource -Name $testFeatureName
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
+                }
+
+                It 'Should return true when Ensure set to Present' {
+                    Test-TargetResource -Name $testFeatureName -Ensure 'Present' | Should Be $true
+                }
+
+                It 'Should return false when Ensure set to Absent' {
+                    Test-TargetResource -Name $testFeatureName -Ensure 'Absent' | Should Be $false
+                }
+
+            }
+
+            Context 'Test-TargetResource - Feature Disabled' {
+                Mock Assert-ResourcePrerequisitesValid -MockWith { }
+                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $script:testFeatureName } -MockWith { return $script:fakeDisabledFeature }
+
+                It 'Should return false when Ensure set to Present' {
+                    Test-TargetResource -Name $testFeatureName -Ensure 'Present' | Should Be $false
+                }
+
+                It 'Should return true when Ensure set to Absent' {
+                    Test-TargetResource -Name $testFeatureName -Ensure 'Absent' | Should Be $true
+                }
+            }
+
+            Context 'Test-TargetResource - Feature Missing' {
+                Mock Assert-ResourcePrerequisitesValid -MockWith { }
+                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $script:testFeatureName } -MockWith { }
+
+                It 'Should return false when Ensure set to Present' {
+                    Test-TargetResource -Name $testFeatureName -Ensure 'Present' | Should Be $false
+                }
+
+                It 'Should return true when Ensure set to Absent' {
+                    Test-TargetResource -Name $testFeatureName -Ensure 'Absent' | Should Be $true
+                }
+            }
+
+            Context 'Set-TargetResource' {
+                Mock Assert-ResourcePrerequisitesValid -MockWith { }
+
+                It 'Should call Enable-WindowsOptionalFeature with NoRestart set to true by default when Ensure set to Present' {
+                    Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $NoRestart -eq $true } -MockWith { }
+                    
+                    Set-TargetResource -Name $script:testFeatureName
+                    
+                    Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $NoRestart -eq $true } -Scope It
+                }
+
+                It 'Should call Disable-WindowsOptionalFeature with NoRestart set to true by default when Ensure set to Absent' {
+                    Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $NoRestart -eq $true } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName -Ensure 'Absent'
+
+                    Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter  { $NoRestart -eq $true } -Scope It
+                }
+
+                It 'Should call Enable-WindowsOptionalFeature with Online by default as true when Ensure set to Present' {
+                    Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName
+
+                    Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -Scope It
+                }
+
+                It 'Should call Disable-WindowsOptionalFeature with Online set to true by default when Ensure set to Absent' {
+                    Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName -Ensure 'Absent'
+
+                    Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -Scope It
+                }
+
+                It 'Should call Enable-WindowsOptionalFeature with LogLevel set to WarningsInfo by default when Ensure set to Present' {
+                    Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName
+
+                    Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -Scope It
+                }
+
+                It 'Should call Enable-WindowsOptionalFeature with LogLevel set to Errors when Ensure set to Present and LogLevel set to ErrorsOnly' {
+                    Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Errors' } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName -LogLevel 'ErrorsOnly'
+
+                    Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Errors' } -Scope It
+                }
+
+                It 'Should call Enable-WindowsOptionalFeature with LogLevel set to Warnings when Ensure set to Present and LogLevel set to ErrorsAndWarnings' {
+                    Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Warnings' } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName -LogLevel 'ErrorsAndWarning'
+
+                    Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Warnings' } -Scope It
+                }
+
+                It 'Should call Disable-WindowsOptionalFeature with LogLevel set to WarningsInfo by default when Ensure set to Absent' {
+                    Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName -Ensure 'Absent'
+
+                    Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -Scope It
+                }
+
+                It 'Should call Enable-WindowsOptionalFeature without LimitAccess by default when Ensure set to Present' {
+                    Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LimitAccess -eq $null } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName
+
+                    Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter  { $LimitAccess -eq $null } -Scope It
+                }
+
+                It 'Should call Enable-WindowsOptionalFeature with LimitAccess set to true when NoWindowsUpdateCheck is specified' {
+                    Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LimitAccess -eq $true } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName -NoWindowsUpdateCheck $true
+
+                    Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter  { $LimitAccess -eq $true } -Scope It
+                }
+
+                It 'Should call Disable-WindowsOptionalFeature with Remove set to true when Ensure set to Absent and RemoveFilesOnDisable specified' {
+                    Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Remove -eq $true } -MockWith { }
+
+                    Set-TargetResource -Name $script:testFeatureName -Ensure 'Absent' -RemoveFilesOnDisable $true
+
+                    Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Remove -eq $true } -Scope It
+                }
+
+            }
+
+            Context 'Convert-FeatureStateToEnsure' {
+                It 'Should return Present when state is Enabled' {
+                    Convert-FeatureStateToEnsure -State 'Enabled' | Should Be 'Present'
+                }
+
+                It 'Should return Absent when state is Disabled' {
+                    Convert-FeatureStateToEnsure -State 'Disabled' | Should Be 'Absent'
+                }
+
+                It 'Should return the same state when state is not Enabled or Disabled' {
+                    $originalWarningPreference = $WarningPreference
+                    $WarningPreference = 'SilentlyContinue'
+
+                    try
+                    {
+                        Convert-FeatureStateToEnsure -State 'UnknownState' | Should Be 'UnknownState'
+                    }
+                    finally
+                    {
+                        $WarningPreference = $originalWarningPreference
+                    }
+                }
+            }
+
+            Context 'Assert-ResourcePrerequisitesValid' {
+                $fakeWin32OSObjects = @{
+                    '7' = [PSCustomObject] @{
+                        ProductType = 1
+                        BuildNumber = 7601
+                    }
+                    'Server2008R2' = [PSCustomObject] @{
+                        ProductType = 2
+                        BuildNumber = 7601
+                    }
+                    'Server2012' = [PSCustomObject] @{
+                        ProductType = 2
+                        BuildNumber = 9200
+                    }
+                    '8.1' = [PSCustomObject] @{
+                        ProductType = 1
+                        BuildNumber = 9600
+                    }
+                    'Server2012R2' = [PSCustomObject] @{
+                        ProductType = 2
+                        BuildNumber = 9600
+                    }
+                }
+                
+                It 'Should throw when the DISM module is not available' {
+                    Mock Import-Module -ParameterFilter { $Name -eq 'Dism' } -MockWith { Write-Error 'Cannot find module' }
+                    { Assert-ResourcePrerequisitesValid } | Should Throw
+                }
+
                 Mock Import-Module -ParameterFilter { $Name -eq 'Dism' } -MockWith { }
 
-                { Assert-ResourcePrerequisitesValid } | Should Throw;
+                It 'Should throw when operating system is Server 2008 R2' {
+                    Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeWin32OSObjects['Server2008R2'] }
+                    { Assert-ResourcePrerequisitesValid } | Should Throw
+                }
+
+                It 'Should throw when operating system is Server 2012' {
+                    Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeWin32OSObjects['Server2012'] }
+                    { Assert-ResourcePrerequisitesValid } | Should Throw
+                }
+
+                It 'Should not throw when operating system is Windows 7' {
+                    Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeWin32OSObjects['7'] }
+                    { Assert-ResourcePrerequisitesValid } | Should Not Throw
+                }
+
+                It 'Should not throw when operating system is Windows 8.1' {
+                    Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeWin32OSObjects['8.1'] }
+                    { Assert-ResourcePrerequisitesValid } | Should Not Throw
+                }
+
+                It 'Should not throw when operating system is Server 2012 R2' {
+                    Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeWin32OSObjects['Server2012R2'] }
+                    { Assert-ResourcePrerequisitesValid } | Should Not Throw
+                }
             }
 
-            It 'Throws when server operating system is Server 2012' {
-                Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeServer2012; }
-                Mock Import-Module -ParameterFilter { $Name -eq 'Dism' } -MockWith { }
+            Context 'Convert-CustomPropertyArrayToStringArray' {
+                [PSCustomObject[]] $psCustomObjects = @(
+                    [PSCustomObject] @{
+                        Name = 'Object 1'
+                        Value = 'Value 1'
+                        Path = 'Path 1'
+                    },
+                    [PSCustomObject] @{
+                        Name = 'Object 2'
+                        Value = 'Value 2'
+                        Path = 'Path 2'
+                    },
+                    [PSCustomObject] @{
+                        Name = 'Object 3'
+                        Value = 'Value 3'
+                        Path = 'Path 3'
+                    },
+                    $null
+                )
 
-                { Assert-ResourcePrerequisitesValid } | Should Throw;
+                It 'Should return 3 strings from 3 PSCustomObjects and a null object' {
+                    $propertiesAsStrings = Convert-CustomPropertyArrayToStringArray -CustomProperties $psCustomObjects
+                    $propertiesAsStrings.Length | Should Be 3
+                }
+
+                It 'Should return the correct string for each object' {
+                    $propertiesAsStrings = Convert-CustomPropertyArrayToStringArray -CustomProperties $psCustomObjects
+                    
+                    foreach ($objectNumber in @(1, 2, 3))
+                    {
+                        $propertiesAsStrings.Contains("Name = Object $objectNumber, Value = Value $objectNumber, Path = Path $objectNumber") | Should Be $true
+                    }
+                }
             }
-
-            It 'Throws when DISM module is not available' {
-                Mock Import-Module -ParameterFilter { $Name -eq 'Dism' } -MockWith { Write-Error 'Cannot find module'; }
-
-                { Assert-ResourcePrerequisitesValid } | Should Throw;
-            }
-
-            It 'Does not throw when desktop operating system is Windows 7' {
-                Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeWindows7; }
-                Mock Import-Module -ParameterFilter { $Name -eq 'Dism' } -MockWith { }
-
-                { Assert-ResourcePrerequisitesValid } | Should Not Throw;
-            }
-
-            It 'Does not throw when desktop operating system is Windows 8.1' {
-                Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeWindows81; }
-                Mock Import-Module -ParameterFilter { $Name -eq 'Dism' } -MockWith { }
-
-                { Assert-ResourcePrerequisitesValid } | Should Not Throw;
-            }
-
-            It 'Does not throw when server operating system is Server 2012 R2' {
-                Mock Get-CimInstance -ParameterFilter { $ClassName -eq 'Win32_OperatingSystem' } -MockWith { return $fakeServer2012R2; }
-                Mock Import-Module -ParameterFilter { $Name -eq 'Dism' } -MockWith { }
-
-                { Assert-ResourcePrerequisitesValid } | Should Not Throw;
-            }
-
-        } #end Describe Assert-ResourcePrerequisitesValid
-
-        Describe "$($Global:DSCResourceName)\Get-TargetResource" {
-
-            It 'Returns [System.Collections.Hashtable] object type' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeEnabledFeature; }
-
-                $targetResource = Get-TargetResource -Name $testFeatureName;
-
-                $targetResource -is [System.Collections.Hashtable] | Should Be $true;
-            }
-
-            It 'Calls "Assert-ResourcePrerequisitesValid" method' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeEnabledFeature; }
-
-                $targetResource = Get-TargetResource -Name $testFeatureName;
-
-                Assert-MockCalled Dism\Get-WindowsOptionalFeature -ParameterFilter { $FeatureName -eq $testFeatureName } -Scope It;
-            }
-
-            It 'Returns "Present" when optional feature is enabled' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeEnabledFeature; }
-
-                $targetResource = Get-TargetResource -Name $testFeatureName;
-
-                $targetResource.Ensure | Should Be 'Present';
-            }
-
-            It 'Returns "Absent" when optional feature is enabled' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeDisabledFeature; }
-
-                $targetResource = Get-TargetResource -Name $testFeatureName;
-
-                $targetResource.Ensure | Should Be 'Absent';
-            }
-
-        } #end Describe Get-TargetResource
-
-        Describe "$($Global:DSCResourceName)\Test-TargetResource" {
-
-            It 'Returns a "[System.Boolean]" object type' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeEnabledFeature; }
-
-                $targetResource = Test-TargetResource -Name $testFeatureName;
-
-                $targetResource -is [System.Boolean] | Should Be $true;
-            }
-
-            It 'Returns false when optional feature is not available and "Ensure" = "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { }
-
-                $targetResource = Test-TargetResource -Name $testFeatureName -Ensure Present;
-
-                $targetResource | Should Be $false;
-            }
-
-            It 'Returns false when optional feature is disabled and "Ensure" = "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeDisabledFeature; }
-
-                $targetResource = Test-TargetResource -Name $testFeatureName -Ensure Present;
-
-                $targetResource | Should Be $false;
-            }
-
-            It 'Returns true when optional feature is enabled and "Ensure" = "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeEnabledFeature; }
-
-                $targetResource = Test-TargetResource -Name $testFeatureName -Ensure Present;
-
-                $targetResource | Should Be $true;
-            }
-
-            It 'Returns true when optional feature is not available and "Ensure" = "Absent"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { }
-
-                $targetResource = Test-TargetResource -Name $testFeatureName -Ensure Absent;
-
-                $targetResource | Should Be $true;
-            }
-
-            It 'Returns true when optional feature is disabled and "Ensure" = "Absent"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeDisabledFeature; }
-
-                $targetResource = Test-TargetResource -Name $testFeatureName -Ensure Absent;
-
-                $targetResource | Should Be $true;
-            }
-
-            It 'Returns false when optional feature is enabled and "Ensure" = "Absent"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Get-WindowsOptionalFeature { $FeatureName -eq $testFeatureName } -MockWith { return $fakeEnabledFeature; }
-
-                $targetResource = Test-TargetResource -Name $testFeatureName -Ensure Absent;
-
-                $targetResource | Should Be $false;
-            }
-
-        } #end Describe Test-TargetResource
-
-        Describe "$($Global:DSCResourceName)\Set-TargetResource" {
-
-            It 'Calls "Enable-WindowsOptionalFeature" with default "NoRestart" when "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $NoRestart -eq $true } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName;
-
-                Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $NoRestart -eq $true } -Scope It
-            }
-
-            It 'Calls "Enable-WindowsOptionalFeature" with "Online" when "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName;
-
-                Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -Scope It
-            }
-
-            It 'Calls "Enable-WindowsOptionalFeature" with default "WarningsInfo" logging level when "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName
-
-                Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -Scope It
-            }
-
-            It 'Calls "Enable-WindowsOptionalFeature" with "Errors" logging level when "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Errors' } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName -LogLevel ErrorsOnly
-
-                Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Errors' } -Scope It
-            }
-
-            It 'Calls "Enable-WindowsOptionalFeature" with "Warnings" logging level when "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Warnings' } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName -LogLevel ErrorsAndWarning
-
-                Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'Warnings' } -Scope It
-            }
-
-            It 'Calls "Enable-WindowsOptionalFeature" without "LimitAccess" by default when "Present"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LimitAccess -eq $null } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName
-
-                Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter  { $LimitAccess -eq $null } -Scope It
-            }
-
-            It 'Calls "Enable-WindowsOptionalFeature" with "LimitAccess" when NoWindowsUpdateCheck is specified' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Enable-WindowsOptionalFeature -ParameterFilter { $LimitAccess -eq $true } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName -NoWindowsUpdateCheck $true
-
-                Assert-MockCalled Dism\Enable-WindowsOptionalFeature -ParameterFilter  { $LimitAccess -eq $true } -Scope It
-            }
-
-            It 'Calls "Disable-WindowsOptionalFeature" with default "WarningsInfo" logging level when "Absent"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName -Ensure Absent;
-
-                Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter { $LogLevel -eq 'WarningsInfo' } -Scope It
-            }
-
-            It 'Calls "Disable-WindowsOptionalFeature" with "NoRestart" when "Absent"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $NoRestart -eq $true } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName -Ensure Absent;
-
-                Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter  { $NoRestart -eq $true } -Scope It
-            }
-
-            It 'Calls "Disable-WindowsOptionalFeature" with "Online" when "Absent"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName -Ensure Absent;
-
-                Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Online -eq $true } -Scope It
-            }
-
-            It 'Calls "Disable-WindowsOptionalFeature" with "Remove" when "Absent" and "RemoveFilesOnDisable"' {
-                Mock Assert-ResourcePrerequisitesValid -MockWith { }
-                Mock Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Remove -eq $true } -MockWith { }
-
-                Set-TargetResource -Name $testFeatureName -Ensure Absent -RemoveFilesOnDisable $true;
-
-                Assert-MockCalled Dism\Disable-WindowsOptionalFeature -ParameterFilter { $Remove -eq $true } -Scope It
-            }
-
-        } #end Describe Set-TargetResource
-
-    } #end InModuleScope $DSCResourceName
-    #endregion
+        }
+    }
 }
 finally
 {
-    #region FOOTER
-    Restore-TestEnvironment -TestEnvironment $TestEnvironment
-    #endregion
+    Exit-DscResourceTestEnvironment -TestEnvironment $script:testEnvironment
 }

@@ -24,7 +24,6 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 * **xPackage** manages the installation of .msi and .exe packages.
 * **xGroup** provides a mechanism to manage local groups on the target node.
 * **xFileUpload** is a composite resource which ensures that local files exist on an SMB share.
-* **xWindowsOptionalFeature** configures optional Windows features.
 * **xRegistry** provides a mechanism to manage registry keys and values on a target node.
 * **xEnvironment** configures and manages environment variables.
 * **xWindowsFeature** provides a mechanism to ensure that roles and features are added or removed on a target node.
@@ -33,6 +32,7 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 * **xProcessSet** allows starting and stopping of a group of windows processes with no arguments.
 * **xServiceSet** allows starting, stopping and change in state or account type for a group of services.
 * **xWindowsFeatureSet** allows installation and uninstallation of a group of Windows features and their subfeatures.
+* **xWindowsOptionalFeature** provides a mechanism to enable or disable optional features on a target node.
 * **xWindowsOptionalFeatureSet** allows installation and uninstallation of a group of optional Windows features.
 
 ### xArchive
@@ -176,28 +176,6 @@ xRegistry provides a mechanism to manage registry keys and values on a target no
 * **[Boolean] Hex** _(Write)_: Indicates if data will be expressed in hexadecimal format. If specified, the DWORD/QWORD value data is presented in hexadecimal format. Not valid for other types. The default value is $false.
 * **[Boolean] Force** _(Write)_: If the specified registry key is present, Force overwrites it with the new value.
 
-### xWindowsOptionalFeature
-Note: _the xWindowsOptionalFeature is only supported on Windows client or Windows Server 2012 (and later) SKUs._
-
-* **Name**: Name of the optional Windows feature.
-* **Source**: Specifies the location of the files that are required to restore a feature that has been removed from the image.
-   - You can specify the Windows directory of a mounted image or a running Windows installation that is shared on the network.
-   - If you specify multiple Source arguments, the files are gathered from the first location where they are found and the rest of the locations are ignored.
-* **RemoveFilesOnDisable**: Removes the files for an optional feature without removing the feature's manifest from the image.
-   - Suported values: $true, $false.
-   - Default value: $false.
-* **LogPath**: Specifies the full path and file name to log to.
-   - If not set, the default is %WINDIR%\Logs\Dism\dism.log.
-* **Ensure**: Ensures that the feature is present or absent.
-   - Supported values: Present, Absent.
-   - Default Value: Present.
-* **NoWindowsUpdateCheck**: Prevents DISM from contacting Windows Update (WU) when searching for the source files to restore a feature on an online image.
-   - Suported values: $true, $false.
-   - Default value: $false.
-* **LogLevel**: Specifies the maximum output level shown in the logs.
-   - Suported values: ErrorsOnly, ErrorsAndWarning, ErrorsAndWarningAndInformation.
-   - Default value: ErrorsOnly.
-
 ### xEnvironment
 
 * **Name**: Indicates the name of the environment variable for which you want to ensure a specific state.
@@ -312,6 +290,31 @@ These parameters will be the same for each Windows feature in the set. Please re
 * **LogPath**: Indicates the path to a log file where you want the resource provider to log the operation.
 * **Source**: Indicates the location of the source file to use for installation, if necessary.
 
+### xWindowsOptionalFeature
+Provides a mechanism to enable or disable optional features on a target node.
+
+#### Requirements
+    * Target machine must be running either a Windows client operating system or Windows Server 2012 or later.
+    * Target machine must have access to the DISM PowerShell module
+
+#### Parameters
+
+* **[String] Name** _(Key)_: The name of the Windows optional feature to enable or disable.
+* **[String] Ensure** _(Write)_: Specifies whether the feature should be enabled or disabled. To enable the feature, set this property to Present. To disable the feature, set the property to Absent. The default value is Present. { *Present* | Absent }.
+* **[Boolean] RemoveFilesOnDisable** _(Write)_: Specifies that all files associated with the feature should be removed if the feature is being disabled.
+* **[Boolean] NoWindowsUpdateCheck** _(Write)_: Specifies whether or not DISM contacts Windows Update (WU) when searching for the source files to enable the feature. If $true, DISM will not contact WU.
+* **[String] LogPath** _(Write)_: The path to the log file to log this operation. There is not default value, but if not set, the log will appear at %WINDIR%\Logs\Dism\dism.log.
+* **[String] LogLevel** _(Write)_: The maximum output level to show in the log. ErrorsOnly will log only errors. ErrorsAndWarning will log only errors and warnings. ErrorsAndWarningAndInformation will log errors, warnings, and debug information). The default value is "ErrorsAndWarningAndInformation".  { ErrorsOnly | ErrorsAndWarning | *ErrorsAndWarningAndInformation* }.
+
+#### Read-Only Properties from Get-TargetResource
+
+* **[String[]] CustomProperties** _(Read)_: The custom properties retrieved from the Windows optional feature as an array of strings.
+* **[String] Description** _(Read)_: The description retrieved from the Windows optional feature.
+* **[String] DisplayName** _(Read)_: The display name retrieved from the Windows optional feature.
+
+#### Examples
+    * [Enable the specified windows optional feature and output logs to the specified path](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xWindowsOptionalFeature.ps1)
+
 ### xWindowsOptionalFeatureSet
 Note: xWindowsOptionalFeature is only supported on Windows client or Windows Server 2012 (and later) SKUs.
 
@@ -362,6 +365,8 @@ These parameters will be the same for each Windows optional feature in the set. 
     * Cleaned up resource (PSSA issues, formatting, etc.)
     * Added example script
     * Added integration test
+    * Removed the unused Source parameter
+    * Updated to a high quality resource
 * xService:
     * Added descriptions to MOF file.
     * Added additional details to parameters in Readme.md in a format that can be generated from the MOF.
@@ -389,7 +394,7 @@ These parameters will be the same for each Windows optional feature in the set. 
 * xDSCWebService:
     * Added setting of enhanced security
     * Cleaned up Examples
-    * Cleaned up pull server verification test 
+    * Cleaned up pull server verification test
 
 ### 3.13.0.0
 

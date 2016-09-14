@@ -1,364 +1,353 @@
-# This module contains functions for Desired State Configuration Windows Optional Feature provider.
-# It enables configuring optional features on Windows Client SKUs.
-
-# Suppress PSSA issue PSAvoidGlobalVars because setting $global:DSCMachineStatus must be used
-# for this resource to notify the LCM about a required restart to complete the action.
+# PSSA global rule suppression is allowed here because $global:DSCMachineStatus must be set
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', '')]
 param ()
 
-# Fallback message strings in en-US
-DATA localizedData
-{
-    # culture = "en-US"
-    ConvertFrom-StringData @'
-        DismNotAvailable = PowerShell module Dism could not be imported.
-        NotSupportedSku = This Resource is only available for Windows Client or Server 2012 (or later).
-        ElevationRequired = This Resource requires to be run as an Administrator.
-        ValidatingPrerequisites = Validating prerequisites...
-        CouldNotCovertFeatureState = Could not convert feature state '{0}' into Absent/Present.
-        EnsureNotSupported = The value '{0}' for property Ensure is not supported.
-        RestartNeeded = Target machine needs to be restarted.
-        GetTargetResourceStartMessage = Begin executing Get functionality on the {0} feature.
-        GetTargetResourceEndMessage = End executing Get functionality on the {0} feature.
-        SetTargetResourceStartMessage = Begin executing Set functionality on the {0} feature.
-        SetTargetResourceEndMessage = End executing Set functionality on the {0} feature.
-        TestTargetResourceStartMessage = Begin executing Test functionality on the {0} feature.
-        TestTargetResourceEndMessage = End executing Test functionality on the {0} feature.
-        FeatureInstalled = Installed feature {0}.
-        FeatureUninstalled = Uninstalled feature {0}.
-        EnableFeature = Enable a Windows optional feature
-        DisableFeature = Disable a Windows optional feature
-'@
-}
-Import-Module Dism -Force -ErrorAction SilentlyContinue
+Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'CommonResourceHelper.psm1')
+$script:localizedData = Get-LocalizedData -ResourceName 'WindowsOptionalFeature'
 
 <#
     .SYNOPSIS
-    Gets the state of a Windows optional feature
+        Retrieves the state of a Windows optional feature resource.
 
     .PARAMETER Name
-    Specify the name of the Windows optional feature
+        The name of the Windows optional feature resource to retrieve.
 #>
 function Get-TargetResource
 {
     [CmdletBinding()]
-    [OutputType([System.Collections.Hashtable])]
+    [OutputType([Hashtable])]
     param
     (
-        [parameter(Mandatory = $true)]
-        [System.String]
+        [Parameter(Mandatory = $true)]
+        [String]
         $Name
     )
 
-    Write-Verbose ($LocalizedData.GetTargetResourceStartMessage -f $Name)
+    Write-Verbose -Message ($LocalizedData.GetTargetResourceStartMessage -f $Name)
 
     Assert-ResourcePrerequisitesValid
 
-    $result = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
+    $windowsOptionalFeature = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
 
-    $returnValue = @{
-        LogPath = $result.LogPath
-        Ensure = Convert-FeatureStateToEnsure $result.State
+    $windowsOptionalFeatureResource = @{
+        LogPath = $windowsOptionalFeature.LogPath
+        Ensure = Convert-FeatureStateToEnsure -State $windowsOptionalFeature.State
         CustomProperties =
-            Get-SerializedCustomPropertyList -CustomProperties $result.CustomProperties
-        Name = $result.FeatureName
-        LogLevel = $result.LogLevel
-        Description = $result.Description
-        DisplayName = $result.DisplayName
+            Convert-CustomPropertyArrayToStringArray -CustomProperties $windowsOptionalFeature.CustomProperties
+        Name = $windowsOptionalFeature.FeatureName
+        LogLevel = $windowsOptionalFeature.LogLevel
+        Description = $windowsOptionalFeature.Description
+        DisplayName = $windowsOptionalFeature.DisplayName
     }
 
-    $returnValue
+    Write-Verbose -Message ($script:localizedData.GetTargetResourceEndMessage -f $Name)
 
-    Write-Verbose ($LocalizedData.GetTargetResourceEndMessage -f $Name)
+    return $windowsOptionalFeatureResource
 }
 
 <#
     .SYNOPSIS
-    Serializes a list of CustomProperty objects serialized into [System.String[]]
-
-    .PARAMETER CustomProperties
-    Provide a list of CustomProperty objects to be serialized
-#>
-function Get-SerializedCustomPropertyList
-{
-    param
-    (
-        $CustomProperties
-    )
-
-    $CustomProperties | Where-Object { $_ -ne $null } |
-        ForEach-Object { "Name = $($_.Name), Value = $($_.Value), Path = $($_.Path)" }
-}
-
-<#
-    .SYNOPSIS
-    Converts state returned by Dism Get-WindowsOptionalFeature cmdlet to Present/Absent
-
-    .PARAMETER State
-    Provide a valid state Enabled or Disabled to be converted to either Present or Absent
-#>
-function Convert-FeatureStateToEnsure
-{
-    param
-    (
-        $State
-    )
-
-    if ($state -eq 'Disabled')
-    {
-        'Absent'
-    }
-    elseif ($state -eq 'Enabled')
-    {
-        'Present'
-    }
-    else
-    {
-        Write-Warning ($LocalizedData.CouldNotCovertFeatureState -f $state)
-        $state
-    }
-}
-
-<#
-    .SYNOPSIS
-    Enable or disable a Windows optional feature
-
-    .PARAMETER Source
-    Not implemented.
-
-    .PARAMETER RemoveFilesOnDisable
-    Set to $true to remove all files associated with the feature when it is disabled (that is,
-    when Ensure is set to "Absent").
-
-    .PARAMETER LogPath
-    The path to a log file where you want the resource provider to log the operation.
-
-    .PARAMETER Ensure
-    Specifies whether the feature is enabled. To ensure that the feature is enabled, set this
-    property to "Present". To ensure that the feature is disabled, set the property to "Absent".
-
-    .PARAMETER NoWindowsUpdateCheck
-    Specifies whether DISM contacts Windows Update (WU) when searching for the source files to
-    enable a feature. If $true, DISM does not contact WU.
+        Enables or disables a Windows optional feature
 
     .PARAMETER Name
-    Indicates the name of the feature that you want to ensure is enabled or disabled.
+        The name of the feature to enable or disable.
+
+    .PARAMETER Ensure
+        Specifies whether the feature should be enabled or disabled.
+        To enable the feature, set this property to Present.
+        To disable the feature, set the property to Absent.
+
+    .PARAMETER RemoveFilesOnDisable
+        Specifies that all files associated with the feature should be removed if the feature is
+        being disabled.
+
+    .PARAMETER NoWindowsUpdateCheck
+        Specifies whether or not DISM contacts Windows Update (WU) when searching for the source 
+        files to enable the feature.
+        If $true, DISM will not contact WU.
+
+    .PARAMETER LogPath
+        The path to the log file to log this operation.
+        There is not default value, but if not set, the log will appear at
+        %WINDIR%\Logs\Dism\dism.log.
 
     .PARAMETER LogLevel
-    The maximum output level shown in the logs. The accepted values are: "ErrorsOnly" (only errors
-    are logged), "ErrorsAndWarning" (errors and warnings are logged), and
-    "ErrorsAndWarningAndInformation" (errors, warnings, and debug information are logged).
+        The maximum output level to show in the log.
+        Accepted values are: "ErrorsOnly" (only errors are logged), "ErrorsAndWarning" (errors and
+        warnings are logged), and "ErrorsAndWarningAndInformation" (errors, warnings, and debug
+        information are logged).
 #>
 function Set-TargetResource
 {
-    [CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
-        [System.String[]]
-        $Source,
-
-        [System.Boolean]
-        $RemoveFilesOnDisable,
-
-        [System.String]
-        $LogPath,
-
-        [ValidateSet("Present","Absent")]
-        [System.String]
-        $Ensure = "Present",
-
-        [System.Boolean]
-        $NoWindowsUpdateCheck,
-
-        [parameter(Mandatory = $true)]
-        [System.String]
+        [Parameter(Mandatory = $true)]
+        [String]
         $Name,
 
-        [ValidateSet("ErrorsOnly","ErrorsAndWarning","ErrorsAndWarningAndInformation")]
-        [System.String]
-        $LogLevel
+        [ValidateSet('Present', 'Absent')]
+        [String]
+        $Ensure = 'Present',
+
+        [Boolean]
+        $RemoveFilesOnDisable,
+
+        [Boolean]
+        $NoWindowsUpdateCheck,
+
+        [String]
+        $LogPath,
+
+        [ValidateSet('ErrorsOnly', 'ErrorsAndWarning', 'ErrorsAndWarningAndInformation')]
+        [String]
+        $LogLevel = 'ErrorsAndWarningAndInformation'
     )
 
-    Write-Verbose ($LocalizedData.SetTargetResourceStartMessage -f $Name)
+    Write-Verbose -Message ($script:localizedData.SetTargetResourceStartMessage -f $Name)
 
     Assert-ResourcePrerequisitesValid
 
     switch ($LogLevel)
     {
-        'ErrorsOnly' { $DismLogLevel = 'Errors' }
-        'ErrorsAndWarning' { $DismLogLevel = 'Warnings' }
-        'ErrorsAndWarningAndInformation' { $DismLogLevel = 'WarningsInfo' }
-        '' { $DismLogLevel = 'WarningsInfo' }
+        'ErrorsOnly' { $dismLogLevel = 'Errors' }
+        'ErrorsAndWarning' { $dismLogLevel = 'Warnings' }
+        'ErrorsAndWarningAndInformation' { $dismLogLevel = 'WarningsInfo' }
     }
 
-    # Construct splatting hashtable for Dism cmdlets
-    $cmdletParams = $PSBoundParameters.psobject.Copy()
-    $cmdletParams['FeatureName'] = $Name
-    $cmdletParams['Online'] = $true
-    $cmdletParams['LogLevel'] = $DismLogLevel
-    $cmdletParams['NoRestart'] = $true
-    foreach ($key in @('Name', 'Ensure','RemoveFilesOnDisable','NoWindowsUpdateCheck'))
+    # Construct splatting hashtable for DISM cmdlets
+    $dismCmdletParameters = @{
+        FeatureName = $Name
+        Online = $true
+        LogLevel = $dismLogLevel
+        NoRestart = $true
+    }
+
+    if ($PSBoundParameters.ContainsKey('LogPath'))
     {
-        if ($cmdletParams.ContainsKey($key))
-        {
-           $cmdletParams.Remove($key)
-        }
+        $dismCmdletParameters['LogPath'] = $LogPath
     }
 
     if ($Ensure -eq 'Present')
     {
-        if ($PSCmdlet.ShouldProcess($Name, $LocalizedData.EnableFeature))
+        if ($PSCmdlet.ShouldProcess($Name, $script:localizedData.ShouldProcessEnableFeature))
         {
             if ($NoWindowsUpdateCheck)
             {
-                $cmdletParams['LimitAccess'] =  $true
+                $dismCmdletParameters['LimitAccess'] =  $true
             }
-            $feature = Dism\Enable-WindowsOptionalFeature @cmdletParams
+
+            $windowsOptionalFeature = Dism\Enable-WindowsOptionalFeature @dismCmdletParameters
         }
 
-        Write-Verbose ($LocalizedData.FeatureInstalled -f $Name)
-    }
-    elseif ($Ensure -eq 'Absent')
-    {
-        if ($PSCmdlet.ShouldProcess($Name, $LocalizedData.DisableFeature))
-        {
-            if ($RemoveFilesOnDisable)
-            {
-                $cmdletParams['Remove'] = $true
-            }
-            $feature = Dism\Disable-WindowsOptionalFeature @cmdletParams
-        }
-
-        Write-Verbose ($LocalizedData.FeatureUninstalled -f $Name)
+        Write-Verbose -Message ($script:localizedData.FeatureInstalled -f $Name)
     }
     else
     {
-        throw ($LocalizedData.EnsureNotSupported -f $Ensure)
+        if ($PSCmdlet.ShouldProcess($Name, $script:localizedData.ShouldProcessDisableFeature))
+        {
+            if ($RemoveFilesOnDisable)
+            {
+                $dismCmdletParameters['Remove'] = $true
+            }
+
+            $windowsOptionalFeature = Dism\Disable-WindowsOptionalFeature @dismCmdletParameters
+        }
+
+        Write-Verbose -Message ($script:localizedData.FeatureUninstalled -f $Name)
     }
 
-    ## Indicate we need a restart as needed
-    if ($feature.RestartNeeded)
+    # Indicate we need a restart if needed
+    if ($windowsOptionalFeature.RestartNeeded)
     {
-        Write-Verbose $LocalizedData.RestartNeeded
+        Write-Verbose -Message $script:localizedData.RestartNeeded
         $global:DSCMachineStatus = 1
     }
 
-    Write-Verbose ($LocalizedData.SetTargetResourceEndMessage -f $Name)
+    Write-Verbose -Message ($script:localizedData.SetTargetResourceEndMessage -f $Name)
 }
 
 <#
     .SYNOPSIS
-    Test if a Windows optional feature is in the desired state (enabled or disabled)
-
-    .PARAMETER Source
-    Not implemented.
-
-    .PARAMETER RemoveFilesOnDisable
-    Set to $true to remove all files associated with the feature when it is disabled (that is,
-    when Ensure is set to "Absent").
-
-    .PARAMETER LogPath
-    The path to a log file where you want the resource provider to log the operation.
-
-    .PARAMETER Ensure
-    Specifies whether the feature is enabled.     To ensure that the feature is enabled, set this
-    property to "Present". To ensure that the feature is disabled, set the property to "Absent".
-
-    .PARAMETER NoWindowsUpdateCheck
-    Specifies whether DISM contacts Windows Update (WU) when searching for the source files to
-    enable a feature. If $true, DISM does not contact WU.
+        Tests if a Windows optional feature is in the specified state.
 
     .PARAMETER Name
-    Indicates the name of the feature that you want to ensure is enabled or disabled.
+        The name of the feature to test the state of.
+
+    .PARAMETER Ensure
+        Specifies whether the feature should be enabled or disabled.
+        To test if the feature is enabled, set this property to Present.
+        To test if the feature is disabled, set this property to Absent.
+
+    .PARAMETER RemoveFilesOnDisable
+        Not used in Test-TargetResource.
+
+    .PARAMETER NoWindowsUpdateCheck
+        Not used in Test-TargetResource.
+
+    .PARAMETER LogPath
+        Not used in Test-TargetResource.
 
     .PARAMETER LogLevel
-    The maximum output level shown in the logs. The accepted values are: "ErrorsOnly" (only errors
-    are logged), "ErrorsAndWarning" (errors and warnings are logged), and
-    "ErrorsAndWarningAndInformation" (errors, warnings, and debug information are logged).
+        Not used in Test-TargetResource.
 #>
 function Test-TargetResource
 {
     [CmdletBinding()]
-    [OutputType([System.Boolean])]
+    [OutputType([Boolean])]
     param
     (
-        [System.String[]]
-        $Source,
-
-        [System.Boolean]
-        $RemoveFilesOnDisable,
-
-        [System.String]
-        $LogPath,
-
-        [ValidateSet("Present","Absent")]
-        [System.String]
-        $Ensure = "Present",
-
-        [System.Boolean]
-        $NoWindowsUpdateCheck,
-
-        [parameter(Mandatory = $true)]
-        [System.String]
+        [Parameter(Mandatory = $true)]
+        [String]
         $Name,
 
-        [ValidateSet("ErrorsOnly","ErrorsAndWarning","ErrorsAndWarningAndInformation")]
-        [System.String]
-        $LogLevel
+        [ValidateSet('Present', 'Absent')]
+        [String]
+        $Ensure = 'Present',
+
+        [Boolean]
+        $RemoveFilesOnDisable,
+
+        [Boolean]
+        $NoWindowsUpdateCheck,
+
+        [String]
+        $LogPath,
+
+        [ValidateSet('ErrorsOnly', 'ErrorsAndWarning', 'ErrorsAndWarningAndInformation')]
+        [String]
+        $LogLevel = 'ErrorsAndWarningAndInformation'
     )
 
-    Write-Verbose ($LocalizedData.TestTargetResourceStartMessage -f $Name)
+    Write-Verbose -Message ($script:localizedData.TestTargetResourceStartMessage -f $Name)
 
     Assert-ResourcePrerequisitesValid
 
-    $featureState = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
-    [bool] $result = $false
+    $windowsOptionalFeature = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
+    
+    $featureIsInDesiredState = $false
 
-    if ($null -eq $featureState)
+    if ($null -eq $windowsOptionalFeature -or $windowsOptionalFeature.State -eq 'Disabled')
     {
-        $result = $Ensure -eq 'Absent'
+        $featureIsInDesiredState = $Ensure -eq 'Absent'
     }
-    if (($featureState.State -eq 'Disabled' -and $Ensure -eq 'Absent')`
-        -or ($featureState.State -eq 'Enabled' -and $Ensure -eq 'Present'))
+    elseif ($windowsOptionalFeature.State -eq 'Enabled')
     {
-        $result = $true
+        $featureIsInDesiredState = $Ensure -eq 'Present'
     }
-    Write-Verbose ($LocalizedData.TestTargetResourceEndMessage -f $Name)
-    return $result
+    
+    Write-Verbose -Message ($script:localizedData.TestTargetResourceEndMessage -f $Name)
+    
+    return $featureIsInDesiredState
 }
 
 <#
     .SYNOPSIS
-    Helper function to test if the MSFT_WindowsOptionalFeature is supported on the target machine.
+        Converts a list of CustomProperty objects into an array of Strings.
+
+    .PARAMETER CustomProperties
+        The list of CustomProperty objects to be converted.
+        Each CustomProperty object should have Name, Value, and Path properties.
+#>
+function Convert-CustomPropertyArrayToStringArray
+{
+    [CmdletBinding()]
+    [OutputType([String[]])]
+    param
+    (
+        [PSCustomObject[]]
+        $CustomProperties
+    )
+
+    $propertiesAsStrings = [String[]] @()
+
+    foreach ($customProperty in $CustomProperties)
+    {
+        if ($null -ne $customProperty)
+        {
+            $propertiesAsStrings += "Name = $($customProperty.Name), Value = $($customProperty.Value), Path = $($customProperty.Path)"
+        }
+    }
+
+    return $propertiesAsStrings
+}
+
+<#
+    .SYNOPSIS
+        Converts the string state returned by the DISM Get-WindowsOptionalFeature cmdlet to Present or Absent.
+
+    .PARAMETER State
+        The state to be converted to either Present or Absent.
+        Should be either Enabled or Disabled.
+#>
+function Convert-FeatureStateToEnsure
+{
+    [CmdletBinding()]
+    [OutputType([String])]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $State
+    )
+
+    if ($State -eq 'Disabled')
+    {
+        return 'Absent'
+    }
+    elseif ($State -eq 'Enabled')
+    {
+        return 'Present'
+    }
+    else
+    {
+        Write-Warning ($script:localizedData.CouldNotCovertFeatureState -f $State)
+        return $State
+    }
+}
+
+<#
+    .SYNOPSIS
+        Throws errors if the prerequisites for using WindowsOptionalFeature are not met on the
+        target machine.
+
+        Current prerequisites are:
+            - Must be running either a Windows client or at least Windows Server 2012
+            - Must be running as an administrator
+            - The DISM PowerShell module must be available for import
 #>
 function Assert-ResourcePrerequisitesValid
 {
-    Write-Verbose $LocalizedData.ValidatingPrerequisites
+    [CmdletBinding()]
+    param ()
 
-    # check that we're running on Server 2012 (or later) or on a client SKU
-    $os = Get-CimInstance -ClassName Win32_OperatingSystem
+    Write-Verbose -Message $script:localizedData.ValidatingPrerequisites
 
-    if (($os.ProductType -ne 1) -and ([System.Int32] $os.BuildNumber -lt 9600))
+    # Check that we're running on Server 2012 (or later) or on a client SKU
+    $operatingSystem = Get-CimInstance -ClassName 'Win32_OperatingSystem'
+
+    if (($operatingSystem.ProductType -ne 1) -and ([System.Int32] $operatingSystem.BuildNumber -lt 9600))
     {
-        throw $LocalizedData.NotSupportedSku
+        New-InvalidOperationException -Message $script:localizedData.NotSupportedSku
     }
 
-    # check that we are running elevated
+    # Check that we are running as an administrator
     $windowsIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    $windowsPrincipal = new-object System.Security.Principal.WindowsPrincipal($windowsIdentity)
+    $windowsPrincipal = New-Object -TypeName 'System.Security.Principal.WindowsPrincipal' -ArgumentList @( $windowsIdentity )
+    
     $adminRole = [System.Security.Principal.WindowsBuiltInRole]::Administrator
-
-    if (!$windowsPrincipal.IsInRole($adminRole))
+    if (-not $windowsPrincipal.IsInRole($adminRole))
     {
-        throw $LocalizedData.ElevationRequired
+        New-InvalidOperationException -Message $script:localizedData.ElevationRequired
     }
 
-    # check that Dism PowerShell module is available
-    Import-Module Dism -Force -ErrorVariable ev -ErrorAction SilentlyContinue
+    # Check that Dism PowerShell module is available
+    Import-Module -Name 'Dism' -ErrorVariable 'errorsFromDismImport' -ErrorAction 'SilentlyContinue' -Force
 
-    if ($ev.Count -gt 0)
+    if ($errorsFromDismImport.Count -gt 0)
     {
-        throw $LocalizedData.DismNotAvailable
+        New-InvalidOperationException -Message $script:localizedData.DismNotAvailable
     }
 }
 

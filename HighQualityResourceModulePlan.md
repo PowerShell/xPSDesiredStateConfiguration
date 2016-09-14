@@ -24,10 +24,11 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
 - WindowsFeatureSet
 - WindowsOptionalFeature
 - WindowsOptionalFeatureSet
+- WindowsPackageCab (**NEW**)
 
 ## Progress
 
-- [x] [1. Port In-Box Only Resources](#port-in-box-only-resources)
+- [ ] [1. Port In-Box Only Resources](#port-in-box-only-resources)
   - [x] Environment
   - [x] GroupSet
   - [x] ProcessSet
@@ -37,23 +38,43 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
   - [x] WindowsFeature
   - [x] WindowsFeatureSet
   - [x] WindowsOptionalFeatureSet
-- [ ] [2. Merge In-Box & Open-Source Resources](#merge-in-box-and-open-source-resources) 
+  - [ ] WindowsPackageCap (**NEW**) (In Progress)
+- [x] [2. Merge In-Box & Open-Source Resources](#merge-in-box-and-open-source-resources) 
   - [x] Archive
   - [x] Group
   - [x] Package
   - [X] Process 
   - [x] Registry 
   - [x] Service
-  - [ ] WindowsOptionalFeature (In Progress)
+  - [x] WindowsOptionalFeature
 - [x] [3. Resolve Nano Server vs. Full Server Resources](#resolve-nano-server-vs-full-server-resources)
     The general consensus is to leave the if-statements for now.
 - [ ] [4. Update the Resource Module to a High Quality Resource Module](#update-the-resource-module-to-a-high-quality-resource-module)
-  - [ ] 1. Fix PSSA issues per the [DSC Resource Kit PSSA Rule Severity List](https://github.com/PowerShell/DscResources/blob/master/PSSARuleSeverities.md).  
-  - [ ] 2. Ensure unit tests are present for each resource with more than 70% code coverage. (In Progress) 
-  - [ ] 3. Ensure examples run correctly, work as expected, and are documented clearly.  
-  - [ ] 4. Ensure clear documentation is provided.  
-  - [ ] 5. Ensure the PSDesiredStateConfiguration module follows the standard DSC Resource Kit module format.  
-  - [ ] 6. Fix code styling to match the [DSC Resource Kit Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md).  
+  - 1. Fix PSSA issues per the [DSC Resource Kit PSSA Rule Severity List](https://github.com/PowerShell/DscResources/blob/master/PSSARuleSeverities.md).  
+  - 2. Ensure unit tests are present for each resource with more than 70% code coverage. (In Progress) 
+  - 3. Ensure examples run correctly, work as expected, and are documented clearly.  
+  - 4. Ensure clear documentation is provided.  
+  - 5. Ensure the PSDesiredStateConfiguration module follows the standard DSC Resource Kit module format.  
+  - 6. Fix code styling to match the [DSC Resource Kit Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md).
+  - [ ] Archive
+  - [ ] DSCWebService
+  - [ ] Environment
+  - [ ] Group
+  - [ ] GroupSet
+  - [ ] Package
+  - [ ] Process
+  - [ ] ProcessSet
+  - [ ] PSSessionConfiguration
+  - [ ] Registry
+  - [ ] Script
+  - [ ] Service
+  - [ ] ServiceSet
+  - [ ] User
+  - [ ] WindowsFeature
+  - [ ] WindowsFeatureSet
+  - [x] WindowsOptionalFeature
+  - [ ] WindowsOptionalFeatureSet
+  - [ ] WindowsPackageCab (**NEW**) (In Progress)
 - [ ] [5. Resolve Name of New High Quality Resource Module](#resolve-name-of-new-high-quality-resource-module)
   - [ ] 1. Move the entire module to a new GitHub repository with the correct name.  
   - [ ] 2. Rename the module files.  
@@ -74,8 +95,9 @@ These resources and any of their tests, examples, or documentation will be moved
 - WindowsFeature
 - WindowsFeatureSet
 - WindowsOptionalFeatureSet
+- WindowsPackageCab (**NEW**)
 
-When these resources are moved to GitHub, they will have ‘x’ appended before their names for now to indicate that they are still ‘experimental’ in this stage. This ‘x’ convention will change in the near future. The ‘x’ can be removed as part of step 5.
+When these resources are moved to GitHub, they will have 'x' appended before their names for now to indicate that they are still 'experimental' in this stage. This 'x' convention will change in the near future. The 'x' can be removed as part of step 5.
 
 ## Merge In-Box and Open-Source Resources
 We will merge in-box resources that are also currently in the open-source module. The in-box resources and any of their tests, examples, or documentation will be merged into the existing open-source resources in the xPSDesiredStateConfiguration resource module.
@@ -95,7 +117,7 @@ Four of the current open-source resources are not provided in-box. The fate of t
 - Service
 - WindowsOptionalFeature
 
-These resources will retain the ‘x’ appended before their names for now to indicate that they are still ‘experimental’ in this stage. This ‘x’ convention will change in the near future. The ‘x’ can be removed as part of step 5.
+These resources will retain the 'x' appended before their names for now to indicate that they are still 'experimental' in this stage. This 'x' convention will change in the near future. The 'x' can be removed as part of step 5.
 
 ### Open-Source Resources Not Moving to HQRM
 | Resource Name | Reason Not to Move |
@@ -125,7 +147,12 @@ Here are the basic steps we will have to take based on this plan:
 6. Fix code styling to match the [DSC Resource Kit Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md).  
 
 ## Resolve Name of New High Quality Resource Module
-The discussion surrounding the naming conventions of modules in the DSC Resource Kit is ongoing [here](https://github.com/PowerShell/PowerShell-RFC/issues/10).  
+The new High Quality module for xPSDesiredStateConfiguration will be named PSDsc.
+
+It cannot be named PSDesiredStateCongfiguration since that would conflict with the in-box module, but this HQRM will not contain all the resources in the in-box module (File cannot be ported).
+'PSDsc' also follows to convention of other HQRM's which end in 'Dsc'.
+
+All resources will have the 'x' removed in the HQRM.
 
 Renaming the module and its resources will require a few different steps:  
 1. Move the entire module to a new GitHub repository with the correct name.  

@@ -84,7 +84,49 @@ function New-InvalidOperationException
     throw $errorRecordToThrow
 }
 
+<#
+    .SYNOPSIS
+        Retrieves the localized string data based on the machine's culture.
+        Falls back to en-US strings if the machine's culture is not supported.
+
+    .PARAMETER ResourceName
+        The name of the resource as it appears in the file path after 'MSFT_x'.
+
+        For example:
+            For WindowsOptionalFeature: WindowsOptionalFeature
+            For Service: ServiceResource
+            For Registry: RegistryResource
+#>
+function Get-LocalizedData
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ResourceName
+    )
+
+    $resourceDirectory = (Join-Path -Path $PSScriptRoot -ChildPath "MSFT_x$ResourceName")
+    $localizedStringFileLocation = Join-Path -Path $resourceDirectory -ChildPath $PSUICulture
+
+    if (-not (Test-Path -Path $localizedStringFileLocation))
+    {
+        # Fallback to en-US
+        $localizedStringFileLocation = Join-Path -Path $resourceDirectory -ChildPath 'en-US'
+    }
+
+    Import-LocalizedData `
+        -BindingVariable 'LocalizedData' `
+        -FileName "MSFT_x$ResourceName.strings.psd1" `
+        -BaseDirectory $localizedStringFileLocation
+
+    return $LocalizedData
+}
+
 Export-ModuleMember -Function `
     Test-IsNanoServer, `
     New-InvalidArgumentException, `
-    New-InvalidOperationException
+    New-InvalidOperationException, `
+    Get-LocalizedData
