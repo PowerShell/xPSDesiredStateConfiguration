@@ -90,7 +90,7 @@ function Set-TargetResource
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
-        [Credential()]
+        [System.Management.Automation.Credential()]
         $Password,
 
         [System.Boolean]
@@ -147,7 +147,7 @@ function Test-TargetResource
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
-        [Credential()]
+        [System.Management.Automation.Credential()]
         $Password,
 
         [System.Boolean]
@@ -266,7 +266,7 @@ function Set-TargetResourceOnFullSKU
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
-        [Credential()]
+        [System.Management.Automation.Credential()]
         $Password,
 
         [System.Boolean]
@@ -471,7 +471,7 @@ function Test-TargetResourceOnFullSKU
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
-        [Credential()]
+        [System.Management.Automation.Credential()]
         $Password,
 
         [System.Boolean]
@@ -671,7 +671,7 @@ function Set-TargetResourceOnNanoServer
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
-        [Credential()]
+        [System.Management.Automation.Credential()]
         $Password,
 
         [System.Boolean]
@@ -850,7 +850,7 @@ function Test-TargetResourceOnNanoServer
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
-        [Credential()]
+        [System.Management.Automation.Credential()]
         $Password,
 
         [System.Boolean]

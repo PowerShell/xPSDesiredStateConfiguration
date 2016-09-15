@@ -1,19 +1,24 @@
 ﻿
 # Integration Test Config Template Version 1.0.0
-
+param 
+(
+    [Parameter(Mandatory)]
+    [System.String]
+    $ConfigurationName
+)
         
 
-Configuration MSFT_xUser_NewUser
+Configuration $ConfigurationName
 {
     param 
-    (
-        [String]
+    (        
+        [System.String]
         $UserName = 'Test UserName',
         
-        [String]
+        [System.String]
         $Description = 'Test Description',
         
-        [String]
+        [System.String]
         $FullName = 'Test Full Name',
         
         [ValidateSet('Present', 'Absent')]
