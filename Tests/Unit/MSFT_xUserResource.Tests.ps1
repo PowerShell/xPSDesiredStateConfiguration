@@ -9,6 +9,8 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DSCResourceName 'MSFT_xUserResource' `
     -TestType Unit
 
+$script:skipMe = $true
+
 try {
 
     Import-Module "$PSScriptRoot\MSFT_xUserResource.TestHelper.psm1" -Force
@@ -50,7 +52,7 @@ try {
                 Context 'Tests on Nano Server' {
                     Mock -CommandName Test-IsNanoServer -MockWith { return $true }
 
-                    It 'Should return the user as Present on Nano Server' -Skip {
+                    It 'Should return the user as Present on Nano Server' -Skip:$script:skipMe {
                         $getTargetResourceResult = Get-TargetResource $testUserName
 
                         $getTargetResourceResult['UserName']                | Should Be $testUserName
@@ -59,7 +61,7 @@ try {
                         $getTargetResourceResult['PasswordChangeRequired']  | Should Be $null
                     }
 
-                    It 'Should return the user as Absent' -Skip {
+                    It 'Should return the user as Absent' -Skip:$script:skipMe {
                         $getTargetResourceResult = Get-TargetResource 'NotAUserName'
 
                         $getTargetResourceResult['UserName']                | Should Be 'NotAUserName'
@@ -191,7 +193,7 @@ try {
 
                         New-User -Credential $newTestCredential -Description $newTestUserDescription
                     
-                        It 'Should remove the user' -Skip {
+                        It 'Should remove the user' -Skip:$script:skipMe {
                         
                             Test-User -UserName $newTestUserName | Should Be $true
                         
@@ -201,7 +203,7 @@ try {
                         
                         }
                     
-                        It 'Should add the new user' -Skip {
+                        It 'Should add the new user' -Skip:$script:skipMe {
                             $newPassword = 'ThisIsAStrongPassword543!'
                             $newSecurePassword = ConvertTo-SecureString $newPassword -AsPlainText -Force
                             $newCredential = New-Object PSCredential ($newUser, $newSecurePassword)
@@ -211,7 +213,7 @@ try {
                             Test-User -UserName $newUser | Should Be $true
                         }
                         
-                        It 'Should update the user' -Skip {
+                        It 'Should update the user' -Skip:$script:skipMe {
                             $newPassword = 'ThisIsAStrongPassword543!'
                             $newSecurePassword = ConvertTo-SecureString $newPassword -AsPlainText -Force
                             $newCredential = New-Object PSCredential ($newUser, $newSecurePassword)
@@ -364,7 +366,7 @@ try {
                     
                     $absentUserName = 'AbsentUserUserName123456789'
                     
-                    It 'Should return true when user Present and correct values' -Skip {
+                    It 'Should return true when user Present and correct values' -Skip:$script:skipMe {
                         Mock -CommandName Test-ValidCredentialsOnNanoServer { return $true }
                         
                         $testTargetResourceResult = Test-TargetResource -UserName $testUserName `
@@ -376,27 +378,27 @@ try {
                         $testTargetResourceResult | Should Be $true
                     }
                     
-                    It 'Should return true when user Absent and Ensure = Absent' -Skip {
+                    It 'Should return true when user Absent and Ensure = Absent' -Skip:$script:skipMe {
                         $testTargetResourceResult = Test-TargetResource -UserName $absentUserName `
                                                                         -Ensure 'Absent'
                         $testTargetResourceResult | Should Be $true
                     }
 
-                    It 'Should return false when user Absent and Ensure = Present' -Skip {
+                    It 'Should return false when user Absent and Ensure = Present' -Skip:$script:skipMe {
                         
                         $testTargetResourceResult = Test-TargetResource -UserName $absentUserName `
                                                                         -Ensure 'Present'
                         $testTargetResourceResult | Should Be $false
                     }
                     
-                    It 'Should return false when user Present and Ensure = Absent' -Skip {
+                    It 'Should return false when user Present and Ensure = Absent' -Skip:$script:skipMe {
                         
                         $testTargetResourceResult = Test-TargetResource -UserName $testUserName `
                                                                         -Ensure 'Absent'
                         $testTargetResourceResult | Should Be $false
                     }
                     
-                    It 'Should return false when Password is wrong' -Skip {
+                    It 'Should return false when Password is wrong' -Skip:$script:skipMe {
                         Mock -CommandName Test-ValidCredentialsOnNanoServer { return $false }
                         
                         $badPassword = 'WrongPassword'
@@ -408,32 +410,32 @@ try {
                         $testTargetResourceResult | Should Be $false
                     }
                     
-                    It 'Should return false when user Present and wrong Description' -Skip {
+                    It 'Should return false when user Present and wrong Description' -Skip:$script:skipMe {
 
                         $testTargetResourceResult = Test-TargetResource -UserName $testUserName `
                                                                         -Description 'Wrong description'
                         $testTargetResourceResult | Should Be $false
                     }
 
-                    It 'Should return false when FullName is incorrect' -Skip {
+                    It 'Should return false when FullName is incorrect' -Skip:$script:skipMe {
                         $testTargetResourceResult = Test-TargetResource -UserName $testUserName `
                                                                         -FullName 'Wrong FullName'
                         $testTargetResourceResult | Should Be $false 
                     }
                     
-                    It 'Should return false when Disabled is incorrect' -Skip {
+                    It 'Should return false when Disabled is incorrect' -Skip:$script:skipMe {
                         $testTargetResourceResult = Test-TargetResource -UserName $testUserName `
                                                                         -Disabled $true
                         $testTargetResourceResult | Should Be $false 
                     }
                     
-                    It 'Should return false when PasswordNeverExpires is incorrect' -Skip {
+                    It 'Should return false when PasswordNeverExpires is incorrect' -Skip:$script:skipMe {
                         $testTargetResourceResult = Test-TargetResource -UserName $testUserName `
                                                                         -PasswordNeverExpires $true
                         $testTargetResourceResult | Should Be $false 
                     }
                     
-                    It 'Should return false when PasswordChangeNotAllowed is incorrect' -Skip {
+                    It 'Should return false when PasswordChangeNotAllowed is incorrect' -Skip:$script:skipMe {
                         $testTargetResourceResult = Test-TargetResource -UserName $testUserName `
                                                                         -PasswordChangeNotAllowed $true
                         $testTargetResourceResult | Should Be $false 

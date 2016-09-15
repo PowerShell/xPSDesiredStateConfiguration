@@ -9,6 +9,7 @@ try {
 
     $configFile = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xUserResource.config.ps1'
 
+
     Describe 'xUserResource Integration Tests' {
         $ConfigData = @{
             AllNodes = @(
@@ -30,37 +31,37 @@ try {
             
             $testUserName = 'TestUserName12345'
             $testUserPassword = 'StrongOne7.'
+            $testDescription = 'Test Description'
             $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
             $testCredential = New-Object PSCredential ($testUserName, $secureTestPassword)
 
             try
             {
-        
                 It 'Should compile without throwing' {
-                    
-
                     {
-                        . $configFile
-                        & $configurationName -UserName $testUserName -Password $testCredential -OutputPath $configurationPath -ConfigurationData $ConfigData -ErrorAction Stop
+                        . $configFile -ConfigurationName $configurationName
+                        & $configurationName -UserName $testUserName `
+                                             -Password $testCredential `
+                                             -Description $testDescription `
+                                             -OutputPath $configurationPath `
+                                             -ConfigurationData $ConfigData `
+                                             -ErrorAction Stop
                         Start-DscConfiguration -Path $configurationPath -Wait -Force
                     } | Should Not Throw
-
-                    #{  } | Should Not Throw
-                    
-                    #{
-                    #   Invoke-Expression -Command '$configurationName -OutputPath `$script:testEnvironment.WorkingFolder'
-                    #    Start-DscConfiguration -Path $script:testEnvironment.WorkingFolder -ComputerName localhost -Wait -Verbose -Force
-                    #} | Should Not Throw
                 }
 
                 It 'Should be able to call Get-DscConfiguration without throwing' {
-                    #{ Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not Throw
+                    { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not Throw
                 }
-
-                        #{ & $configurationName -OutputPath $configurationPath } | Should Not Throw
-
-                        #{ Start-DscConfiguration -Path $configurationPath -Wait -Force } | Should Not Throw
-
+                
+                It 'Should return the correct configuration' {
+                    $currentConfig = Get-DscConfiguration -Verbose -ErrorAction Stop
+                    $currentConfig.UserName | Should Be $testUserName
+                    $currentConfig.Ensure | Should Be 'Present'
+                    $currentConfig.Description | Should Be $TestDescription
+                    $currentConfig.Disabled | Should Be $false
+                    $currentConfig.PasswordChangeRequired | Should Be $null
+                }
             }
             finally
             {
@@ -74,111 +75,109 @@ try {
                 }
             }
         }
-        <#
-                It 'Should disable a valid Windows optional feature' {
-                $configurationName = 'DisableOptionalFeature'
-                $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+        
+        Context 'Should update an existing user' {
+            $configurationName = 'MSFT_xUser_UpdateUser'
+            $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
-                $logPath = Join-Path -Path $TestDrive -ChildPath 'DisableOptionalFeature.log'
+            $logPath = Join-Path -Path $TestDrive -ChildPath 'UpdateUser.log'
+            
+            $testUserName = 'TestUserName12345'
+            $testUserPassword = 'StrongOne7.'
+            $testDescription = 'New Test Description'
+            $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
+            $testCredential = New-Object PSCredential ($testUserName, $secureTestPassword)
 
-                $validFeatureName = 'TelnetClient'
-
-                $originalFeature = Dism\Get-WindowsOptionalFeature -FeatureName $validFeatureName -Online
-
-                try
-                {
-                if ($originalFeature.State -in $script:disabledStates)
-                {
-                Dism\Enable-WindowsOptionalFeature -FeatureName $validFeatureName -Online -NoRestart
+            try
+            {
+                It 'Should compile without throwing' {
+                    {
+                        . $configFile -ConfigurationName $configurationName
+                        & $configurationName -UserName $testUserName `
+                                             -Password $testCredential `
+                                             -Description $testDescription `
+                                             -OutputPath $configurationPath `
+                                             -ConfigurationData $ConfigData `
+                                             -ErrorAction Stop
+                        Start-DscConfiguration -Path $configurationPath -Wait -Force
+                    } | Should Not Throw
                 }
 
-                Configuration $configurationName
-                {
-                Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
-
-                xWindowsOptionalFeature WindowsOptionalFeature1
-                {
-                    Name = $validFeatureName
-                    Ensure = 'Absent'
-                    LogPath = $logPath
-                    NoWindowsUpdateCheck = $true
+                It 'Should be able to call Get-DscConfiguration without throwing' {
+                    { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not Throw
                 }
+                
+                It 'Should return the correct configuration' {
+                    $currentConfig = Get-DscConfiguration -Verbose -ErrorAction Stop
+                    $currentConfig.UserName | Should Be $testUserName
+                    $currentConfig.Ensure | Should Be 'Present'
+                    $currentConfig.Description | Should Be $TestDescription
+                    $currentConfig.Disabled | Should Be $false
+                    $currentConfig.PasswordChangeRequired | Should Be $null
                 }
-
-                { & $configurationName -OutputPath $configurationPath } | Should Not Throw
-
-                { Start-DscConfiguration -Path $configurationPath -Wait -Force } | Should Not Throw
-
-                $windowsOptionalFeature = Dism\Get-WindowsOptionalFeature -FeatureName $validFeatureName -Online 
-
-                $windowsOptionalFeature | Should Not Be $null
-                $windowsOptionalFeature.State -in $script:disabledStates | Should Be $true
-                }
-                finally
-                {
-                if ($originalFeature.State -in $script:disabledStates)
-                {
-                Dism\Disable-WindowsOptionalFeature -FeatureName $validFeatureName -Online -NoRestart
-                }
-
+            }
+            finally
+            {
                 if (Test-Path -Path $logPath) {
-                Remove-Item -Path $logPath -Recurse -Force
+                    Remove-Item -Path $logPath -Recurse -Force
                 }
 
                 if (Test-Path -Path $configurationPath)
                 {
-                Remove-Item -Path $configurationPath -Recurse -Force
+                    Remove-Item -Path $configurationPath -Recurse -Force
                 }
+            }
+        }
+        
+        Context 'Should delete an existing user' {
+            $configurationName = 'MSFT_xUser_DeleteUser'
+            $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+
+            $logPath = Join-Path -Path $TestDrive -ChildPath 'DeleteUser.log'
+            
+            $testUserName = 'TestUserName12345'
+            $testUserPassword = 'StrongOne7.'
+            $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
+            $testCredential = New-Object PSCredential ($testUserName, $secureTestPassword)
+
+            try
+            {
+                It 'Should compile without throwing' {
+                    {
+                        . $configFile -ConfigurationName $configurationName
+                        & $configurationName -UserName $testUserName `
+                                             -Password $testCredential `
+                                             -OutputPath $configurationPath `
+                                             -ConfigurationData $ConfigData `
+                                             -Ensure 'Absent' `
+                                             -ErrorAction Stop
+                        Start-DscConfiguration -Path $configurationPath -Wait -Force
+                    } | Should Not Throw
                 }
+
+                It 'Should be able to call Get-DscConfiguration without throwing' {
+                    { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not Throw
                 }
-
-                It 'Should not enable an incorrect Windows optional feature' {
-                $configurationName = 'EnableIncorrectWindowsFeature'
-                $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
-
-                $logPath = Join-Path -Path $TestDrive -ChildPath 'EnableIncorrectWindowsFeature.log'
-
-                $invalidFeatureName = 'NonExistentWindowsOptionalFeature'
-
-                Dism\Get-WindowsOptionalFeature -FeatureName $invalidFeatureName -Online | Should Be $null
-
-                try
-                {
-                Configuration $configurationName
-                {
-                Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
-
-                xWindowsOptionalFeature WindowsOptionalFeature1
-                {
-                    Name = $invalidFeatureName
-                    Ensure = 'Present'
-                    LogPath = $logPath
+                
+                It 'Should return the correct configuration' {
+                    $currentConfig = Get-DscConfiguration -Verbose -ErrorAction Stop
+                    $currentConfig.UserName | Should Be $testUserName
+                    $currentConfig.Ensure | Should Be 'Absent'
                 }
-                }
-
-                { & $configurationName -OutputPath $configurationPath } | Should Not Throw
-
-                { Start-DscConfiguration -Path $configurationPath -ErrorAction 'Stop' -Wait -Force } |
-                Should Throw "Feature name $invalidFeatureName is unknown."
-
-                Test-Path -Path $logPath | Should Be $true
-
-                Dism\Get-WindowsOptionalFeature -FeatureName $invalidFeatureName -Online | Should Be $null
-                }
-                finally
-                {
-                if (Test-Path -Path $logPath)
-                {
-                Remove-Item -Path $logPath -Recurse -Force
+            }
+            finally
+            {
+                if (Test-Path -Path $logPath) {
+                    Remove-Item -Path $logPath -Recurse -Force
                 }
 
                 if (Test-Path -Path $configurationPath)
                 {
-                Remove-Item -Path $configurationPath -Recurse -Force
+                    Remove-Item -Path $configurationPath -Recurse -Force
                 }
-                }
-                }
-        #>
+            }
+        }
+        
     }
 }
 finally
