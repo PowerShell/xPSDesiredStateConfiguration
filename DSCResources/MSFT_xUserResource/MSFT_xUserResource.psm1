@@ -90,6 +90,7 @@ function Set-TargetResource
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [Credential()]
         $Password,
 
         [System.Boolean]
@@ -146,6 +147,7 @@ function Test-TargetResource
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [Credential()]
         $Password,
 
         [System.Boolean]
@@ -264,6 +266,7 @@ function Set-TargetResourceOnFullSKU
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [Credential()]
         $Password,
 
         [System.Boolean]
@@ -300,7 +303,7 @@ function Set-TargetResourceOnFullSKU
             $userExists = $false;
             $saveChanges = $false;
 
-            if($user -eq $null)
+            if ($user -eq $null)
             {
                 # A user does not exist. Check WhatIf for adding a user.
                 $whatIfShouldProcess = $pscmdlet.ShouldProcess($LocalizedData.UserWithName -f $UserName, $LocalizedData.AddOperation);
@@ -316,7 +319,7 @@ function Set-TargetResourceOnFullSKU
 
             if ($whatIfShouldProcess)
             {
-                if(-not $userExists)
+                if (-not $userExists)
                 {
                     # The user with the provided name does not exist. Add a new user.
                     $user = New-Object System.DirectoryServices.AccountManagement.UserPrincipal -ArgumentList $principalContext
@@ -468,6 +471,7 @@ function Test-TargetResourceOnFullSKU
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [Credential()]
         $Password,
 
         [System.Boolean]
@@ -667,6 +671,7 @@ function Set-TargetResourceOnNanoServer
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [Credential()]
         $Password,
 
         [System.Boolean]
@@ -845,6 +850,7 @@ function Test-TargetResourceOnNanoServer
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [Credential()]
         $Password,
 
         [System.Boolean]
