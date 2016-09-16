@@ -90,12 +90,12 @@ function New-InvalidOperationException
         Falls back to en-US strings if the machine's culture is not supported.
 
     .PARAMETER ResourceName
-        The name of the resource as it appears in the file path after 'MSFT_x'.
+        The name of the resource as it appears before '.strings.psd1' of the localized string file.
 
         For example:
-            For WindowsOptionalFeature: WindowsOptionalFeature
-            For Service: ServiceResource
-            For Registry: RegistryResource
+            For WindowsOptionalFeature: MSFT_xWindowsOptionalFeature
+            For Service: MSFT_xServiceResource
+            For Registry: MSFT_xRegistryResource
 #>
 function Get-LocalizedData
 {
@@ -108,7 +108,7 @@ function Get-LocalizedData
         $ResourceName
     )
 
-    $resourceDirectory = (Join-Path -Path $PSScriptRoot -ChildPath "MSFT_x$ResourceName")
+    $resourceDirectory = (Join-Path -Path $PSScriptRoot -ChildPath $ResourceName)
     $localizedStringFileLocation = Join-Path -Path $resourceDirectory -ChildPath $PSUICulture
 
     if (-not (Test-Path -Path $localizedStringFileLocation))
@@ -118,11 +118,11 @@ function Get-LocalizedData
     }
 
     Import-LocalizedData `
-        -BindingVariable 'LocalizedData' `
-        -FileName "MSFT_x$ResourceName.strings.psd1" `
+        -BindingVariable 'localizedData' `
+        -FileName "$ResourceName.strings.psd1" `
         -BaseDirectory $localizedStringFileLocation
 
-    return $LocalizedData
+    return $localizedData
 }
 
 Export-ModuleMember -Function `
