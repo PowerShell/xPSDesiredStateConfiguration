@@ -1,4 +1,8 @@
-﻿Import-Module -Name "$PSScriptRoot\..\CommonTestHelper.psm1"
+﻿#To run these tests, the currently logged on user must have rights to create a user
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
+param ()
+
+Import-Module -Name "$PSScriptRoot\..\CommonTestHelper.psm1"
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
