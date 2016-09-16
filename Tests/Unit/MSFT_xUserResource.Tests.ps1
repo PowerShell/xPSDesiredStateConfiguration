@@ -9,7 +9,7 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DSCResourceName 'MSFT_xUserResource' `
     -TestType Unit
 
-$script:skipMe = $true
+$script:skipMe = $false
 
 try {
 
