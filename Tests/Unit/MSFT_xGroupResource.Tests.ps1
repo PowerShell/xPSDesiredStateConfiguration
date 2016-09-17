@@ -3,11 +3,12 @@ param ()
 
 Import-Module "$PSScriptRoot\..\..\DSCResource.Tests\TestHelper.psm1" -Force
 
-Initialize-TestEnvironment `
-    -DSCModuleName 'xPSDesiredStateConfiguration' `
-    -DSCResourceName 'MSFT_xGroupResource' `
-    -TestType Unit `
-    | Out-Null
+$initializeTestEnvironmentParams = @{
+    DSCModuleName = 'xPSDesiredStateConfiguration'
+    DSCResourceName = 'MSFT_xGroupResource'
+    TestType = 'Unit'
+}
+$null = Initialize-TestEnvironment @initializeTestEnvironmentParams
 
 InModuleScope 'MSFT_xGroupResource' {
     Describe 'xGroup Unit Tests'  {
@@ -30,20 +31,34 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
                     $getTargetResourceResult = Get-TargetResource -GroupName $testGroupName
-                    $getTargetResourceResultProperties = @( 'GroupName', 'Ensure', 'Description', 'Members' )
 
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargerResourceResultProperties
+                    $testGetTargetResourceResultParams = @{
+                        GetTargetResourceResult = $getTargetResourceResult
+                        GetTargetResourceResultProperties =
+                            @( 'GroupName', 'Ensure', 'Description', 'Members' )
+                    }
+                    Test-GetTargetResourceResult @testGetTargetResourceResultParams
 
                     $getTargetResourceResult['GroupName']       | Should Be $testGroupName
                     $getTargetResourceResult['Ensure']          | Should Be 'Present'
@@ -67,9 +82,26 @@ InModuleScope 'MSFT_xGroupResource' {
                     New-Group -GroupName $testGroupName -Description $testDescription
 
                     $getTargetResourceResult = Get-TargetResource -GroupName $testGroupName
-                    $getTargetResourceResultProperties = @( 'GroupName', 'Ensure', 'Description', 'Members' )
 
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargerResourceResultProperties
+                    <#
+                        NOTE:
+                        Testing if the hashtable contains the property Members has been 
+                        removed from the invocation of the generic hashtable test function 
+                        "Test-GetTargetResourceResult". It would produce a test failure because  
+                        the value of the Members property is an empty array.
+                        
+                        An alternative test has been added to ensure the hashtable contains
+                        the Members property.
+                    #>
+                    $testGetTargetResourceResultParams = @{
+                        GetTargetResourceResult = $getTargetResourceResult
+                        GetTargetResourceResultProperties = 
+                            @( 'GroupName', 'Ensure', 'Description' )
+                    }
+                    Test-GetTargetResourceResult @testGetTargetResourceResultParams
+
+                    # Alternative test to ensure the hashtable contains the Members property.
+                    $getTargetResourceResult.ContainsKey('Members') | Should Be $true
 
                     $getTargetResourceResult['GroupName']       | Should Be $testGroupName
                     $getTargetResourceResult['Ensure']          | Should Be 'Present'
@@ -85,12 +117,14 @@ InModuleScope 'MSFT_xGroupResource' {
             It 'Should return hashtable with correct values when group is absent' {
                 $testGroupName = 'AbsentGroup'
 
-                $getTargetResourceResult = Get-TargetResource -GroupName $testGroupName
+                $getTargetResourceResult =
+                    (Get-TargetResource -GroupName $testGroupName) -as [hashtable]
 
-                $getResultAsHashTable = $getResult -as [hashtable]
-                $getTargetResourceResultProperties = @( 'GroupName', 'Ensure' )
-
-                Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargerResourceResultProperties
+                $testGetTargetResourceResultParams = @{
+                    GetTargetResourceResult = $getTargetResourceResult
+                    GetTargetResourceResultProperties = @( 'GroupName', 'Ensure' )
+                }
+                Test-GetTargetResourceResult @testGetTargetResourceResultParams
 
                 $getTargetResourceResult['GroupName']   | Should Be $testGroupName
                 $getTargetResourceResult['Ensure']      | Should Be 'Absent'
@@ -103,7 +137,8 @@ InModuleScope 'MSFT_xGroupResource' {
 
                 try
                 {
-                    $setTargetResourceResult = Set-TargetResource -GroupName $testGroupName -Ensure 'Present'
+                    $setTargetResourceResult =
+                        Set-TargetResource -GroupName $testGroupName -Ensure 'Present'
 
                     Test-GroupExists -GroupName $testGroupName | Should Be $true
 
@@ -129,15 +164,26 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams  -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    $setTargetResourceResult = Set-TargetResource $testGroupName -Ensure 'Present' -Members @( $testUserName1, $testUserName2 ) -Description $testDescription
+                    $setTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Ensure = 'Present'
+                        Members = @( $testUserName1, $testUserName2 )
+                        Description = $testDescription
+                    }
+                    $setTargetResourceResult = Set-TargetResource @setTargetResourceParams
 
                     Test-GroupExists -GroupName $testGroupName | Should Be $true
 
@@ -166,15 +212,26 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    $setTargetResourceResult = Set-TargetResource $testGroupName -Ensure 'Present' -MembersToInclude @( $testUserName1, $testUserName2 ) -Description $testDescription
+                    $setTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Ensure = 'Present'
+                        MembersToInclude = @( $testUserName1, $testUserName2 )
+                        Description = $testDescription
+                    }
+                    $setTargetResourceResult = Set-TargetResource @setTargetResourceParams
 
                     Test-GroupExists -GroupName $testGroupName | Should Be $true
 
@@ -203,17 +260,33 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $setTargetResourceResult = Set-TargetResource $testGroupName -Ensure 'Present' -MembersToExclude @( $testUserName2 ) -Description $testDescription
+                    $setTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Ensure = 'Present'
+                        MembersToExclude = @( $testUserName2 )
+                        Description = $testDescription
+                    }
+                    $setTargetResourceResult = Set-TargetResource @setTargetResourceParams
 
                     Test-GroupExists -GroupName $testGroupName | Should Be $true
 
@@ -242,15 +315,25 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
                     $setTargetResourceResult = Set-TargetResource $testGroupName -Ensure 'Present'
 
@@ -274,17 +357,34 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    { Set-TargetResource $testGroupName -Ensure 'Present' -MembersToInclude @( $testUserName1 ) } | Should Not Throw
+                    {
+                        $setTargetResourceParams = @{
+                            GroupName = $testGroupName
+                            Ensure = 'Present'
+                            MembersToInclude = @( $testUserName1 )
+                        }
+                        Set-TargetResource  @setTargetResourceParams
+                    } | Should Not Throw
                 }
                 finally
                 {
@@ -304,17 +404,28 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $setTargetResourceResult = Set-TargetResource -GroupName $testGroupName -Ensure 'Absent'
+                    $setTargetResourceResult =
+                        Set-TargetResource -GroupName $testGroupName -Ensure 'Absent'
 
                     Test-GroupExists -GroupName $testGroupName | Should Be $false
                 }
@@ -331,7 +442,8 @@ InModuleScope 'MSFT_xGroupResource' {
                 and that creating a group without a credential does not throw any errors
                 when we have domain trust set up.
             #>
-            It 'Should correctly create a group with a domain user and credential' -Skip:$script:skipTestsWithCredentials {
+            $itName = 'Should correctly create a group with a domain user and credential'
+            It $itName -Skip:$script:skipTestsWithCredentials {
                 $testUserName1 = 'LocalTestUser1'
                 $testUserName2 = 'LocalTestUser2'
 
@@ -341,8 +453,13 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
@@ -352,26 +469,37 @@ InModuleScope 'MSFT_xGroupResource' {
                     $domainUserName = '?'
                     $domainUserPassword = '?'
 
-                    $secureDomainUserPassword = ConvertTo-SecureString $domainUserPassword -AsPlainText -Force
-                    $domainCredential = New-Object -TypeName 'PSCredential' -ArgumentList @( $domainUserName, $secureDomainUserPassword )
+                    $secureDomainUserPassword =
+                        ConvertTo-SecureString $domainUserPassword -AsPlainText -Force
+                    $newObjectParams = @{
+                        TypeName = 'PSCredential'
+                        ArgumentList = @( $domainUserName, $secureDomainUserPassword )
+                    }
+                    $domainCredential = New-Object @newObjectParams
 
-                    Set-TargetResource `
-                        -GroupName $testGroupName `
-                        -MembersToInclude @( $testUserName1, $testUserName2, $domainUserName ) `
-                        -Credential $domainCredential `
-                        -Description $testDescription
+                    $setTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = @( $testUserName1, $testUserName2, $domainUserName )
+                        Credential = $domainCredential
+                        Description = $testDescription
+                    }
+                    Set-TargetResource @setTargetResourceParams
 
-                    $testTargetResourceResult = Test-TargetResource `
-                        -GroupName $testGroupName `
-                        -MembersToInclude @( $testUserName1, $testUserName2, $domainUserName ) `
-                        -Credential $domainCredential
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = @( $testUserName1, $testUserName2, $domainUserName )
+                        Credential = $domainCredential
+                    }
+                    Test-TargetResource  @testTargetResourceParams | Should Be $true
 
-                    $testTargetResourceResult | Should Be $true
-
-                    $getTargetResourceResult = Get-TargetResource -GroupName $testGroupName -Credential $domainCredential
-                    $getTargetResourceResultProperties = @( 'GroupName', 'Ensure', 'Description', 'Members' )
-
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargerResourceResultProperties
+                    $getTargetResourceResult =
+                        Get-TargetResource -GroupName $testGroupName -Credential $domainCredential
+                    $testGetTargetResourceResultParams = @{
+                        GetTargetResourceResult = $getTargetResourceResult
+                        GetTargetResourceResultProperties =
+                            @( 'GroupName', 'Ensure', 'Description', 'Members' )
+                    }
+                    Test-GetTargetResourceResult @testGetTargetResourceResultParams
 
                     $getTargetResourceResult['GroupName']       | Should Be $testGroupName
                     $getTargetResourceResult['Ensure']          | Should Be 'Present'
@@ -394,29 +522,50 @@ InModuleScope 'MSFT_xGroupResource' {
                     - a domain local administrator user from a primary domain
                     - a domain user from the domain with a two-way trust
 
-                The credential for the domain local administrator user is used to resolve all user accounts.
+                The credential for the domain local administrator user is used to
+                resolve all user accounts.
             #>
-            It 'Should create a new group with the trusted domain accounts and credential' -Skip:$script:skipTestsWithCredentials {
+            $itName = 'Should create a new group with the trusted domain accounts and credential'
+            It $itName -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
                 $primaryDomainAccount = '?'
                 $twoWayTrustDomainAccount = '?'
 
-                $membersToInclude = @( $primaryDomainAccount['DomainUserName'], $twoWayTrustDomainAccount['DomainUserName'] )
+                $membersToInclude = @( $primaryDomainAccount['DomainUserName'],
+                    $twoWayTrustDomainAccount['DomainUserName'] )
                 $primaryDomainAccountCredential = $primaryDomainAccount['Credential']
 
                 try
                 {
-                    Set-TargetResource -GroupName $testGroupName -MembersToInclude $membersToInclude -Credential $primaryDomainAccountCredential -Description $testDescription
+                    $setTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = $membersToInclude
+                        Credential = $primaryDomainAccountCredential
+                        Description = $testDescription
+                    }
+                    Set-TargetResource @setTargetResourceParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -MembersToInclude $membersToInclude -Credential $primaryDomainAccountCredential
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = $membersToInclude
+                        Credential = $primaryDomainAccountCredential
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
 
-                    $getTargetResourceResult = Get-TargetResource -GroupName $testGroupName -Credential $primaryDomainAccountCredential
-                    $getTargetResourceResultProperties = @( 'GroupName', 'Ensure', 'Description', 'Members' )
+                    $getTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Credential = $primaryDomainAccountCredential
+                    }
+                    $getTargetResourceResult = Get-TargetResource @getTargetResourceParams
 
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargerResourceResultProperties
+                    $testGetTargetResourceResultParams = @{
+                        GetTargetResourceResult = $getTargetResourceResult
+                        GetTargetResourceResultProperties =
+                            @( 'GroupName', 'Ensure', 'Description', 'Members' )
+                    }
+                    Test-GetTargetResourceResult @testGetTargetResourceResultParams
 
                     $getTargetResourceResult['GroupName']       | Should Be $testGroupName
                     $getTargetResourceResult['Ensure']          | Should Be 'Present'
@@ -437,29 +586,51 @@ InModuleScope 'MSFT_xGroupResource' {
                     - a domain local administrator user from a primary domain
                     - a domain user from the domain with a two-way trust
 
-                The credential for the domain local administrator user is used to resolve all user accounts.
+                The credential for the domain local administrator user is used to
+                resolve all user accounts.
             #>
-            It 'Should create a group with a domain user and credential and add a user by UPN name' -Skip:$script:skipTestsWithCredentials {
+            $itName =
+                'Should create a group with a domain user and credential and add a user by UPN name'
+            It $itName -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
                 $primaryDomainAccount = '?'
                 $twoWayTrustDomainAccount = '?'
 
-                $membersToInclude = @( $primaryDomainAccount['UpnName'], $twoWayTrustDomainAccount['UpnName'] )
+                $membersToInclude = @( $primaryDomainAccount['UpnName'],
+                    $twoWayTrustDomainAccount['UpnName'] )
                 $primaryDomainAccountCredential = $primaryDomainAccount['Credential']
 
                 try
                 {
-                    Set-TargetResource -GroupName $testGroupName -MembersToInclude $membersToInclude -Credential $primaryDomainAccountCredential -Description $testDescription
+                    $setTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = $membersToInclude
+                        Credential = $primaryDomainAccountCredential
+                        Description = $testDescription
+                    }
+                    Set-TargetResource @setTargetResourceParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -MembersToInclude $membersToInclude -Credential $primaryDomainAccountCredential
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = $membersToInclude
+                        Credential = $primaryDomainAccountCredential
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
 
-                    $getTargetResourceResult = Get-TargetResource -GroupName $testGroupName -Credential $primaryDomainAccountCredential
-                    $getTargetResourceResultProperties = @( 'GroupName', 'Ensure', 'Description', 'Members' )
+                    $getTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Credential = $primaryDomainAccountCredential
+                    }
+                    $getTargetResourceResult = Get-TargetResource @getTargetResourceParams
 
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargerResourceResultProperties
+                    $testGetTargetResourceResultParams = @{
+                        GetTargetResourceResult = $getTargetResourceResult
+                        GetTargetResourceResultProperties =
+                            @( 'GroupName', 'Ensure', 'Description', 'Members' )
+                    }
+                    Test-GetTargetResourceResult @testGetTargetResourceResultParams
 
                     $getTargetResourceResult['GroupName']       | Should Be $testGroupName
                     $getTargetResourceResult['Ensure']          | Should Be 'Present'
@@ -472,23 +643,34 @@ InModuleScope 'MSFT_xGroupResource' {
                 }
             }
 
-            It 'Should not create a group with a credential and an invalid domain user' -Skip:$script:skipTestsWithCredentials {
+            $itName = 'Should not create a group with a credential and an invalid domain user'
+            It $itName -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
                 $primaryDomainAccount = '?'
                 $invalidDomainAccountUserName = 'invaliduser@' + $primaryAccount['DomainName']
 
-                $membersToInclude = @( $primaryDomainAccount['UpnName'], $invalidDomainAccountUserName )
+                $membersToInclude =
                 $primaryDomainAccountCredential = $primaryDomainAccount['Credential']
 
-                { Set-TargetResource -GroupName $testGroupName -MembersToInclude $membersToInclude -Credential $primaryDomainAccountCredential -Description $testDescription } | Should Throw
+                {
+                    $setTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = @( $primaryDomainAccount['UpnName'],
+                            $invalidDomainAccountUserName )
+                        Credential = $primaryDomainAccountCredential
+                        Description = $testDescription
+                    }
+                    Set-TargetResource @setTargetResourceParams
+                } | Should Throw
 
                 Test-GroupExists -GroupName $groupName | Should Be $false
             }
 
             <#
-                Verify that a group can be created with domain user but no credential and a user account from a trusted domain can be resolved and added.
+                Verify that a group can be created with domain user but no credential
+                and a user account from a trusted domain can be resolved and added.
 
                 This test creates a group and adds the following users as domain\username:
                     - a domain local administrator user from a primary domain
@@ -496,26 +678,41 @@ InModuleScope 'MSFT_xGroupResource' {
 
                 The domain trust is used to resolve all user accounts.
             #>
-            It 'Should create a group with a domain user but no credential' -Skip:$script:skipTestsWithCredentials {
+            $itName = 'Should create a group with a domain user but no credential'
+            It $itName -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
                 $primaryDomainAccount = '?'
                 $twoWayTrustDomainAccount = '?'
 
-                $membersToInclude = @( $primaryDomainAccount['DomainUserName'], $twoWayTrustDomainAccount['DomainUserName'] )
+                $membersToInclude = @( $primaryDomainAccount['DomainUserName'],
+                    $twoWayTrustDomainAccount['DomainUserName'] )
 
                 try
                 {
-                    { Set-TargetResource -GroupName $testGroupName -MembersToInclude $membersToInclude -Description $testDescription } | Should Not Throw
+                    {
+                        $setTargetResourceParams = @{
+                            GroupName = $testGroupName
+                            MembersToInclude = $membersToInclude
+                            Description = $testDescription
+                        }
+                        Set-TargetResource @setTargetResourceParams
+                    } | Should Not Throw
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -MembersToInclude $membersToInclude
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        MembersToInclude = $membersToInclude
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
 
                     $getTargetResourceResult = Get-TargetResource -GroupName $testGroupName
-                    $getTargetResourceResultProperties = @( 'GroupName', 'Ensure', 'Description', 'Members' )
-
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargerResourceResultProperties
+                    $testGetTargetResourceResultParams = @{
+                        GetTargetResourceResult = $getTargetResourceResult
+                        GetTargetResourceResultProperties =
+                            @( 'GroupName', 'Ensure', 'Description', 'Members' )
+                    }
+                    Test-GetTargetResourceResult @testGetTargetResourceResultParams
 
                     $getTargetResourceResult['GroupName']       | Should Be $testGroupName
                     $getTargetResourceResult['Ensure']          | Should Be 'Present'
@@ -529,7 +726,8 @@ InModuleScope 'MSFT_xGroupResource' {
             }
 
             # Verify that test group cannot be created with an invalid credential
-            It 'Should not create a group with an invalid credential' -Skip:$script:skipTestsWithCredentials {
+            $itName = 'Should not create a group with an invalid credential'
+            It $itName -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
@@ -537,25 +735,35 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testUserPassword = 'StrongOne7.'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                    ArgumentList = @( $testUserName1, $secureTestPassword )
+                }
+                $testCredential1 = New-Object @newObjectParams
 
                 # Domain user with invalid password
                 $domainUserName = '?'
                 $invalidDomainUserPassword = '?' + 'invalidstring'
-                $secureInvalidDomainUserPassword = ConvertTo-SecureString -String $invalidDomainUserPassword -AsPlainText -Force
-
-                $invalidDomainUserCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @($domainUserName, $invalidDomainUserPassword)
+                $secureInvalidDomainUserPassword =
+                    ConvertTo-SecureString -String $invalidDomainUserPassword -AsPlainText -Force
+                $newObjectParams = @{
+                    TypeName = 'System.Management.Automation.PSCredential'
+                    ArgumentList = @($domainUserName, $invalidDomainUserPassword)
+                }
+                $invalidDomainUserCredential = New-Object @newObjectParams
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
 
                     {
-                        Set-TargetResource `
-                            -GroupName $testGroupName `
-                            -MembersToInclude @($testUserName1, $domainUserName) `
-                            -Credential $invalidDomainUserCredential `
-                            -Description $testDescription
+                        $setTargetResourceParams = @{
+                            GroupName = $testGroupName
+                            MembersToInclude = @( $testUserName1, $domainUserName )
+                            Credential = $invalidDomainUserCredential
+                            Description = $testDescription
+                        }
+                        Set-TargetResource @setTargetResourceParams
                     } | Should Throw
                 }
                 finally
@@ -565,8 +773,12 @@ InModuleScope 'MSFT_xGroupResource' {
                 }
             }
 
-            # Verify that test group cannot be created with invalid user info (cannot resolve user) when using domain trust
-            It 'Should not create a group with an invalid domain user without a credential' -Skip:$script:skipTestsWithCredentials {
+            <#
+                Verify that test group cannot be created with invalid user info
+                (cannot resolve user) when using domain trust
+            #>
+            $itName = 'Should not create a group with an invalid domain user without a credential'
+            It $itName -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
@@ -574,22 +786,36 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testUserPassword = 'StrongOne7.'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                    ArgumentList = @( $testUserName1, $secureTestPassword )
+                }
+                $testCredential1 = New-Object @newObjectParams
 
                 # Domain user with invalid username
                 $invalidDomainUserName = '?' + 'invalidstring'
+                $invalidDomainUserPassword = '?' + 'invalidstring'
+                $secureInvalidDomainUserPassword =
+                    ConvertTo-SecureString -String $invalidDomainUserPassword -AsPlainText -Force
+                $newObjectParams = @{
+                    TypeName = 'System.Management.Automation.PSCredential'
+                    ArgumentList = @( $invalidDomainUserName, $invalidDomainUserPassword )
+                }
+                $invalidDomainUserCredential = New-Object @newObjectParams
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
 
                     {
-                        Set-TargetResource `
-                            -GroupName $testGroupName `
-                            -MembersToInclude $membersToInclude `
-                            -Credential $primaryDomainAccountCredential `
-                            -Description $testDescription `
-                            -MembersToInclude @($testUserName1, $invalidDomainUserName)
+                        $setTargetResourceParams = @{
+                            GroupName = $testGroupName
+                            Credential = $invalidDomainUserCredential
+                            Description = $testDescription
+                            MembersToInclude = @( $testUserName1,
+                                $invalidDomainUserName )
+                        }
+                        Set-TargetResource @setTargetResourceParams
                     } | Should Throw
                 }
                 finally
@@ -609,8 +835,11 @@ InModuleScope 'MSFT_xGroupResource' {
                 {
                     New-Group -GroupName $testGroupName -Description $testDescription
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
                 }
                 finally
                 {
@@ -626,8 +855,11 @@ InModuleScope 'MSFT_xGroupResource' {
                 {
                     New-Group -GroupName $testGroupName -Description $testDescription
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description 'Wrong description'
-                    $testTargetResourceResult | Should Be $false
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = 'Wrong description'
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $false
                 }
                 finally
                 {
@@ -645,18 +877,32 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription -Members @( $testUserName1, $testUserName2 )
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        Members = @( $testUserName1, $testUserName2 )
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
                 }
                 finally
                 {
@@ -677,9 +923,15 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
-                $testCredential3 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName3, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
+                $testCredential3 = New-Object @newObjectParams -ArgumentList @( $testUserName3,
+                    $secureTestPassword )
 
                 try
                 {
@@ -687,10 +939,19 @@ InModuleScope 'MSFT_xGroupResource' {
                     New-User -Credential $testCredential2 -Description $testDescription
                     New-User -Credential $testCredential3 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription -Members @( $testUserName1, $testUserName2, $testUserName3 )
-                    $testTargetResourceResult | Should Be $false
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        Members = @( $testUserName1, $testUserName2, $testUserName3 )
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $false
                 }
                 finally
                 {
@@ -711,18 +972,32 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription -MembersToInclude @( $testUserName1 )
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MembersToInclude = @( $testUserName1 )
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
                 }
                 finally
                 {
@@ -742,18 +1017,32 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
 
                 try
                 {
                     New-User -Credential $testCredential1 -Description $testDescription
                     New-User -Credential $testCredential2 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription -MembersToInclude @( $testUserName1, $testUserName2 )
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MembersToInclude = @( $testUserName1, $testUserName2 )
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
                 }
                 finally
                 {
@@ -774,9 +1063,15 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
-                $testCredential3 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName3, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
+                $testCredential3 = New-Object @newObjectParams -ArgumentList @( $testUserName3,
+                    $secureTestPassword )
 
                 try
                 {
@@ -784,10 +1079,19 @@ InModuleScope 'MSFT_xGroupResource' {
                     New-User -Credential $testCredential2 -Description $testDescription
                     New-User -Credential $testCredential3 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription -MembersToInclude @( $testUserName1, $testUserName2, $testUserName3 )
-                    $testTargetResourceResult | Should Be $false
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MembersToInclude = @( $testUserName1, $testUserName2, $testUserName3 )
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $false
                 }
                 finally
                 {
@@ -810,10 +1114,17 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
-                $testCredential3 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName3, $secureTestPassword )
-                $testCredential4 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName4, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
+                $testCredential3 = New-Object @newObjectParams -ArgumentList @( $testUserName3,
+                    $secureTestPassword )
+                $testCredential4 = New-Object @newObjectParams -ArgumentList @( $testUserName4,
+                    $secureTestPassword )
 
                 try
                 {
@@ -822,10 +1133,19 @@ InModuleScope 'MSFT_xGroupResource' {
                     New-User -Credential $testCredential3 -Description $testDescription
                     New-User -Credential $testCredential4 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription -MembersToExclude @( $testUserName3, $testUserName4 )
-                    $testTargetResourceResult | Should Be $true
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MembersToExclude = @( $testUserName3, $testUserName4 )
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $true
                 }
                 finally
                 {
@@ -849,10 +1169,17 @@ InModuleScope 'MSFT_xGroupResource' {
                 $testGroupName = 'LocalTestGroup'
 
                 $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-                $testCredential1 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName1, $secureTestPassword )
-                $testCredential2 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName2, $secureTestPassword )
-                $testCredential3 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName3, $secureTestPassword )
-                $testCredential4 = New-Object -TypeName 'PSCredential' -ArgumentList @( $testUserName4, $secureTestPassword )
+                $newObjectParams = @{
+                    TypeName = 'PSCredential'
+                }
+                $testCredential1 = New-Object @newObjectParams -ArgumentList @( $testUserName1,
+                    $secureTestPassword )
+                $testCredential2 = New-Object @newObjectParams -ArgumentList @( $testUserName2,
+                    $secureTestPassword )
+                $testCredential3 = New-Object @newObjectParams -ArgumentList @( $testUserName3,
+                    $secureTestPassword )
+                $testCredential4 = New-Object @newObjectParams -ArgumentList @( $testUserName4,
+                    $secureTestPassword )
 
                 try
                 {
@@ -861,10 +1188,19 @@ InModuleScope 'MSFT_xGroupResource' {
                     New-User -Credential $testCredential3 -Description $testDescription
                     New-User -Credential $testCredential4 -Description $testDescription
 
-                    New-Group -GroupName $testGroupName -Description $testDescription -MemberUserNames @( $testUserName1, $testUserName2 )
+                    $newGroupParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MemberUserNames = @( $testUserName1, $testUserName2 )
+                    }
+                    New-Group @newGroupParams
 
-                    $testTargetResourceResult = Test-TargetResource -GroupName $testGroupName -Description $testDescription -MembersToExclude @( $testUserName1, $testUserName3, $testUserName4 )
-                    $testTargetResourceResult | Should Be $false
+                    $testTargetResourceParams = @{
+                        GroupName = $testGroupName
+                        Description = $testDescription
+                        MembersToExclude = @( $testUserName1, $testUserName3, $testUserName4 )
+                    }
+                    Test-TargetResource @testTargetResourceParams | Should Be $false
                 }
                 finally
                 {

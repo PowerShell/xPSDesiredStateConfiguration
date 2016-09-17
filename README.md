@@ -357,6 +357,13 @@ These parameters will be the same for each Windows optional feature in the set. 
     * Added setting of enhanced security
     * Cleaned up Examples
     * Cleaned up pull server verification test
+* xGroup:
+    * Fixed PSSA issues
+    * Formatting updated as per style guidelines
+    * Missing comment-based help added for Get-/Set-/Test-TargetResource
+    * Typos fixed in Unit test script
+    * Unit test 'Get-TargetResource/Should return hashtable with correct values when group 
+    has no members' updated to handle the expected empty Members array correctly
 * xProcess:
     * Fixed PSSA issues
     * Corrected most style guideline issues

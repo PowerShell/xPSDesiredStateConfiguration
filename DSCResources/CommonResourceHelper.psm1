@@ -37,8 +37,13 @@ function New-InvalidArgumentException
         $ArgumentName
     )
 
-    $argumentException = New-Object -TypeName 'ArgumentException' -ArgumentList @( $Message, $ArgumentName )
-    $errorRecord = New-Object -TypeName 'System.Management.Automation.ErrorRecord' -ArgumentList @( $argumentException, $ArgumentName, 'InvalidArgument', $null)
+    $argumentException = New-Object -TypeName 'ArgumentException' -ArgumentList @( $Message,
+        $ArgumentName )
+    $newObjectParams = @{
+        TypeName = 'System.Management.Automation.ErrorRecord'
+        ArgumentList = @( $argumentException, $ArgumentName, 'InvalidArgument', $null )
+    }
+    $errorRecord = New-Object @newObjectParams
 
     throw $errorRecord
 }
@@ -73,14 +78,22 @@ function New-InvalidOperationException
     }
     elseif ($null -eq $ErrorRecord)
     {
-        $invalidOperationException = New-Object -TypeName 'InvalidOperationException' -ArgumentList @( $Message )
+        $invalidOperationException =
+            New-Object -TypeName 'InvalidOperationException' -ArgumentList @( $Message )
     }
     else
     {
-        $invalidOperationException = New-Object -TypeName 'InvalidOperationException' -ArgumentList @( $Message, $ErrorRecord.Exception)
+        $invalidOperationException =
+            New-Object -TypeName 'InvalidOperationException' -ArgumentList @( $Message,
+                $ErrorRecord.Exception )
     }
 
-    $errorRecordToThrow = New-Object -TypeName 'System.Management.Automation.ErrorRecord' -ArgumentList @( $invalidOperationException.ToString(), 'MachineStateIncorrect', 'InvalidOperation' ,$null)
+    $newObjectParams = @{
+        TypeName = 'System.Management.Automation.ErrorRecord'
+        ArgumentList = @( $invalidOperationException.ToString(), 'MachineStateIncorrect',
+            'InvalidOperation', $null )
+    }
+    $errorRecordToThrow = New-Object @newObjectParams
     throw $errorRecordToThrow
 }
 
@@ -125,8 +138,5 @@ function Get-LocalizedData
     return $localizedData
 }
 
-Export-ModuleMember -Function `
-    Test-IsNanoServer, `
-    New-InvalidArgumentException, `
-    New-InvalidOperationException, `
-    Get-LocalizedData
+Export-ModuleMember -Function @( 'Test-IsNanoServer', 'New-InvalidArgumentException',
+    'New-InvalidOperationException', 'Get-LocalizedData' )
