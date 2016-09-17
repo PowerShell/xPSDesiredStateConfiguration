@@ -1,10 +1,11 @@
 ﻿Import-Module "$PSScriptRoot\..\..\DSCResource.Tests\TestHelper.psm1" -Force
 
-Initialize-TestEnvironment `
-    -DSCModuleName 'xPSDesiredStateConfiguration' `
-    -DSCResourceName 'MSFT_xGroupResource' `
-    -TestType Integration `
-    | Out-Null
+$initializeTestEnvironmentParams = @{
+    DSCModuleName = 'xPSDesiredStateConfiguration'
+    DSCResourceName = 'MSFT_xGroupResource'
+    TestType = 'Integration'
+}
+$null = Initialize-TestEnvironment @initializeTestEnvironmentParams
 
 Describe 'xGroup Integration Tests'  {
     BeforeAll {
@@ -22,8 +23,8 @@ Describe 'xGroup Integration Tests'  {
 
         try
         {
-            Configuration $configurationName 
-            { 
+            Configuration $configurationName
+            {
                 param ()
 
                 Import-DSCResource -ModuleName 'xPSDesiredStateConfiguration'
@@ -70,8 +71,8 @@ Describe 'xGroup Integration Tests'  {
 
         try
         {
-            Configuration $configurationName 
-            { 
+            Configuration $configurationName
+            {
                 param ()
 
                 Import-DSCResource -ModuleName 'xPSDesiredStateConfiguration'
