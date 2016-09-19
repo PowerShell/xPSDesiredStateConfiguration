@@ -117,10 +117,10 @@ function Set-TargetResource
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Test-TargetResource cmdlet is used to validate if the resource
         is in a state as expected in the instance document.
-        .NOTES
+    .NOTES
         There's no easy way to check whether the PasswordChangeRequired is set
         to true or false, so this value is not tested here
 #>
@@ -241,7 +241,7 @@ function Get-TargetResourceOnFullSKU
 <#
         .SYNOPSIS
         The Set-TargetResource cmdlet on a full server.
-        .Notes
+        .NOTES
         $Password is required if $Ensure is set to 'Present'
 #>
 function Set-TargetResourceOnFullSKU
