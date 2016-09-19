@@ -39,7 +39,7 @@ if (-not (Test-IsNanoServer))
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Get-TargetResource cmdlet.
 #>
 function Get-TargetResource
@@ -65,7 +65,7 @@ function Get-TargetResource
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Set-TargetResource cmdlet.
 #>
 function Set-TargetResource
@@ -175,7 +175,7 @@ function Test-TargetResource
 
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Get-TargetResource cmdlet on a full server.
 #>
 function Get-TargetResourceOnFullSKU
@@ -239,9 +239,9 @@ function Get-TargetResourceOnFullSKU
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Set-TargetResource cmdlet on a full server.
-        .NOTES
+    .NOTES
         $Password is required if $Ensure is set to 'Present'
 #>
 function Set-TargetResourceOnFullSKU
@@ -442,9 +442,9 @@ function Set-TargetResourceOnFullSKU
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Test-TargetResource cmdlet on a full server.
-        .NOTES
+    .NOTES
         There's no easy way to check whether the PasswordChangeRequired is set
         to true or false, so this value is not tested here
 #>
@@ -585,7 +585,7 @@ function Test-TargetResourceOnFullSKU
 
 
 <#
-        .Synopsys
+    .Synopsys
         The Get-TargetResource cmdlet.
 #>
 function Get-TargetResourceOnNanoServer
@@ -646,7 +646,7 @@ function Get-TargetResourceOnNanoServer
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Set-TargetResource cmdlet on a Nano server.
 #>
 function Set-TargetResourceOnNanoServer
@@ -821,9 +821,9 @@ function Set-TargetResourceOnNanoServer
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         The Test-TargetResource cmdlet on a Nano server.
-        .NOTES
+    .NOTES
         There's no easy way to check whether the PasswordChangeRequired is set
         to true or false, so this value is not tested here
 #>
@@ -948,7 +948,7 @@ function Test-TargetResourceOnNanoServer
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Checks that the User name does not contain invalid characters.
 #>
 function Assert-UserNameValid
@@ -988,7 +988,7 @@ function Assert-UserNameValid
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Throws an argument error.
 #>
 function New-InvalidArgumentError
@@ -1040,7 +1040,7 @@ function New-ExceptionDueToDirectoryServicesError
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Create a new terminating error record and throws it
 #>
 function New-TerminatingError
@@ -1070,7 +1070,7 @@ function New-TerminatingError
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Tests the local user's credentials on the local machine.
 #>
 function Test-ValidCredentialsOnNanoServer
