@@ -1,4 +1,6 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingUserNameAndPassWordParams', '')] # To be removed when username/password changed to a credential
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSDSCUseVerboseMessageInDSCResource', '')] # Write-Verbose Used in helper functions
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSShouldProcess', '')] # Should process is called in a helper functions but not directly in Set-TargetResource
 param ()
 
 # A global variable that contains localized messages.
@@ -199,6 +201,7 @@ function Get-TargetResourceOnFullSKU
 
     try
     {
+        Write-Verbose -Message 'Starting Get-TargetResource on FullSKU'
         $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName);
         if ($user -ne $null)
         {
@@ -229,7 +232,7 @@ function Get-TargetResourceOnFullSKU
     }
     finally
     {
-        if ($user -ne $null)
+        if ($null -ne $user)
         {
             $user.Dispose();
         }
@@ -430,7 +433,7 @@ function Set-TargetResourceOnFullSKU
     }
     finally
     {
-        if ($user -ne $null)
+        if ($null -ne $user)
         {
             $user.Dispose();
         }
@@ -569,7 +572,7 @@ function Test-TargetResourceOnFullSKU
 
     finally
     {
-        if ($user -ne $null)
+        if ($null -ne $user)
         {
             $user.Dispose();
         }
@@ -607,6 +610,7 @@ function Get-TargetResourceOnNanoServer
     # Try to find a user by a name.
     try
     {
+        Write-Verbose -Message 'Starting Get-TargetResource on NanoServer'
         [Microsoft.PowerShell.Commands.LocalUser] $user = Get-LocalUser -Name $UserName -ErrorAction Stop
     }
     catch [System.Exception]
@@ -651,7 +655,6 @@ function Get-TargetResourceOnNanoServer
 #>
 function Set-TargetResourceOnNanoServer
 {
-    [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -693,7 +696,7 @@ function Set-TargetResourceOnNanoServer
 
     Assert-UserNameValid -UserName $UserName
 
-    ## Try to find a user by a name.
+    # Try to find a user by a name.
     $userExists = $false
     
     try
@@ -714,11 +717,11 @@ function Set-TargetResourceOnNanoServer
         }
     }
 
-    if($Ensure -eq 'Present')
+    if ($Ensure -eq 'Present')
     {
         # Ensure is set to 'Present'.
 
-        if(-not $userExists)
+        if (-not $userExists)
         {
             # The user with the provided name does not exist. Add a new user.
             New-LocalUser -Name $UserName -NoPassword
@@ -726,7 +729,7 @@ function Set-TargetResourceOnNanoServer
         }
 
         # Set user properties.
-        if($PSBoundParameters.ContainsKey('FullName'))
+        if ($PSBoundParameters.ContainsKey('FullName'))
         {
             if (-not $userExists -or $FullName -ne $user.FullName)
             {
@@ -749,9 +752,9 @@ function Set-TargetResourceOnNanoServer
             }
         }
 
-        if($PSBoundParameters.ContainsKey('Description') -and (-not $userExists -or $Description -ne $user.Description))
+        if ($PSBoundParameters.ContainsKey('Description') -and (-not $userExists -or $Description -ne $user.Description))
         {
-            if ($Description -eq $null)
+            if ($null -eq $Description)
             {
                 Set-LocalUser -Name $UserName -Description ([String]::Empty)
             }
@@ -779,7 +782,7 @@ function Set-TargetResourceOnNanoServer
             }
         }
 
-        $existingUserPasswordNeverExpires = (($userExists) -and ($user.PasswordExpires -eq $null))
+        $existingUserPasswordNeverExpires = (($userExists) -and ($null -eq $user.PasswordExpires))
         if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and (-not $userExists -or ($PasswordNeverExpires -ne $existingUserPasswordNeverExpires)))
         {
             Set-LocalUser -Name $UserName -PasswordNeverExpires:$passwordNeverExpires
@@ -793,9 +796,12 @@ function Set-TargetResourceOnNanoServer
         # NOTE: The parameter name and the property name have opposite meaning.
         [System.Boolean] $expected = -not $PasswordChangeNotAllowed
         $actual = $expected
-        if ($userExists) {
+        
+        if ($userExists)
+        {
             $actual = $user.UserMayChangePassword
         }
+        
         if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and (-not $userExists -or $expected -ne $actual))
         {
             Set-LocalUser -Name $UserName -UserMayChangePassword $expected
@@ -923,13 +929,13 @@ function Test-TargetResourceOnNanoServer
         }
     }
 
-    if ($PSBoundParameters.ContainsKey('Disabled') -and $Disabled -eq $user.Enabled)
+    if ($PSBoundParameters.ContainsKey('Disabled') -and ($Disabled -eq $user.Enabled))
     {
         Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'Disabled', $Disabled, $user.Enabled)
         return $false; # The Disabled property does not match. Return $false;
     }
 
-    $existingUserPasswordNeverExpires = ($user.PasswordExpires -eq $null)
+    $existingUserPasswordNeverExpires = ($null -eq $user.PasswordExpires)
     if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and $PasswordNeverExpires -ne $existingUserPasswordNeverExpires)
     {
         Write-Verbose -Message ($LocalizedData.PropertyMismatch -f 'PasswordNeverExpires', $PasswordNeverExpires, $existingUserPasswordNeverExpires)
@@ -1056,7 +1062,7 @@ function New-TerminatingError
     )
 
 
-    if ($ErrorRecord -ne $null)
+    if ($null -ne $ErrorRecord)
     {
         $exception = New-Object 'System.InvalidOperationException' $Message, $ErrorRecord.Exception
     }

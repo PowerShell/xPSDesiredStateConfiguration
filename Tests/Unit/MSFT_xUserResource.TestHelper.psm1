@@ -1,25 +1,25 @@
 ﻿Import-Module "$PSScriptRoot\..\..\DSCResources\CommonResourceHelper.psm1" -Force
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Tests if a scope represents the current machine.
 
-        .PARAMETER Scope
+    .PARAMETER Scope
         The scope to test.
 #>
 function Test-IsLocalMachine
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]
+        [System.String]
         $Scope
     )
 
     Set-StrictMode -Version latest
 
-    if ($scope -eq ".")
+    if ($scope -eq '.')
     {
         return $true
     }
@@ -29,14 +29,14 @@ function Test-IsLocalMachine
         return $true
     }
 
-    if ($scope -eq "localhost")
+    if ($scope -eq 'localhost')
     {
         return $true
     }
 
-    if ($scope.Contains("."))
+    if ($scope.Contains('.'))
     {
-        if ($scope -eq "127.0.0.1")
+        if ($scope -eq '127.0.0.1')
         {
             return $true
         }
@@ -63,22 +63,22 @@ function Test-IsLocalMachine
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Creates a user account.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function creates a user on the local or remote machine.
 
-        .PARAMETER Credential
+    .PARAMETER Credential
         The credential containing the username and password to use to create the account.
 
-        .PARAMETER Description
+    .PARAMETER Description
         The optional description to set on the user account.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         The optional name of the computer to update. Omit to create a user on the local machine.
 
-        .NOTES
+    .NOTES
         For remote machines, the currently logged on user must have rights to create a user.
 #>
 function New-User
@@ -86,14 +86,14 @@ function New-User
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [PSCredential]
-        [System.Management.Automation.CredentialAttribute()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential,
 
-        [string]
+        [System.String]
         $Description,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
@@ -108,22 +108,22 @@ function New-User
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Creates a user account on a full server.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function creates a user on the local or remote machine running a full server.
 
-        .PARAMETER Credential
+    .PARAMETER Credential
         The credential containing the username and password to use to create the account.
 
-        .PARAMETER Description
+    .PARAMETER Description
         The optional description to set on the user account.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         The optional name of the computer to update. Omit to create a user on the local machine.
 
-        .NOTES
+    .NOTES
         For remote machines, the currently logged on user must have rights to create a user.
 #>
 function New-UserOnFullSKU
@@ -131,14 +131,14 @@ function New-UserOnFullSKU
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [PSCredential]
-        [System.Management.Automation.CredentialAttribute()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential,
 
-        [string]
+        [System.String]
         $Description,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
@@ -151,31 +151,31 @@ function New-UserOnFullSKU
     Remove-User $userName $ComputerName
 
     $adComputerEntry = [ADSI] "WinNT://$ComputerName"
-    $adUserEntry = $adComputerEntry.Create("User", $userName)
+    $adUserEntry = $adComputerEntry.Create('User', $userName)
     $null = $adUserEntry.SetPassword($password)
 
-    if ($PSBoundParameters.ContainsKey("Description"))
+    if ($PSBoundParameters.ContainsKey('Description'))
     {
-        $null = $adUserEntry.Put("Description", $Description)
+        $null = $adUserEntry.Put('Description', $Description)
     }
 
     $null = $adUserEntry.SetInfo()
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Creates a user account on a Nano server.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function creates a user on the local machine running a Nano server.
 
-        .PARAMETER Credential
+    .PARAMETER Credential
         The credential containing the username and password to use to create the account.
 
-        .PARAMETER Description
+    .PARAMETER Description
         The optional description to set on the user account.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         This parameter should not be used on NanoServer.
 #>
 function New-UserOnNanoServer
@@ -183,24 +183,24 @@ function New-UserOnNanoServer
 
     param (
         [Parameter(Mandatory = $true)]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         [System.Management.Automation.CredentialAttribute()]
         $Credential,
 
-        [string]
+        [System.String]
         $Description,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
     Set-StrictMode -Version Latest
 
-    if ($PSBoundParameters.ContainsKey("ComputerName"))
+    if ($PSBoundParameters.ContainsKey('ComputerName'))
     {
         if (-not (Test-IsLocalMachine -Scope $ComputerName))
         {
-            throw "Do not specify the ComputerName arguments when running on NanoServer unless it is local machine."
+            throw 'Do not specify the ComputerName arguments when running on NanoServer unless it is local machine.'
         }
     }
 
@@ -212,26 +212,26 @@ function New-UserOnNanoServer
 
     New-LocalUser -Name $userName -Password $securePassword
 
-    if ($PSBoundParameters.ContainsKey("Description"))
+    if ($PSBoundParameters.ContainsKey('Description'))
     {
         Set-LocalUser -Name $userName -Description $Description
     }
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Removes a user account.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function removes a local user from the local or remote machine.
 
-        .PARAMETER UserName
+    .PARAMETER UserName
         The name of the user to remove.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         The optional name of the computer to update. Omit to remove the user on the local machine.
 
-        .NOTES
+    .NOTES
         For remote machines, the currently logged on user must have rights to remove a user.
 #>
 function Remove-User
@@ -239,10 +239,10 @@ function Remove-User
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]
+        [System.String]
         $UserName,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
@@ -257,19 +257,19 @@ function Remove-User
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Removes a user account on a full server.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function removes a local user from the local or remote machine running a full server.
 
-        .PARAMETER UserName
+    .PARAMETER UserName
         The name of the user to remove.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         The optional name of the computer to update. Omit to remove the user on the local machine.
 
-        .NOTES
+    .NOTES
         For remote machines, the currently logged on user must have rights to remove a user.
 #>
 function Remove-UserOnFullSKU
@@ -277,10 +277,10 @@ function Remove-UserOnFullSKU
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]
+        [System.String]
         $UserName,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
@@ -295,16 +295,16 @@ function Remove-UserOnFullSKU
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Removes a local user account on a Nano server.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function removes a local user from the local machine running a Nano Server.
 
-        .PARAMETER UserName
+    .PARAMETER UserName
         The name of the user to remove.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         This parameter should not be used on NanoServer.
 #>
 function Remove-UserOnNanoServer
@@ -312,20 +312,20 @@ function Remove-UserOnNanoServer
     [CmdletBinding()]
     param (
         [Parameter(Mandatory=$true)]
-        [string]
+        [System.String]
         $UserName,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
     Set-StrictMode -Version Latest
 
-    if ($PSBoundParameters.ContainsKey("ComputerName"))
+    if ($PSBoundParameters.ContainsKey('ComputerName'))
     {
         if (-not (Test-IsLocalMachine -Scope $ComputerName))
         {
-            throw "Do not specify the ComputerName arguments when running on NanoServer unless it is local machine."
+            throw 'Do not specify the ComputerName arguments when running on NanoServer unless it is local machine.'
         }
     }
 
@@ -333,16 +333,16 @@ function Remove-UserOnNanoServer
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Determines if a user exists..
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function determines if a user exists on a local or remote machine running.
 
-        .PARAMETER UserName
+    .PARAMETER UserName
         The name of the user to test.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         The optional name of the computer to update.
 #>
 function Test-User
@@ -350,10 +350,10 @@ function Test-User
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]
+        [System.String]
         $UserName,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
@@ -368,27 +368,28 @@ function Test-User
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Determines if a user exists on a full server.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function determines if a user exists on a local or remote machine running a full server.
 
-        .PARAMETER UserName
+    .PARAMETER UserName
         The name of the user to test.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         The optional name of the computer to update.
 #>
 function Test-UserOnFullSKU
 {
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]
+        [System.String]
         $UserName,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
@@ -404,35 +405,36 @@ function Test-UserOnFullSKU
 }
 
 <#
-        .SYNOPSIS
+    .SYNOPSIS
         Determines if a user exists on a Nano server.
 
-        .DESCRIPTION
+    .DESCRIPTION
         This function determines if a user exists on a local or remote machine running a Nano server.
 
-        .PARAMETER UserName
+    .PARAMETER UserName
         The name of the user to test.
 
-        .PARAMETER ComputerName
+    .PARAMETER ComputerName
         This parameter should not be used on NanoServer.
 #>
 function Test-UserOnNanoServer
 {
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]
+        [System.String]
         $UserName,
 
-        [string]
+        [System.String]
         $ComputerName = $env:COMPUTERNAME
     )
 
-    if ($PSBoundParameters.ContainsKey("ComputerName"))
+    if ($PSBoundParameters.ContainsKey('ComputerName'))
     {
         if (-not (Test-IsLocalMachine -Scope $ComputerName))
         {
-            throw "Do not specify the ComputerName arguments when running on NanoServer unless it is local machine."
+            throw 'Do not specify the ComputerName arguments when running on NanoServer unless it is local machine.'
         }
     }
 
