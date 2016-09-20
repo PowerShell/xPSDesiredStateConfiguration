@@ -6,34 +6,7 @@ param ()
 Import-Module "$PSScriptRoot\..\CommonResourceHelper.psm1"
 
 # Localized messages for Write-Verbose statements in this resource
-$script:localizedData = Get-LocalizedData -REsourceName 'MSFT_xUserResource'
-{
-    # culture='en-US'
-    ConvertFrom-StringData @'
-    UserWithName = User: {0}
-    RemoveOperation = Remove
-    AddOperation = Add
-    SetOperation = Set
-    ConfigurationStarted = Configuration of user {0} started.
-    ConfigurationCompleted = Configuration of user {0} completed successfully.
-    UserCreated = User {0} created successfully.
-    UserUpdated = User {0} properties updated successfully.
-    UserRemoved = User {0} removed successfully.
-    NoConfigurationRequired = User {0} exists on this node with the desired properties. No action required.
-    NoConfigurationRequiredUserDoesNotExist = User {0} does not exist on this node. No action required.
-    InvalidUserName = The name {0} cannot be used. Names may not consist entirely of periods and/or spaces, or contain these characters: {1}
-    UserExists = A user with the name {0} exists.
-    UserDoesNotExist = A user with the name {0} does not exist.
-    PropertyMismatch = The value of the {0} property is expected to be {1} but it is {2}.
-    PasswordPropertyMismatch = The value of the {0} property does not match.
-    AllUserPropertisMatch = All {0} {1} properties match.
-    ConnectionError = There could be a possible connection error while trying to use the System.DirectoryServices API's.
-    MultipleMatches = There could be a possible multiple matches exception while trying to use the System.DirectoryServices API's.
-'@
-}
-
-
-
+$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xUserResource'
 
 if (-not (Test-IsNanoServer))
 {
@@ -42,11 +15,14 @@ if (-not (Test-IsNanoServer))
 
 <#
     .SYNOPSIS
-        The Get-TargetResource cmdlet.
+        Retrieves the state of a Windows optional feature resource.
+
+    .PARAMETER UserName
+        The name of the user to retrieve.
 #>
 function Get-TargetResource
 {
-    [OutputType([Hashtable])]
+    [OutputType([System.Collections.Hashtable])]
     [CmdletBinding()]
     param
     (
@@ -68,7 +44,40 @@ function Get-TargetResource
 
 <#
     .SYNOPSIS
-        The Set-TargetResource cmdlet.
+        Creates, Modifies, or Deletes a User.
+    
+    .PARAMETER UserName
+        The name of the user to Create/Modify/Delete.
+
+    .PARAMETER Ensure
+        Specifies whether the user should exist or not.
+        By default this is set to Present
+
+    .PARAMETER FullName
+        The (optional) full name or display name of the user.
+        If not provided this value will remain blank.
+
+    .PARAMETER Description
+        Optional description for the user.
+
+    .PARAMETER Password
+        Password for the user account.
+
+    .PARAMETER Disabled
+        Specifies whether the accound should be disabled or not.
+        By default this is set to $false
+
+    .PARAMETER PasswordNeverExpires
+        Specifies whether the Password expires or not.
+        By default this is set to $false
+
+    .PARAMETER PasswordChangeRequired
+        Specifies whether the user must reset their password or not.
+        By default this is set to $false
+
+    .PARAMETER PasswordChangeNotAllowed
+        Specifies whether the user is allowed to change their password.
+        By default this is set to $false
 #>
 function Set-TargetResource
 {
@@ -121,10 +130,38 @@ function Set-TargetResource
 <#
     .SYNOPSIS
         The Test-TargetResource cmdlet is used to validate if the resource
-        is in a state as expected in the instance document.
-    .NOTES
+        is in the specified state.
+
+    .PARAMETER UserName
+        The name of the user to test the state of.
+
+    .PARAMETER Ensure
+        Specifies whether the user should exist or not.
+        By default this is set to Present
+
+    .PARAMETER FullName
+        The FullName of the user being tested.
+        If you don't care about what the FullName is, don't include this.
+
+    .PARAMETER Description
+        The Description of the user being tested.
+        If you don't care about what the description is, don't include this.
+
+    .PARAMETER Password
+        Password for the user account to be tested
+
+    .PARAMETER Disabled
+        Specifies whether the accound should be disabled or not.
+
+    .PARAMETER PasswordNeverExpires
+        Specifies whether the Password should expire or not.
+
+    .PARAMETER PasswordChangeRequired
         There's no easy way to check whether the PasswordChangeRequired is set
-        to true or false, so this value is not tested here
+        to true or false, so this value is not tested here.
+
+    .PARAMETER PasswordChangeNotAllowed
+        Specifies whether the user should be allowed to change their password.
 #>
 function Test-TargetResource
 {
@@ -196,34 +233,34 @@ function Get-TargetResourceOnFullSKU
 
     Assert-UserNameValid -UserName $UserName
 
-    # Try to find a user by a name.
+    # Try to find a user by a name
     $principalContext = New-Object System.DirectoryServices.AccountManagement.PrincipalContext -ArgumentList ([System.DirectoryServices.AccountManagement.ContextType]::Machine)
 
     try
     {
         Write-Verbose -Message 'Starting Get-TargetResource on FullSKU'
-        $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName);
+        $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName)
         if ($user -ne $null)
         {
             # The user is found. Return all user properties and Ensure='Present'.
             $returnValue = @{
-                                UserName = $user.Name;
-                                Ensure = 'Present';
-                                FullName = $user.DisplayName;
-                                Description = $user.Description;
-                                Disabled = -not $user.Enabled;
-                                PasswordNeverExpires = $user.PasswordNeverExpires;
-                                PasswordChangeRequired = $null;
-                                PasswordChangeNotAllowed = $user.UserCannotChangePassword;
+                                UserName = $user.Name
+                                Ensure = 'Present'
+                                FullName = $user.DisplayName
+                                Description = $user.Description
+                                Disabled = -not $user.Enabled
+                                PasswordNeverExpires = $user.PasswordNeverExpires
+                                PasswordChangeRequired = $null
+                                PasswordChangeNotAllowed = $user.UserCannotChangePassword
                             }
 
-            return $returnValue;
+            return $returnValue
         }
 
         # The user is not found. Return Ensure = Absent.
         return @{
-                    UserName = $UserName;
-                    Ensure = 'Absent';
+                    UserName = $UserName
+                    Ensure = 'Absent'
                 }
     }
     catch
@@ -234,10 +271,10 @@ function Get-TargetResourceOnFullSKU
     {
         if ($null -ne $user)
         {
-            $user.Dispose();
+            $user.Dispose()
         }
 
-        $principalContext.Dispose();
+        $principalContext.Dispose()
     }
 }
 
@@ -297,101 +334,99 @@ function Set-TargetResourceOnFullSKU
 
     try
     {
-        $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName);
+        $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName)
         if ($Ensure -eq 'Present')
         {
-            # Ensure is set to 'Present'.
-
-            $whatIfShouldProcess = $true;
-            $userExists = $false;
-            $saveChanges = $false;
+            $whatIfShouldProcess = $true
+            $userExists = $false
+            $saveChanges = $false
 
             if ($user -eq $null)
             {
-                # A user does not exist. Check WhatIf for adding a user.
-                $whatIfShouldProcess = $pscmdlet.ShouldProcess($script:localizedData.UserWithName -f $UserName, $script:localizedData.AddOperation);
+                # A user does not exist. Check WhatIf for adding a user
+                $whatIfShouldProcess = $pscmdlet.ShouldProcess($script:localizedData.UserWithName -f $UserName, $script:localizedData.AddOperation)
             }
             else
             {
-                # A user exists.
-                $userExists = $true;
+                # A user exists
+                $userExists = $true
 
-                # Check WhatIf for setting a user.
-                $whatIfShouldProcess = $pscmdlet.ShouldProcess($script:localizedData.UserWithName -f $UserName, $script:localizedData.SetOperation);
+                # Check WhatIf for setting a user
+                $whatIfShouldProcess = $pscmdlet.ShouldProcess($script:localizedData.UserWithName -f $UserName, $script:localizedData.SetOperation)
             }
 
             if ($whatIfShouldProcess)
             {
                 if (-not $userExists)
                 {
-                    # The user with the provided name does not exist. Add a new user.
+                    # The user with the provided name does not exist so add a new user
                     $user = New-Object System.DirectoryServices.AccountManagement.UserPrincipal -ArgumentList $principalContext
-                    $user.Name = $UserName;
-                    $saveChanges = $true;
+                    $user.Name = $UserName
+                    $saveChanges = $true
                 }
 
                 # Set user properties.
-                if ($PSBoundParameters.ContainsKey('FullName') -and (-not $userExists -or $FullName -ne $user.DisplayName))
+                if ($PSBoundParameters.ContainsKey('FullName') -and ((-not $userExists) -or ($FullName -ne $user.DisplayName)))
                 {
-                    $user.DisplayName = $FullName;
-                    $saveChanges = $true;
+                    $user.DisplayName = $FullName
+                    $saveChanges = $true
                 }
                 else
                 {
                     if (-not $userExists)
                     {
-                        # For a newly created user, set the DisplayName property to an empty string. By default DisplayName is set to user's name.
-                        $user.DisplayName = [String]::Empty;
+                        # For a newly created user, set the DisplayName property to an empty string since by default DisplayName is set to user's name
+                        $user.DisplayName = [String]::Empty
                     }
                 }
 
-                if ($PSBoundParameters.ContainsKey('Description') -and (-not $userExists -or $Description -ne $user.Description))
+                if ($PSBoundParameters.ContainsKey('Description') -and ((-not $userExists) -or ($Description -ne $user.Description)))
                 {
-                    $user.Description = $Description;
-                    $saveChanges = $true;
+                    $user.Description = $Description
+                    $saveChanges = $true
                 }
 
-                # Password. Set the password regardless of the state of the user.
+                # Set the password regardless of the state of the user
                 if ($PSBoundParameters.ContainsKey('Password'))
                 {
-                    $user.SetPassword($Password.GetNetworkCredential().Password);
-                    $saveChanges = $true;
+                    $user.SetPassword($Password.GetNetworkCredential().Password)
+                    $saveChanges = $true
                 }
 
                 if ($PSBoundParameters.ContainsKey('Disabled') -and ((-not $userExists) -or ($Disabled -eq $user.Enabled)))
                 {
-                    $user.Enabled = -not $Disabled;
-                    $saveChanges = $true;
+                    $user.Enabled = -not $Disabled
+                    $saveChanges = $true
                 }
 
-                if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and (-not $userExists -or $PasswordNeverExpires -ne $user.PasswordNeverExpires))
+                if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and ((-not $userExists) -or ($PasswordNeverExpires -ne $user.PasswordNeverExpires)))
                 {
-                    $user.PasswordNeverExpires = $PasswordNeverExpires;
-                    $saveChanges = $true;
+                    $user.PasswordNeverExpires = $PasswordNeverExpires
+                    $saveChanges = $true
                 }
 
                 if ($PSBoundParameters.ContainsKey('PasswordChangeRequired'))
                 {
                     if ($PasswordChangeRequired)
                     {
-                        # Expire the password. This will force the user to change the password at the next logon.
-                        $user.ExpirePasswordNow();
-                        $saveChanges = $true;
+                        # Expire the password which will force the user to change the password at the next logon
+                        $user.ExpirePasswordNow()
+                        $saveChanges = $true
                     }
                 }
 
-                if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and (-not $userExists -or $PasswordChangeNotAllowed -ne $user.UserCannotChangePassword))
+                if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and ((-not $userExists) -or ($PasswordChangeNotAllowed -ne $user.UserCannotChangePassword)))
                 {
-                    $user.UserCannotChangePassword = $PasswordChangeNotAllowed;
-                    $saveChanges = $true;
+                    $user.UserCannotChangePassword = $PasswordChangeNotAllowed
+                    $saveChanges = $true
 
                 }
 
                 if ($saveChanges)
                 {
-                    $user.Save();
+                    $user.Save()
 
-                    # Send an operation success verbose message.
+                    # Send an operation success verbose message
                     if ($userExists)
                     {
                         Write-Verbose -Message ($script:localizedData.UserUpdated -f $UserName)
@@ -409,14 +444,14 @@ function Set-TargetResourceOnFullSKU
         }
         else
         {
-            # Ensure is set to 'Absent'.
+            # Ensure is set to 'Absent'
             if ($user -ne $null)
             {
-                # The user exists.
+                # The user exists
                 if ($pscmdlet.ShouldProcess($script:localizedData.UserWithName -f $UserName, $script:localizedData.RemoveOperation))
                 {
-                    # Remove the user by the provided name.
-                    $user.Delete();
+                    # Remove the user
+                    $user.Delete()
                 }
 
                 Write-Verbose -Message ($script:localizedData.UserRemoved -f $UserName)
@@ -435,10 +470,10 @@ function Set-TargetResourceOnFullSKU
     {
         if ($null -ne $user)
         {
-            $user.Dispose();
+            $user.Dispose()
         }
 
-        $principalContext.Dispose();
+        $principalContext.Dispose()
     }
 
     Write-Verbose -Message ($script:localizedData.ConfigurationCompleted -f $UserName)
@@ -449,7 +484,7 @@ function Set-TargetResourceOnFullSKU
         The Test-TargetResource cmdlet on a full server.
     .NOTES
         There's no easy way to check whether the PasswordChangeRequired is set
-        to true or false, so this value is not tested here
+        to true or false, so this value is not tested here.
 #>
 function Test-TargetResourceOnFullSKU
 {
@@ -494,47 +529,50 @@ function Test-TargetResourceOnFullSKU
 
     Assert-UserNameValid -UserName $UserName
 
-    # Try to find a user by a name.
+    # Try to find a user by a name
     $principalContext = New-Object System.DirectoryServices.AccountManagement.PrincipalContext -ArgumentList ([System.DirectoryServices.AccountManagement.ContextType]::Machine)
 
     try
     {
-        $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName);
+        $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName)
         if ($user -eq $null)
         {
-            # A user with the provided name does not exist.
+            # A user with the provided name does not exist
             Write-Verbose -Message ($script:localizedData.UserDoesNotExist -f $UserName)
 
             if ($Ensure -eq 'Absent')
             {
-                return $true;
+                return $true
             }
             else
             {
-                return $false;
+                return $false
             }
         }
 
-        # A user with the provided name exists.
+        # A user with the provided name exists
         Write-Verbose -Message ($script:localizedData.UserExists -f $UserName)
 
-        # Validate separate properties.
+        # Validate separate properties
         if ($Ensure -eq 'Absent')
         {
+            # The Ensure property does not match
             Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'Ensure', 'Absent', 'Present')
-            return $false; # The Ensure property does not match. Return $false;
+            return $false
         }
 
         if ($PSBoundParameters.ContainsKey('FullName') -and $FullName -ne $user.DisplayName)
         {
+            # The FullName property does not match
             Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'FullName', $FullName, $user.DisplayName)
-            return $false; # The FullName property does not match. Return $false;
+            return $false
         }
 
         if ($PSBoundParameters.ContainsKey('Description') -and $Description -ne $user.Description)
         {
+            # The Description property does not match
             Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'Description', $Description, $user.Description)
-            return $false; # The Description property does not match. Return $false;
+            return $false
         }
 
         # Password
@@ -542,27 +580,31 @@ function Test-TargetResourceOnFullSKU
         {
             if (-not $principalContext.ValidateCredentials($UserName, $Password.GetNetworkCredential().Password))
             {
+                # The Password property does not match
                 Write-Verbose -Message ($script:localizedData.PasswordPropertyMismatch -f 'Password')
-                return $false; # The Password property does not match. Return $false;
+                return $false
             }
         }
 
         if ($PSBoundParameters.ContainsKey('Disabled') -and $Disabled -eq $user.Enabled)
         {
+            # The Disabled property does not match
             Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'Disabled', $Disabled, $user.Enabled)
-            return $false; # The Disabled property does not match. Return $false;
+            return $false
         }
 
         if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and $PasswordNeverExpires -ne $user.PasswordNeverExpires)
         {
+            # The PasswordNeverExpires property does not match
             Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'PasswordNeverExpires', $PasswordNeverExpires, $user.PasswordNeverExpires)
-            return $false; # The PasswordNeverExpires property does not match. Return $false;
+            return $false
         }
 
         if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and $PasswordChangeNotAllowed -ne $user.UserCannotChangePassword)
         {
+            # The PasswordChangeNotAllowed property does not match
             Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'PasswordChangeNotAllowed', $PasswordChangeNotAllowed, $user.UserCannotChangePassword)
-            return $false; # The PasswordChangeNotAllowed property does not match. Return $false;
+            return $false
         }
     }
     catch
@@ -574,22 +616,22 @@ function Test-TargetResourceOnFullSKU
     {
         if ($null -ne $user)
         {
-            $user.Dispose();
+            $user.Dispose()
         }
 
-        $principalContext.Dispose();
+        $principalContext.Dispose()
 
     }
 
-    # All properties match. Return $true.
+    # All properties match
     Write-Verbose -Message ($script:localizedData.AllUserPropertisMatch -f 'User', $UserName)
-    return $true;
+    return $true
 }
 
 
 <#
-    .Synopsys
-        The Get-TargetResource cmdlet.
+    .SYNOPSIS
+        The Get-TargetResource cmdlet on a Nano Server.
 #>
 function Get-TargetResourceOnNanoServer
 {
@@ -607,7 +649,7 @@ function Get-TargetResourceOnNanoServer
 
     Assert-UserNameValid -UserName $UserName
 
-    # Try to find a user by a name.
+    # Try to find a user by a name
     try
     {
         Write-Verbose -Message 'Starting Get-TargetResource on NanoServer'
@@ -617,10 +659,10 @@ function Get-TargetResourceOnNanoServer
     {
         if ($_.CategoryInfo.ToString().Contains('UserNotFoundException'))
         {
-            # The user is not found. Return Ensure=Absent.
+            # The user is not found
             return @{
-                        UserName = $UserName;
-                        Ensure = 'Absent';
+                        UserName = $UserName
+                        Ensure = 'Absent'
                     }
         }
         New-TerminatingError -ErrorRecord $_
@@ -628,13 +670,13 @@ function Get-TargetResourceOnNanoServer
 
     # The user is found. Return all user properties and Ensure='Present'.
     $returnValue = @{
-                        UserName = $user.Name;
-                        Ensure = 'Present';
-                        FullName = $user.FullName;
-                        Description = $user.Description;
-                        Disabled = -not $user.Enabled;
-                        PasswordChangeRequired = $null;
-                        PasswordChangeNotAllowed = -not $user.UserMayChangePassword;
+                        UserName = $user.Name
+                        Ensure = 'Present'
+                        FullName = $user.FullName
+                        Description = $user.Description
+                        Disabled = -not $user.Enabled
+                        PasswordChangeRequired = $null
+                        PasswordChangeNotAllowed = -not $user.UserMayChangePassword
                     }
 
     if ($user.PasswordExpires)
@@ -646,7 +688,7 @@ function Get-TargetResourceOnNanoServer
         $returnValue.Add('PasswordNeverExpires', $true)
     }
 
-    return $returnValue;
+    return $returnValue
 }
 
 <#
@@ -702,7 +744,7 @@ function Set-TargetResourceOnNanoServer
     try
     {
         [Microsoft.PowerShell.Commands.LocalUser] $user = Get-LocalUser -Name $UserName -ErrorAction Stop
-        $userExists = $true;
+        $userExists = $true
     }
     catch [System.Exception]
     {
@@ -719,16 +761,16 @@ function Set-TargetResourceOnNanoServer
 
     if ($Ensure -eq 'Present')
     {
-        # Ensure is set to 'Present'.
+        # Ensure is set to 'Present'
 
         if (-not $userExists)
         {
-            # The user with the provided name does not exist. Add a new user.
+            # The user with the provided name does not exist so add a new user
             New-LocalUser -Name $UserName -NoPassword
             Write-Verbose -Message ($script:localizedData.UserCreated -f $UserName)
         }
 
-        # Set user properties.
+        # Set user properties
         if ($PSBoundParameters.ContainsKey('FullName'))
         {
             if (-not $userExists -or $FullName -ne $user.FullName)
@@ -747,12 +789,12 @@ function Set-TargetResourceOnNanoServer
         {
             if (-not $userExists)
             {
-                # For a newly created user, set the DisplayName property to an empty string. By default DisplayName is set to user's name.
+                # For a newly created user, set the DisplayName property to an empty string since by default DisplayName is set to user's name.
                 Set-LocalUser -Name $UserName -FullName ([String]::Empty)
             }
         }
 
-        if ($PSBoundParameters.ContainsKey('Description') -and (-not $userExists -or $Description -ne $user.Description))
+        if ($PSBoundParameters.ContainsKey('Description') -and ((-not $userExists) -or ($Description -ne $user.Description)))
         {
             if ($null -eq $Description)
             {
@@ -764,7 +806,7 @@ function Set-TargetResourceOnNanoServer
             }
         }
 
-        # Password. Set the password regardless of the state of the user.
+        # Set the password regardless of the state of the user
         if ($PSBoundParameters.ContainsKey('Password'))
         {
             Set-LocalUser -Name $UserName -Password $Password.Password
@@ -783,14 +825,14 @@ function Set-TargetResourceOnNanoServer
         }
 
         $existingUserPasswordNeverExpires = (($userExists) -and ($null -eq $user.PasswordExpires))
-        if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and (-not $userExists -or ($PasswordNeverExpires -ne $existingUserPasswordNeverExpires)))
+        if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and ((-not $userExists) -or ($PasswordNeverExpires -ne $existingUserPasswordNeverExpires)))
         {
             Set-LocalUser -Name $UserName -PasswordNeverExpires:$passwordNeverExpires
         }
 
         if ($PSBoundParameters.ContainsKey('PasswordChangeRequired') -and ($PasswordChangeRequired))
         {
-            Set-LocalUser -Name $UserName -AccountExpires ([datetime]::Now)
+            Set-LocalUser -Name $UserName -AccountExpires ([DateTime]::Now)
         }
 
         # NOTE: The parameter name and the property name have opposite meaning.
@@ -802,17 +844,17 @@ function Set-TargetResourceOnNanoServer
             $actual = $user.UserMayChangePassword
         }
         
-        if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and (-not $userExists -or $expected -ne $actual))
+        if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and ((-not $userExists) -or ($expected -ne $actual)))
         {
             Set-LocalUser -Name $UserName -UserMayChangePassword $expected
         }
     }
     else
     {
-        # Ensure is set to 'Absent'.
+        # Ensure is set to 'Absent'
         if ($userExists)
         {
-            # The user exists.
+            # The user exists
             Remove-LocalUser -Name $UserName
 
             Write-Verbose -Message ($script:localizedData.UserRemoved -f $UserName)
@@ -831,7 +873,7 @@ function Set-TargetResourceOnNanoServer
         The Test-TargetResource cmdlet on a Nano server.
     .NOTES
         There's no easy way to check whether the PasswordChangeRequired is set
-        to true or false, so this value is not tested here
+        to true or false, so this value is not tested here.
 #>
 function Test-TargetResourceOnNanoServer
 {
@@ -876,7 +918,7 @@ function Test-TargetResourceOnNanoServer
 
     Assert-UserNameValid -UserName $UserName
 
-    # Try to find a user by a name.
+    # Try to find a user by a name
     try
     {
         [Microsoft.PowerShell.Commands.LocalUser] $user = Get-LocalUser -Name $UserName -ErrorAction Stop
@@ -885,7 +927,7 @@ function Test-TargetResourceOnNanoServer
     {
         if ($_.CategoryInfo.ToString().Contains('UserNotFoundException'))
         {
-            # The user is not found. Return Ensure=Absent.
+            # The user is not found
             if ($Ensure -eq 'Absent')
             {
                 return $true
@@ -898,64 +940,74 @@ function Test-TargetResourceOnNanoServer
         New-TerminatingError -ErrorRecord $_
     }
 
-    # A user with the provided name exists.
+    # A user with the provided name exists
     Write-Verbose -Message ($script:localizedData.UserExists -f $UserName)
 
-    # Validate separate properties.
+    # Validate separate properties
     if ($Ensure -eq 'Absent')
     {
+        # The Ensure property does not match
         Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'Ensure', 'Absent', 'Present')
-        return $false; # The Ensure property does not match. Return $false;
+        return $false
     }
 
     if ($PSBoundParameters.ContainsKey('FullName') -and $FullName -ne $user.FullName)
     {
+        # The FullName property does not match
         Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'FullName', $FullName, $user.FullName)
-        return $false; # The FullName property does not match. Return $false;
+        return $false
     }
 
     if ($PSBoundParameters.ContainsKey('Description') -and $Description -ne $user.Description)
     {
+        # The Description property does not match
         Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'Description', $Description, $user.Description)
-        return $false; # The Description property does not match. Return $false;
+        return $false
     }
 
     if ($PSBoundParameters.ContainsKey('Password'))
     {
         if(-not (Test-ValidCredentialsOnNanoServer -UserName $UserName -Password $Password.Password))
         {
+            # The Password property does not match
             Write-Verbose -Message ($script:localizedData.PasswordPropertyMismatch -f 'Password')
-            return $false; # The Password property does not match. Return $false;
+            return $false
         }
     }
 
     if ($PSBoundParameters.ContainsKey('Disabled') -and ($Disabled -eq $user.Enabled))
     {
+        # The Disabled property does not match
         Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'Disabled', $Disabled, $user.Enabled)
-        return $false; # The Disabled property does not match. Return $false;
+        return $false
     }
 
     $existingUserPasswordNeverExpires = ($null -eq $user.PasswordExpires)
     if ($PSBoundParameters.ContainsKey('PasswordNeverExpires') -and $PasswordNeverExpires -ne $existingUserPasswordNeverExpires)
     {
+        # The PasswordNeverExpires property does not match
         Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'PasswordNeverExpires', $PasswordNeverExpires, $existingUserPasswordNeverExpires)
-        return $false; # The PasswordNeverExpires property does not match. Return $false;
+        return $false
     }
 
     if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and $PasswordChangeNotAllowed -ne (-not $user.UserMayChangePassword))
     {
+        # The PasswordChangeNotAllowed property does not match
         Write-Verbose -Message ($script:localizedData.PropertyMismatch -f 'PasswordChangeNotAllowed', $PasswordChangeNotAllowed, (-not $user.UserMayChangePassword))
-        return $false; # The PasswordChangeNotAllowed property does not match. Return $false;
+        return $false
     }
 
     # All properties match. Return $true.
     Write-Verbose -Message ($script:localizedData.AllUserPropertisMatch -f 'User', $UserName)
-    return $true;
+    return $true
 }
 
 <#
     .SYNOPSIS
         Checks that the User name does not contain invalid characters.
+
+    .PARAMETER UserName
+        The username to validate
 #>
 function Assert-UserNameValid
 {
@@ -968,15 +1020,15 @@ function Assert-UserNameValid
         $UserName
     )
 
-    # Check if the name consists of only periods and/or white spaces.
-    $wrongName = $true;
+    # Check if the name consists of only periods and/or white spaces
+    $wrongName = $true
     
     for ($i = 0; $i -lt $UserName.Length; $i++)
     {
         if (-not [Char]::IsWhiteSpace($UserName, $i) -and $UserName[$i] -ne '.')
         {
-            $wrongName = $false;
-            break;
+            $wrongName = $false
+            break
         }
     }
 
@@ -984,18 +1036,24 @@ function Assert-UserNameValid
 
     if ($wrongName)
     {
-        New-InvalidArgumentError -ErrorId 'UserNameHasOnlyWhiteSpacesAndDots' -ErrorMessage ($script:localizedData.InvalidUserName -f $UserName, [string]::Join(' ', $invalidChars))
+        New-InvalidArgumentError -ErrorId 'UserNameHasOnlyWhiteSpacesAndDots' -ErrorMessage ($script:localizedData.InvalidUserName -f $UserName, [String]::Join(' ', $invalidChars))
     }
 
     if ($UserName.IndexOfAny($invalidChars) -ne -1)
     {
-        New-InvalidArgumentError -ErrorId 'UserNameHasInvalidCharachter' -ErrorMessage ($script:localizedData.InvalidUserName -f $UserName, [string]::Join(' ', $invalidChars))
+        New-InvalidArgumentError -ErrorId 'UserNameHasInvalidCharachter' -ErrorMessage ($script:localizedData.InvalidUserName -f $UserName, [String]::Join(' ', $invalidChars))
     }
 }
 
 <#
     .SYNOPSIS
-        Throws an argument error.
+        Creates a new Invalid Argument Error record and throws it.
+
+    .PARAMETER ErrorId
+        The ID for the error record to be thrown
+
+    .PARAMETER ErrorMessage
+        Message to be included in the error record to be thrown
 #>
 function New-InvalidArgumentError
 {
@@ -1015,13 +1073,20 @@ function New-InvalidArgumentError
     )
 
     $errorCategory=[System.Management.Automation.ErrorCategory]::InvalidArgument
-    $exception = New-Object System.ArgumentException $ErrorMessage;
+    $exception = New-Object System.ArgumentException $ErrorMessage
     $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, $ErrorId, $errorCategory, $null
     throw $errorRecord
 }
 
 <#
-        Creates a new Connection error record and throws it
+    .SYNOPSIS
+        Creates a new Connection error record and throws it.
+
+    .PARAMETER ErrorId
+        The ID for the error record to be thrown
+
+    .PARAMETER ErrorMessage
+        Message to be included in the error record to be thrown
 #>
 function New-ExceptionDueToDirectoryServicesError
 {
@@ -1047,7 +1112,14 @@ function New-ExceptionDueToDirectoryServicesError
 
 <#
     .SYNOPSIS
-        Create a new terminating error record and throws it
+        Create a new terminating error record and throws it.
+
+    .PARAMETER Message
+        Optional message to be included in the error record to be thrown.
+
+    .PARAMETER ErrorRecord
+        Optional ErrorRecord object if you want the exception from this object to
+        be included in the new error record to be thrown.
 #>
 function New-TerminatingError
 {
@@ -1072,12 +1144,19 @@ function New-TerminatingError
     }
     
     $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, 'MachineStateIncorrect', 'InvalidOperation', $null
+    
     throw $errorRecord
 }
 
 <#
     .SYNOPSIS
         Tests the local user's credentials on the local machine.
+    
+    .PARAMETER UserName
+        The user name to validate the credentials of.
+
+    .PARAMETER Password
+        The Password of the given user.
 #>
 function Test-ValidCredentialsOnNanoServer
 {
