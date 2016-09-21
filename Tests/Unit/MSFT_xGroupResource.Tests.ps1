@@ -442,8 +442,7 @@ InModuleScope 'MSFT_xGroupResource' {
                 and that creating a group without a credential does not throw any errors
                 when we have domain trust set up.
             #>
-            $itName = 'Should correctly create a group with a domain user and credential'
-            It $itName -Skip:$script:skipTestsWithCredentials {
+            It 'Should correctly create a group with a domain user and credential' -Skip:$script:skipTestsWithCredentials {
                 $testUserName1 = 'LocalTestUser1'
                 $testUserName2 = 'LocalTestUser2'
 
@@ -525,8 +524,7 @@ InModuleScope 'MSFT_xGroupResource' {
                 The credential for the domain local administrator user is used to
                 resolve all user accounts.
             #>
-            $itName = 'Should create a new group with the trusted domain accounts and credential'
-            It $itName -Skip:$script:skipTestsWithCredentials {
+            It 'Should create a new group with the trusted domain accounts and credential' -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
@@ -589,9 +587,7 @@ InModuleScope 'MSFT_xGroupResource' {
                 The credential for the domain local administrator user is used to
                 resolve all user accounts.
             #>
-            $itName =
-                'Should create a group with a domain user and credential and add a user by UPN name'
-            It $itName -Skip:$script:skipTestsWithCredentials {
+            It 'Should create a group with a domain user and credential and add a user by UPN name' -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
@@ -643,8 +639,7 @@ InModuleScope 'MSFT_xGroupResource' {
                 }
             }
 
-            $itName = 'Should not create a group with a credential and an invalid domain user'
-            It $itName -Skip:$script:skipTestsWithCredentials {
+            It 'Should not create a group with a credential and an invalid domain user' -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
@@ -678,8 +673,7 @@ InModuleScope 'MSFT_xGroupResource' {
 
                 The domain trust is used to resolve all user accounts.
             #>
-            $itName = 'Should create a group with a domain user but no credential'
-            It $itName -Skip:$script:skipTestsWithCredentials {
+            It 'Should create a group with a domain user but no credential' -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
@@ -726,8 +720,7 @@ InModuleScope 'MSFT_xGroupResource' {
             }
 
             # Verify that test group cannot be created with an invalid credential
-            $itName = 'Should not create a group with an invalid credential'
-            It $itName -Skip:$script:skipTestsWithCredentials {
+            It 'Should not create a group with an invalid credential' -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 
@@ -777,8 +770,7 @@ InModuleScope 'MSFT_xGroupResource' {
                 Verify that test group cannot be created with invalid user info
                 (cannot resolve user) when using domain trust
             #>
-            $itName = 'Should not create a group with an invalid domain user without a credential'
-            It $itName -Skip:$script:skipTestsWithCredentials {
+            It 'Should not create a group with an invalid domain user without a credential' -Skip:$script:skipTestsWithCredentials {
                 $testGroupName = 'LocalTestGroup'
                 $testDescription = 'Some Description'
 

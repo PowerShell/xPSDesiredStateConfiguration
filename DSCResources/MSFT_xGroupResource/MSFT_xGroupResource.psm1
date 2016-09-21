@@ -96,12 +96,9 @@ ResolvingDomainAccount = Resolving {0} in the {1} domain.
 ResolvingDomainAccountWithTrust = Resolving {0} with domain trust.
 DomainCredentialsRequired = Credentials are required to resolve the domain account {0}.
 UnableToResolveAccount = Unable to resolve account '{0}'. Failed with message: {1} (error code={2})
-GetTargetResourceStartMessage = Begin executing Get functionality on the group {0}.
-GetTargetResourceEndMessage = End executing Get functionality on the group {0}.
+InvokingFunctionForGroup = Invoking the function {0} for the group {1}.
 SetTargetResourceStartMessage = Begin executing Set functionality on the group {0}.
 SetTargetResourceEndMessage = End executing Set functionality on the group {0}.
-TestTargetResourceStartMessage = Begin executing Test functionality on the group {0}.
-TestTargetResourceEndMessage = End executing Test functionality on the group {0}.
 '@
 }
 
@@ -117,7 +114,7 @@ if (-not (Test-IsNanoServer))
 
 <#
     .SYNOPSIS
-        Returns the current state of group being managed
+        Returns the current state of the group being managed
 
     .PARAMETER Credential
         The credentials required to resolve non-local group members
@@ -138,33 +135,37 @@ function Get-TargetResource
         $Credential
     )
 
-    Write-Verbose ($LocalizedData.GetTargetResourceStartMessage -f $GroupName)
-
     if (Test-IsNanoServer)
     {
+        Write-Verbose ($LocalizedData.InvokingFunctionForGroup -f 'Get-TargetResourceOnNanoServer',
+            $GroupName)
         return Get-TargetResourceOnNanoServer @PSBoundParameters
     }
     else
     {
+        Write-Verbose ($LocalizedData.InvokingFunctionForGroup -f 'Get-TargetResourceOnFullSKU',
+            $GroupName)
         return Get-TargetResourceOnFullSKU @PSBoundParameters
     }
-
-    Write-Verbose ($LocalizedData.GetTargetResourceEndMessage -f $GroupName)
 }
 
 <#
     .SYNOPSIS
-        Ensures the desired state of the group being managed.
+        Puts the named group in the specified state.
 
-        If Ensure is set to "Present", a group will be created if it does not exist,
-        the description will be updated if different and group members will be added
-        or removed.
+        If Ensure is set to "Present" and the named group does not exist, it will be created.
+        If Ensure is set to "Present", the named group exists, and the group description does not 
+        match the specified description, the description will be updated.
+        If Ensure is set to "Present", the named group exists, and the group members do not match 
+        the specified members, the group members will be updated.
+
+        If Ensure is set to "Absent" and the group exists, it will be removed.
 
     .PARAMETER GroupName
         The name of the group for which you want to ensure a specific state.
 
     .PARAMETER Ensure
-        Indicates if the group exists.
+        Indicates if the group exist.
 
         Set this property to "Absent" to ensure that the group does not exist.
         Setting it to "Present" (the default value) ensures that the group exists.
@@ -173,22 +174,31 @@ function Get-TargetResource
         The description of the group.
 
     .PARAMETER Members
-        Use this property to replace the current group membership with the specified members.
-        The value of this property is an array of strings of the form Domain\UserName.
+        Use this property to replace the current group members with the specified members.
 
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.  
+        
         If you set this property in a configuration, do not use either the MembersToExclude or
-        MembersToInclude property. Doing so will generate an error.
+        MembersToInclude properties. Doing so will generate an error.
 
     .PARAMETER MembersToInclude
-        Use this property to add members to the existing membership of the group.
-        The value of this property is an array of strings of the form Domain\UserName.
+        Use this property to add members to a group. This property works for new groups as well.
+
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.  
 
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
 
     .PARAMETER MembersToExclude
-        Use this property to remove members from the existing membership of the group.
-        The value of this property is an array of strings of the form Domain\UserName.
+        Use this property to remove members from an existing group.
+
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.  
 
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
@@ -266,26 +276,32 @@ function Set-TargetResource
         The description of the group to test for.
 
     .PARAMETER Members
-        Use this property to test if the existing membership of the group matches
-        the list provided.
+        The list of members the group should have.
+        
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.  
 
-        The value of this property is an array of strings of the form Domain\UserName.
         If you set this property in a configuration, do not use either the MembersToExclude or
         MembersToInclude property. Doing so will generate an error.
 
     .PARAMETER MembersToInclude
-        Use this property to test if members need to be added to the existing membership
-        of the group.
+        A list of members that should be in the group.
 
-        The value of this property is an array of strings of the form Domain\UserName.
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.  
+
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
 
     .PARAMETER MembersToExclude
-        Use this property to test if members need to removed from the existing membership
-        of the group.
+        A list of members that should not be in the group.
 
-        The value of this property is an array of strings of the form Domain\UserName.
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
 
@@ -329,14 +345,16 @@ function Test-TargetResource
 
     if (Test-IsNanoServer)
     {
+        Write-Verbose ($LocalizedData.InvokingFunctionForGroup -f 'Test-TargetResourceOnNanoServer',
+            $GroupName)
         return Test-TargetResourceOnNanoServer @PSBoundParameters
     }
     else
     {
+        Write-Verbose ($LocalizedData.InvokingFunctionForGroup -f 'Test-TargetResourceOnFullSKU',
+            $GroupName)
         return Test-TargetResourceOnFullSKU @PSBoundParameters
     }
-
-    Write-Verbose ($LocalizedData.TestTargetResourceEndMessage -f $GroupName)
 }
 
 <#
@@ -412,7 +430,7 @@ function Get-TargetResourceOnFullSKU
     }
     finally
     {
-        Invoke-ObjectDispose -Disposables $disposables
+        Invoke-ObjectDisposal -Disposables $disposables
     }
 }
 
@@ -431,20 +449,34 @@ function Get-TargetResourceOnFullSKU
         The description of the group.
 
     .PARAMETER Members
-        Use this property to replace the current group membership with the specified members. The
-        value of this property is an array of strings of the form Domain\UserName. If you set this
-        property in a configuration, do not use either the MembersToExclude or MembersToInclude
-        property. Doing so will generate an error.
+        Use this property to replace the current group membership with the specified members.
+        
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+        
+        If you set this property in a configuration, do not use either the MembersToExclude or 
+        MembersToInclude property. Doing so will generate an error.
 
     .PARAMETER MembersToInclude
-        Use this property to add members to the existing membership of the group. The value of this
-        property is an array of strings of the form Domain\UserName. If you set this property in a
-        configuration, do not use the Members property. Doing so will generate an error.
+        Use this property to add members to the existing membership of the group.
+        
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts. 
+        
+        If you set this property in a configuration, do not use the Members property.
+        Doing so will generate an error.
 
     .PARAMETER MembersToExclude
-        Use this property to remove members from the existing membership of the group. The value of
-        this property is an array of strings of the form Domain\UserName. If you set this property
-        in a configuration, do not use the Members property. Doing so will generate an error.
+        Use this property to remove members from the existing membership of the group.
+        
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts. 
+        
+        If you set this property in a configuration, do not use the Members property.
+        Doing so will generate an error.
 
     .PARAMETER Credential
         The credentials required to access remote resources. Note: This account must have the
@@ -520,7 +552,7 @@ function Set-TargetResourceOnFullSKU
                     Credential = $Credential
                 }
                 $actualMembersAsPrincipals =
-                    @( Get-MembersAsPrincipalList @getMembersAsPrincipalListParams )
+                    @( Get-MembersAsPrincipalsList @getMembersAsPrincipalListParams )
             }
             else
             {
@@ -537,7 +569,7 @@ function Set-TargetResourceOnFullSKU
                     $getPrincipalContextParams = @{
                         PrincipalContexts = $principalContexts
                         Disposables = $disposables
-                        Scope = $env:computerName
+                        Scope = $env:COMPUTERNAME
                     }
                     $localPrincipalContext = Get-PrincipalContext @getPrincipalContextParams
 
@@ -599,7 +631,7 @@ function Set-TargetResourceOnFullSKU
                     elseif ($Members.Count -ne 0)
                     {
                         # Remove duplicate names as strings.
-                        $Members = Get-UniqueMemberList -Members $Members
+                        $Members = Get-UniqueMembersList -Members $Members
 
                         # Resolve the names to actual principal objects.
                         $convertToPrincipalListParams = @{
@@ -608,7 +640,7 @@ function Set-TargetResourceOnFullSKU
                             Disposables = $disposables
                             Credential = $Credential
                         }
-                        $membersAsPrincipals = ConvertTo-PrincipalList @convertToPrincipalListParams
+                        $membersAsPrincipals = ConvertTo-PrincipalsList @convertToPrincipalListParams
 
                         if ($membersAsPrincipals.Count -gt 0)
                         {
@@ -679,7 +711,7 @@ function Set-TargetResourceOnFullSKU
                     $membersToIncludeAsPrincipals = $null
                     if ($PSBoundParameters.ContainsKey('MembersToInclude'))
                     {
-                        $MembersToInclude = Get-UniqueMemberList -Members $MembersToInclude
+                        $MembersToInclude = Get-UniqueMembersList -Members $MembersToInclude
 
                         # Resolve the names to actual principal objects.
                         $convertToPrincipalListParams = @{
@@ -689,13 +721,13 @@ function Set-TargetResourceOnFullSKU
                             Credential = $Credential
                         }
                         $membersToIncludeAsPrincipals =
-                            @( ConvertTo-PrincipalList @convertToPrincipalListParams )
+                            @( ConvertTo-PrincipalsList @convertToPrincipalListParams )
                     }
 
                     $membersToExcludeAsPrincipals = $null
                     if ($PSBoundParameters.ContainsKey('MembersToExclude'))
                     {
-                        $MembersToExclude = Get-UniqueMemberList -Members $MembersToExclude
+                        $MembersToExclude = Get-UniqueMembersList -Members $MembersToExclude
 
                         # Resolve the names to actual principal objects.
                         $convertToPrincipalListParams = @{
@@ -705,7 +737,7 @@ function Set-TargetResourceOnFullSKU
                             Credential = $Credential
                         }
                         $membersToExcludeAsPrincipals =
-                            @( ConvertTo-PrincipalList @convertToPrincipalListParams )
+                            @( ConvertTo-PrincipalsList @convertToPrincipalListParams )
                     }
 
                     if ($null -ne $membersToIncludeAsPrincipals -and
@@ -815,7 +847,7 @@ function Set-TargetResourceOnFullSKU
     }
     finally
     {
-        Invoke-ObjectDispose -Disposables $disposables
+        Invoke-ObjectDisposal -Disposables $disposables
     }
 }
 
@@ -839,16 +871,22 @@ function Set-TargetResourceOnFullSKU
     .PARAMETER Members
         Use this property to test if the existing membership of the group matches
         the list provided.
+        
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
 
-        The value of this property is an array of strings of the form Domain\UserName.
         If you set this property in a configuration, do not use either the MembersToExclude or
         MembersToInclude property. Doing so will generate an error.
 
     .PARAMETER MembersToInclude
         Use this property to test if members need to be added to the existing membership
-        of the group.
+        of the group. 
 
-        The value of this property is an array of strings of the form Domain\UserName.
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
 
@@ -856,7 +894,10 @@ function Set-TargetResourceOnFullSKU
         Use this property to test if members need to removed from the existing membership
         of the group.
 
-        The value of this property is an array of strings of the form Domain\UserName.
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
 
@@ -973,7 +1014,7 @@ function Test-TargetResourceOnFullSKU
             else
             {
                 # Remove duplicate names as strings.
-                $Members = @( Get-UniqueMemberList -Members $Members )
+                $Members = @( Get-UniqueMembersList -Members $Members )
 
                 # Resolve the names to actual principal objects.
                 $convertToPrincipalListParams = @{
@@ -983,7 +1024,7 @@ function Test-TargetResourceOnFullSKU
                     Credential = $Credential
                 }
                 $expectedMembersAsPrincipals =
-                    @( ConvertTo-PrincipalList @convertToPrincipalListParams )
+                    @( ConvertTo-PrincipalsList @convertToPrincipalListParams )
 
                 if ($expectedMembersAsPrincipals.Count -ne $actualGroupMembers.Count)
                 {
@@ -999,7 +1040,7 @@ function Test-TargetResourceOnFullSKU
                     Credential = $Credential
                 }
                 $actualMembersAsPrincipals =
-                    @( Get-MembersAsPrincipalList @getMembersAsPrincipalListParams )
+                    @( Get-MembersAsPrincipalsList @getMembersAsPrincipalListParams )
 
                 # Compare the two member lists.
                 foreach ($expectedMemberAsPrincipal in $expectedMembersAsPrincipals)
@@ -1024,11 +1065,11 @@ function Test-TargetResourceOnFullSKU
                 Credential = $Credential
             }
             $actualMembersAsPrincipals =
-                @( Get-MembersAsPrincipalList @getMembersAsPrincipalListParams )
+                @( Get-MembersAsPrincipalsList @getMembersAsPrincipalListParams )
 
             if ($PSBoundParameters.ContainsKey('MembersToInclude'))
             {
-                $MembersToInclude = @( Get-UniqueMemberList -Members $MembersToInclude )
+                $MembersToInclude = @( Get-UniqueMembersList -Members $MembersToInclude )
 
                 # Resolve the names to actual principal objects.
                 $convertToPrincipalListParams = @{
@@ -1037,7 +1078,7 @@ function Test-TargetResourceOnFullSKU
                     Disposables = $disposables
                     Credential = $Credential
                 }
-                $expectedMembersAsPrincipals = ConvertTo-PrincipalList @convertToPrincipalListParams
+                $expectedMembersAsPrincipals = ConvertTo-PrincipalsList @convertToPrincipalListParams
 
                 # Compare two members lists.
                 foreach ($expectedMemberAsPrincipal in $expectedMembersAsPrincipals)
@@ -1055,7 +1096,7 @@ function Test-TargetResourceOnFullSKU
 
             if ($PSBoundParameters.ContainsKey('MembersToExclude'))
             {
-                $MembersToExclude = @( Get-UniqueMemberList -Members $MembersToExclude )
+                $MembersToExclude = @( Get-UniqueMembersList -Members $MembersToExclude )
 
                 # Resolve the names to actual principal objects.
                 $convertToPrincipalListParams = @{
@@ -1065,7 +1106,7 @@ function Test-TargetResourceOnFullSKU
                     Credential = $Credential
                 }
                 $notExpectedMembersAsPrincipals =
-                    ConvertTo-PrincipalList @convertToPrincipalListParams
+                    ConvertTo-PrincipalsList @convertToPrincipalListParams
 
                 foreach($notExpectedMemberAsPrincipal in $notExpectedMembersAsPrincipals)
                 {
@@ -1083,7 +1124,7 @@ function Test-TargetResourceOnFullSKU
     }
     finally
     {
-        Invoke-ObjectDispose -Disposables $disposables
+        Invoke-ObjectDisposal -Disposables $disposables
     }
 
     return $true
@@ -1163,20 +1204,34 @@ function Get-TargetResourceOnNanoServer
         The description of the group.
 
     .PARAMETER Members
-        Use this property to replace the current group membership with the specified members. The
-        value of this property is an array of strings of the form Domain\UserName. If you set this
-        property in a configuration, do not use either the MembersToExclude or MembersToInclude
-        property. Doing so will generate an error.
+        Use this property to replace the current group membership with the specified members.
+        
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+        
+        If you set this property in a configuration, do not use either the MembersToExclude or 
+        MembersToInclude property. Doing so will generate an error.
 
     .PARAMETER MembersToInclude
-        Use this property to add members to the existing membership of the group. The value of this
-        property is an array of strings of the form Domain\UserName. If you set this property in a
-        configuration, do not use the Members property. Doing so will generate an error.
+        Use this property to add members to the existing membership of the group.
+
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+        
+        If you set this property in a configuration, do not use the Members property.
+        Doing so will generate an error.
 
     .PARAMETER MembersToExclude
-        Use this property to remove members from the existing membership of the group. The value of
-        this property is an array of strings of the form Domain\UserName. If you set this property
-        in a configuration, do not use the Members property. Doing so will generate an error.
+        Use this property to remove members from the existing membership of the group.
+
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+        
+        If you set this property in a configuration, do not use the Members property.
+        Doing so will generate an error.
 
     .PARAMETER Credential
         The credentials required to access remote resources. Note: This account must have the
@@ -1301,7 +1356,7 @@ function Set-TargetResourceOnNanoServer
                 }
 
                 # Remove duplicate names as strings.
-                $Members = @( Get-UniqueMemberList -Members $Members )
+                $Members = @( Get-UniqueMembersList -Members $Members )
 
                 if ($Members.Count -gt 0)
                 {
@@ -1324,12 +1379,12 @@ function Set-TargetResourceOnNanoServer
             {
                 if ($PSBoundParameters.ContainsKey('MembersToInclude'))
                 {
-                    $MembersToInclude = @( Get-UniqueMemberList -Members $MembersToInclude )
+                    $MembersToInclude = @( Get-UniqueMembersList -Members $MembersToInclude )
                 }
 
                 if ($PSBoundParameters.ContainsKey('MembersToExclude'))
                 {
-                    $MembersToExclude = @( Get-UniqueMemberList -Members $MembersToExclude )
+                    $MembersToExclude = @( Get-UniqueMembersList -Members $MembersToExclude )
                 }
 
                 if ($PSBoundParameters.ContainsKey('MembersToInclude') -and
@@ -1457,7 +1512,10 @@ function Set-TargetResourceOnNanoServer
         Use this property to test if the existing membership of the group matches
         the list provided.
 
-        The value of this property is an array of strings of the form Domain\UserName.
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+
         If you set this property in a configuration, do not use either the MembersToExclude or
         MembersToInclude property. Doing so will generate an error.
 
@@ -1465,7 +1523,10 @@ function Set-TargetResourceOnNanoServer
         Use this property to test if members need to be added to the existing membership
         of the group.
 
-        The value of this property is an array of strings of the form Domain\UserName.
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
 
@@ -1473,7 +1534,10 @@ function Set-TargetResourceOnNanoServer
         Use this property to test if members need to removed from the existing membership
         of the group.
 
-        The value of this property is an array of strings of the form Domain\UserName.
+        The value of this property is an array of strings of the formats domain qualified name 
+        (domain\username), UPN (username@domainname), distinguished name (CN=username,DC=...) and/or
+        a unqualified (username) for local machine accounts.
+
         If you set this property in a configuration, do not use the Members property.
         Doing so will generate an error.
 
@@ -1567,7 +1631,7 @@ function Test-TargetResourceOnNanoServer
         }
 
         # Remove duplicate names as strings.
-        $expectedMembers = @( Get-UniqueMemberList -Members $Members )
+        $expectedMembers = @( Get-UniqueMembersList -Members $Members )
 
         # Get current members
         $groupMembers = Get-MembersOnNanoServer -Group $group
@@ -1597,7 +1661,7 @@ function Test-TargetResourceOnNanoServer
 
         if ($PSBoundParameters.ContainsKey('MembersToInclude'))
         {
-            $MembersToInclude = @( Get-UniqueMemberList -Members $MembersToInclude )
+            $MembersToInclude = @( Get-UniqueMembersList -Members $MembersToInclude )
 
             # Compare two members lists.
             foreach ($memberToInclude in $MembersToInclude)
@@ -1614,7 +1678,7 @@ function Test-TargetResourceOnNanoServer
 
         if ($PSBoundParameters.ContainsKey('MembersToExclude'))
         {
-            $MembersToExclude = @( Get-UniqueMemberList -Members $MembersToExclude )
+            $MembersToExclude = @( Get-UniqueMembersList -Members $MembersToExclude )
 
             # Compare two members lists.
             foreach ($memberToExclude in $MembersToExclude)
@@ -1641,7 +1705,7 @@ function Test-TargetResourceOnNanoServer
     .PARAMETER Members
         The list of members to process
 #>
-function Get-UniqueMemberList
+function Get-UniqueMembersList
 {
     [OutputType([String[]])]
     [CmdletBinding()]
@@ -1766,7 +1830,7 @@ function Get-MembersOnFullSKU
         Disposables = $Disposables
         Credential = $Credential
     }
-    $membersAsPrincipals = @( Get-MembersAsPrincipalList @getMembersAsPrincipals )
+    $membersAsPrincipals = @( Get-MembersAsPrincipalsList @getMembersAsPrincipals )
 
     foreach ($membersAsPrincipal in $membersAsPrincipals)
     {
@@ -1817,7 +1881,7 @@ function Get-MembersOnFullSKU
     .PARAMETER Credential
         The network credential to use when explicit credentials are needed for the target domain.
 #>
-function Get-MembersAsPrincipalList
+function Get-MembersAsPrincipalsList
 {
     [OutputType([System.DirectoryServices.AccountManagement.Principal[]])]
     [CmdletBinding()]
@@ -1970,7 +2034,7 @@ function Get-MembersAsPrincipalList
     .PARAMETER Credential
         The network credential to use when explicit credentials are needed for the target domain.
 #>
-function ConvertTo-PrincipalList
+function ConvertTo-PrincipalsList
 {
     [OutputType([System.DirectoryServices.AccountManagement.Principal[]])]
     [CmdletBinding()]
@@ -2271,9 +2335,9 @@ function Get-PrincipalContext
     if (Test-IsLocalMachine -Scope $Scope)
     {
         # Check for a cached PrincipalContext for the local machine.
-        if ($PrincipalContexts.ContainsKey($env:computerName))
+        if ($PrincipalContexts.ContainsKey($env:COMPUTERNAME))
         {
-            $principalContext = $PrincipalContexts[$env:computerName]
+            $principalContext = $PrincipalContexts[$env:COMPUTERNAME]
         }
         else
         {
@@ -2449,7 +2513,7 @@ function Test-IsLocalMachine
 
     Set-StrictMode -Version 'latest'
 
-    $localMachineScopes = @( '.', $env:computerName, 'localhost', '127.0.0.1' )
+    $localMachineScopes = @( '.', $env:COMPUTERNAME, 'localhost', '127.0.0.1' )
 
     if ($localMachineScopes -icontains $Scope)
     {
@@ -2527,7 +2591,7 @@ function Test-IsLocalMachine
 #>
 function Split-MemberName
 {
-    [OutputType([System.Object[]])]
+    [OutputType([System.String[]])]
     [CmdletBinding()]
     param
     (
@@ -2540,7 +2604,7 @@ function Split-MemberName
     Set-StrictMode -Version 'latest'
 
     # Assume no scope is defined or $FullName is a DistinguishedName
-    $scope = $env:computerName
+    $scope = $env:COMPUTERNAME
     $accountName = $MemberName
 
     # Parse domain or machine qualified account name
@@ -2551,7 +2615,7 @@ function Split-MemberName
 
         if (Test-IsLocalMachine -Scope $scope)
         {
-            $scope = $env:computerName
+            $scope = $env:COMPUTERNAME
         }
 
         $accountName = $MemberName.Substring($separatorIndex + 1)
@@ -2603,7 +2667,7 @@ function Split-MemberName
     .PARAMETER Disosables
         The array list of IDisposable Objects to dispose of.
 #>
-function Invoke-ObjectDispose
+function Invoke-ObjectDisposal
 {
     [CmdletBinding()]
     param
@@ -2670,7 +2734,7 @@ function Get-Group
     $getPrincipalContextParams = @{
         PrincipalContexts = $PrincipalContexts
         Disposables = $Disposables
-        Scope = $env:computerName
+        Scope = $env:COMPUTERNAME
     }
     $principalContext = Get-PrincipalContext @getPrincipalContextParams
 
