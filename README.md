@@ -353,12 +353,6 @@ These parameters will be the same for each Windows optional feature in the set. 
 
 ### Unreleased
 
-### 4.0.0.0
-
-* xDSCWebService:
-    * Added setting of enhanced security
-    * Cleaned up Examples
-    * Cleaned up pull server verification test
 * xGroup:
     * Fixed PSSA issues
     * Formatting updated as per style guidelines
@@ -366,6 +360,13 @@ These parameters will be the same for each Windows optional feature in the set. 
     * Typos fixed in Unit test script
     * Unit test 'Get-TargetResource/Should return hashtable with correct values when group 
     has no members' updated to handle the expected empty Members array correctly
+
+### 4.0.0.0
+
+* xDSCWebService:
+    * Added setting of enhanced security
+    * Cleaned up Examples
+    * Cleaned up pull server verification test
 * xProcess:
     * Fixed PSSA issues
     * Corrected most style guideline issues
