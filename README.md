@@ -35,11 +35,13 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 * **xWindowsFeatureSet** allows installation and uninstallation of a group of Windows features and their subfeatures.
 * **xWindowsOptionalFeature** provides a mechanism to enable or disable optional features on a target node.
 * **xWindowsOptionalFeatureSet** allows installation and uninstallation of a group of optional Windows features.
+* **xWindowsPackageCab** provides a mechanism to to install or uninstall a package from a windows cabinet (cab) file on a target node.
 
 Resources that work on Nano Server:
 
-* xWindowsOptionalFeature
 * xUser
+* xWindowsOptionalFeature
+* xWindowsPackageCab
 
 ### xArchive
 
@@ -360,6 +362,30 @@ These parameters will be the same for each Windows optional feature in the set. 
    - Suported values: ErrorsOnly, ErrorsAndWarning, ErrorsAndWarningAndInformation.
    - Default value: ErrorsOnly.
 
+### xWindowsPackageCab
+Provides a mechanism to install or uninstall a package from a windows cabinet (cab) file on a target node.
+This resource works on Nano Server.
+
+#### Requirements
+
+* Target machine must have access to the DISM PowerShell module
+
+#### Parameters
+
+* **[String] Name** _(Key)_: The name of the package to install or uninstall.
+* **[String] Ensure** _(Required)_: Specifies whether the package should be installed or uninstalled. To install the package, set this property to Present. To uninstall the package, set the property to Absent. { *Present* | Absent }.
+* **[String] SourcePath** _(Required)_: The path to the cab file to install or uninstall the package from.
+* **[String] LogPath** _(Write)_: The path to a file to log the operation to. There is no default value, but if not set, the log will appear at %WINDIR%\Logs\Dism\dism.log.
+
+#### Read-Only Properties from Get-TargetResource
+
+None
+
+#### Examples
+
+* [Install a cab file with the given name from the given path](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xWindowsPackageCab.ps1)
+
+   
 ## Functions
 
 ### Publish-ModuleToPullServer
@@ -383,6 +409,7 @@ These parameters will be the same for each Windows optional feature in the set. 
 * xUser:
     * Fixed PSSA/Style violations
     * Added/Updated Tests and Examples
+* Added xWindowsPackageCab
 
 ### 4.0.0.0
 
