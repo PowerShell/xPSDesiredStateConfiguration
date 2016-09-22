@@ -1,4 +1,10 @@
-﻿#To run these tests, the currently logged on user must have rights to create a user
+﻿<#
+    To run these tests, the currently logged on user must have rights to create a user.
+    These integration tests cover creating a brand new user, updating values 
+    of a user that already exists, and deleting a user that exists.
+#> 
+
+# Suppressing this rule since we need to create a plaintext password to test this resource
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
 param ()
 
