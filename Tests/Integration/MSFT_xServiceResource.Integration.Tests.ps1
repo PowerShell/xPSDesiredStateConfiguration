@@ -20,17 +20,17 @@ $TestEnvironment = Initialize-TestEnvironment `
 # Using try/finally to always cleanup even if something awful happens.
 try
 {
-    $script:testServiceName = "DscTestService"
+    $script:testServiceName = 'DscTestService'
     $script:testServiceCodePath = "$PSScriptRoot\..\DscTestService.cs"
-    $script:testServiceDisplayName = "DSC test service display name"
-    $script:testServiceDescription = "This is DSC test service used for integration testing MSFT_xServiceResource"
-    $script:testServiceDependsOn = "winrm"
-    $script:testServiceExecutablePath = Join-Path -Path $ENV:Temp -ChildPath "DscTestService.exe"
+    $script:testServiceDisplayName = 'DSC test service display name'
+    $script:testServiceDescription = 'This is a DSC test service used for integration testing MSFT_xServiceResource'
+    $script:testServiceDependsOn = 'winrm'
+    $script:testServiceExecutablePath = Join-Path -Path $ENV:Temp -ChildPath 'DscTestService.exe'
     $script:testServiceNewCodePath = "$PSScriptRoot\..\DscTestServiceNew.cs"
-    $script:testServiceNewDisplayName = "New DSC test service display name"
-    $script:testServiceNewDescription = "New This is DSC test service used for integration testing MSFT_xServiceResource"
-    $script:testServiceNewDependsOn = "spooler"
-    $script:testServiceNewExecutablePath = Join-Path -Path $ENV:Temp -ChildPath "NewDscTestService.exe"
+    $script:testServiceNewDisplayName = 'New: DSC test service display name'
+    $script:testServiceNewDescription = 'New: This is a DSC test service used for integration testing MSFT_xServiceResource'
+    $script:testServiceNewDependsOn = 'spooler'
+    $script:testServiceNewExecutablePath = Join-Path -Path $ENV:Temp -ChildPath 'NewDscTestService.exe'
 
     Import-Module "$PSScriptRoot\..\CommonTestHelper.psm1" -Force
     Import-Module "$PSScriptRoot\..\MSFT_xServiceResource.TestHelper.psm1" -Force
@@ -55,8 +55,8 @@ try
         -ServiceExecutablePath $script:testServiceExecutablePath
 
     #region Integration Tests
-    $ConfigFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:DSCResourceName)_Add.config.ps1"
-    . $ConfigFile
+    $configFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:DSCResourceName)_Add.config.ps1"
+    . $configFile
 
     Describe "$($script:DSCResourceName)_Add_Integration" {
         #region DEFAULT TESTS
@@ -74,14 +74,14 @@ try
             } | Should not throw
         }
 
-        It 'should be able to call Get-DscConfiguration without throwing' {
-            { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not throw
+        It 'Should be able to call Get-DscConfiguration without throwing' {
+            { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should not throw
         }
         #endregion
 
         # Get the current service details
         $script:service = Get-CimInstance -ClassName Win32_Service -Filter "Name='$($script:testServiceName)'"
-        It 'The service should exist' {
+        It 'Should return a service of type CimInstance' {
             $script:service | Should BeOfType 'Microsoft.Management.Infrastructure.CimInstance'
         }
 
@@ -103,8 +103,8 @@ try
     Reset-DSC
 
     #region Integration Tests
-    $ConfigFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:DSCResourceName)_Edit.config.ps1"
-    . $ConfigFile
+    $configFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:DSCResourceName)_Edit.config.ps1"
+    . $configFile
 
     Describe "$($script:DSCResourceName)_Edit_Integration" {
         #region DEFAULT TESTS
@@ -122,14 +122,14 @@ try
             } | Should not throw
         }
 
-        It 'should be able to call Get-DscConfiguration without throwing' {
+        It 'Should be able to call Get-DscConfiguration without throwing' {
             { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not throw
         }
         #endregion
 
         # Get the current service details
         $script:service = Get-CimInstance -ClassName Win32_Service -Filter "Name='$($script:testServiceName)'"
-        It 'The service should exist' {
+        It 'Should return a service or type CimInstance' {
             $script:service | Should BeOfType 'Microsoft.Management.Infrastructure.CimInstance'
         }
 
@@ -151,8 +151,8 @@ try
     Reset-DSC
 
     #region Integration Tests
-    $ConfigFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:DSCResourceName)_Remove.config.ps1"
-    . $ConfigFile
+    $configFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:DSCResourceName)_Remove.config.ps1"
+    . $configFile
 
     Describe "$($script:DSCResourceName)_Remove_Integration" {
         #region DEFAULT TESTS
@@ -166,14 +166,14 @@ try
             } | Should not throw
         }
 
-        It 'should be able to call Get-DscConfiguration without throwing' {
+        It 'Should be able to call Get-DscConfiguration without throwing' {
             { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not throw
         }
         #endregion
 
         # Get the current service details
         $script:service = Get-CimInstance -ClassName Win32_Service -Filter "Name='$($script:testServiceName)'"
-        It 'The service should not exist' {
+        It 'Should return the service as null' {
             $script:service | Should BeNullOrEmpty
         }
     }

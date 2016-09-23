@@ -48,17 +48,17 @@ function Get-TargetResource
 
         $builtInAccount = $null
 
-        if ($serviceWmi.StartName -ieq "LocalSystem")
+        if ($serviceWmi.StartName -ieq 'LocalSystem')
         {
-            $builtInAccount ="LocalSystem"
+            $builtInAccount ='LocalSystem'
         }
-        elseif ($serviceWmi.StartName -ieq "NT Authority\NetworkService")
+        elseif ($serviceWmi.StartName -ieq 'NT Authority\NetworkService')
         {
-            $builtInAccount = "NetworkService"
+            $builtInAccount = 'NetworkService'
         }
-        elseif ($serviceWmi.StartName -ieq "NT Authority\LocalService")
+        elseif ($serviceWmi.StartName -ieq 'NT Authority\LocalService')
         {
-            $builtInAccount = "LocalService"
+            $builtInAccount = 'LocalService'
         }
 
         $dependencies = @()
@@ -145,11 +145,11 @@ function Test-TargetResource
         [String]
         $Name,
 
-        [ValidateSet("Automatic", "Manual", "Disabled")]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
         [String]
         $StartupType,
 
-        [ValidateSet("LocalSystem", "LocalService", "NetworkService")]
+        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         [String]
         $BuiltInAccount,
 
@@ -161,13 +161,13 @@ function Test-TargetResource
         [Boolean]
         $DesktopInteract,
 
-        [ValidateSet("Running", "Stopped")]
+        [ValidateSet('Running', 'Stopped')]
         [String]
-        $State = "Running",
+        $State = 'Running',
 
-        [ValidateSet("Present", "Absent")]
+        [ValidateSet('Present', 'Absent')]
         [String]
-        $Ensure = "Present",
+        $Ensure = 'Present',
 
         [ValidateNotNullOrEmpty()]
         [String]
@@ -214,7 +214,7 @@ function Test-TargetResource
     $serviceWmi = Get-Win32ServiceObject -Name $Name
 
     # Check the binary path
-    if ($PSBoundParameters.ContainsKey("Path") `
+    if ($PSBoundParameters.ContainsKey('Path') `
         -and -not (Compare-ServicePath -Name $Name -Path $Path))
     {
         Write-Verbose -Message ($LocalizedData.TestBinaryPathMismatch `
@@ -250,21 +250,21 @@ function Test-TargetResource
         return $false
     } # if
 
-    if ($PSBoundParameters.ContainsKey("StartupType") `
-        -or $PSBoundParameters.ContainsKey("BuiltInAccount") `
-        -or $PSBoundParameters.ContainsKey("Credential") `
-        -or $PSBoundParameters.ContainsKey("DesktopInteract"))
+    if ($PSBoundParameters.ContainsKey('StartupType') `
+        -or $PSBoundParameters.ContainsKey('BuiltInAccount') `
+        -or $PSBoundParameters.ContainsKey('Credential') `
+        -or $PSBoundParameters.ContainsKey('DesktopInteract'))
     {
         $getUserNameAndPasswordArgs = @{}
 
-        if($PSBoundParameters.ContainsKey("BuiltInAccount"))
+        if($PSBoundParameters.ContainsKey('BuiltInAccount'))
         {
-            $null = $getUserNameAndPasswordArgs.Add("BuiltInAccount",$BuiltInAccount)
+            $null = $getUserNameAndPasswordArgs.Add('BuiltInAccount',$BuiltInAccount)
         } # if
 
-        if($PSBoundParameters.ContainsKey("Credential"))
+        if($PSBoundParameters.ContainsKey('Credential'))
         {
-            $null = $getUserNameAndPasswordArgs.Add("Credential",$Credential)
+            $null = $getUserNameAndPasswordArgs.Add('Credential',$Credential)
         } # if
 
         $userName,$password = Get-UserNameAndPassword @getUserNameAndPasswordArgs
@@ -276,7 +276,7 @@ function Test-TargetResource
             return $false
         } # if
 
-        if ($PSBoundParameters.ContainsKey("DesktopInteract") `
+        if ($PSBoundParameters.ContainsKey('DesktopInteract') `
             -and $serviceWmi.DesktopInteract -ne $DesktopInteract)
         {
             Write-Verbose -Message ($LocalizedData.TestDesktopInteractMismatch `
@@ -284,7 +284,7 @@ function Test-TargetResource
             return $false
         } # if
 
-        if ($PSBoundParameters.ContainsKey("StartupType") `
+        if ($PSBoundParameters.ContainsKey('StartupType') `
             -and $serviceWmi.StartMode -ine (ConvertTo-StartModeString -StartupType $StartupType))
         {
             Write-Verbose -Message ($LocalizedData.TestStartupTypeMismatch `
@@ -358,11 +358,11 @@ function Set-TargetResource
         [String]
         $Name,
 
-        [ValidateSet("Automatic", "Manual", "Disabled")]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
         [String]
         $StartupType,
 
-        [ValidateSet("LocalSystem", "LocalService", "NetworkService")]
+        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         [String]
         $BuiltInAccount,
 
@@ -374,13 +374,13 @@ function Set-TargetResource
         [Boolean]
         $DesktopInteract,
 
-        [ValidateSet("Running", "Stopped")]
+        [ValidateSet('Running', 'Stopped')]
         [String]
-        $State = "Running",
+        $State = 'Running',
 
-        [ValidateSet("Present", "Absent")]
+        [ValidateSet('Present', 'Absent')]
         [String]
-        $Ensure = "Present",
+        $Ensure = 'Present',
 
         [ValidateNotNullOrEmpty()]
         [String]
@@ -413,7 +413,7 @@ function Set-TargetResource
 
     $serviceExists = Test-ServiceExist -Name $Name -ErrorAction SilentlyContinue
 
-    if (($Ensure -eq "Absent") -and $serviceExists)
+    if (($Ensure -eq 'Absent') -and $serviceExists)
     {
         # The service exists but needs to be deleted
         Stop-ServiceResource -Name $Name -TerminateTimeout $TerminateTimeout
@@ -421,7 +421,7 @@ function Set-TargetResource
         return
     } # if
 
-    if ($PSBoundParameters.ContainsKey("Path") -and $serviceExists)
+    if ($PSBoundParameters.ContainsKey('Path') -and $serviceExists)
     {
         if (-not (Compare-ServicePath -Name $Name -Path $Path))
         {
@@ -429,11 +429,11 @@ function Set-TargetResource
             Write-Verbose -Message ($LocalizedData.ServiceExecutablePathChangeNotSupported)
         } # if
     }
-    elseif ($PSBoundParameters.ContainsKey("Path") -and -not $serviceExists)
+    elseif ($PSBoundParameters.ContainsKey('Path') -and -not $serviceExists)
     {
         $argumentsToNewService = @{}
-        $argumentsToNewService.Add("Name", $Name)
-        $argumentsToNewService.Add("BinaryPathName", $Path)
+        $argumentsToNewService.Add('Name', $Name)
+        $argumentsToNewService.Add('BinaryPathName', $Path)
 
         try
         {
@@ -442,14 +442,14 @@ function Set-TargetResource
         catch
         {
             Write-Verbose -Message ($LocalizedData.TestStartupTypeMismatch `
-                -f $argumentsToNewService["Name"], $_.Exception.Message)
+                -f $argumentsToNewService['Name'], $_.Exception.Message)
             throw $_
         } # try
     }
-    elseif (-not $PSBoundParameters.ContainsKey("Path") -and -not $serviceExists)
+    elseif (-not $PSBoundParameters.ContainsKey('Path') -and -not $serviceExists)
     {
         New-InvalidArgumentError `
-            -ErrorId "ServiceDoesNotExistPathMissingError" `
+            -ErrorId 'ServiceDoesNotExistPathMissingError' `
             -ErrorMessage ($LocalizedData.ServiceDoesNotExistPathMissingError -f $Name)
     } # if
 
@@ -500,12 +500,12 @@ function Set-TargetResource
 
     $requiresRestart = Write-WriteProperty @writeWritePropertiesArguments
 
-    if ($State -eq "Stopped")
+    if ($State -eq 'Stopped')
     {
         # Ensure service is stopped
         Stop-ServiceResource -Name $Name -TerminateTimeout $TerminateTimeout
     }
-    elseif ($State -eq "Running")
+    elseif ($State -eq 'Running')
     {
         # if the service needs to be restarted then go stop it first
         if ($requiresRestart)
@@ -543,32 +543,32 @@ function Test-StartupType
         $Name,
 
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Automatic", "Manual", "Disabled")]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
         [String]
         $StartupType,
 
-        [ValidateSet("Running", "Stopped")]
+        [ValidateSet('Running', 'Stopped')]
         [String]
-        $State = "Running"
+        $State = 'Running'
     )
 
-    if ($State -eq "Stopped")
+    if ($State -eq 'Stopped')
     {
-        if ($StartupType -eq "Automatic")
+        if ($StartupType -eq 'Automatic')
         {
             # State = Stopped conflicts with Automatic or Delayed
             New-InvalidArgumentError `
-                -ErrorId "CannotStopServiceSetToStartAutomatically" `
+                -ErrorId 'CannotStopServiceSetToStartAutomatically' `
                 -ErrorMessage ($LocalizedData.CannotStopServiceSetToStartAutomatically -f $Name)
         } # if
     }
     else
     {
-        if ($StartupType -eq "Disabled")
+        if ($StartupType -eq 'Disabled')
         {
             # State = Running conflicts with Disabled
             New-InvalidArgumentError `
-                -ErrorId "CannotStartAndDisable" `
+                -ErrorId 'CannotStartAndDisable' `
                 -ErrorMessage ($LocalizedData.CannotStartAndDisable -f $Name)
         } # if
     } # if
@@ -620,7 +620,7 @@ function ConvertTo-StartupTypeString
 
     if ($StartMode -eq 'Auto')
     {
-        return "Automatic"
+        return 'Automatic'
     } # if
 
     return $StartMode
@@ -666,7 +666,7 @@ function Set-ServiceStartMode
         $Win32ServiceObject,
 
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Automatic", "Manual", "Disabled")]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
         [String]
         $StartupType
     )
@@ -686,11 +686,11 @@ function Set-ServiceStartMode
         if ($changeResult.ReturnValue -ne 0)
         {
             $innerMessage = ($LocalizedData.MethodFailed `
-                -f "Change", "Win32_Service", $changeResult.ReturnValue)
+                -f 'Change', 'Win32_Service', $changeResult.ReturnValue)
             $errorMessage = ($LocalizedData.ErrorChangingProperty `
-                -f "StartupType", $innerMessage)
+                -f 'StartupType', $innerMessage)
             New-InvalidArgumentError `
-                -ErrorId "ChangeStartupTypeFailed" `
+                -ErrorId 'ChangeStartupTypeFailed' `
                 -ErrorMessage $errorMessage
         }
     }
@@ -715,11 +715,11 @@ function Write-WriteProperty
         $Path,
 
         [System.String]
-        [ValidateSet("Automatic", "Manual", "Disabled")]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
         $StartupType,
 
         [System.String]
-        [ValidateSet("LocalSystem", "LocalService", "NetworkService")]
+        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         $BuiltInAccount,
 
         [System.Management.Automation.PSCredential]
@@ -794,42 +794,42 @@ function Write-WriteProperty
         if ($changeResult.ReturnValue -ne 0)
         {
             $innerMessage = ($LocalizedData.MethodFailed `
-                -f "Change", "Win32_Service", $changeResult.ReturnValue)
+                -f 'Change', 'Win32_Service', $changeResult.ReturnValue)
             $errorMessage = ($LocalizedData.ErrorChangingProperty `
-                -f "Dependencies", $innerMessage)
+                -f 'Dependencies', $innerMessage)
             New-InvalidArgumentError `
-                -ErrorId "ChangeDependenciesFailed" `
+                -ErrorId 'ChangeDependenciesFailed' `
                 -ErrorMessage $errorMessage
         } # if
     } # if
 
     # update credentials
-    if($PSBoundParameters.ContainsKey("BuiltInAccount") `
-        -or $PSBoundParameters.ContainsKey("Credential") `
-        -or $PSBoundParameters.ContainsKey("DesktopInteract"))
+    if($PSBoundParameters.ContainsKey('BuiltInAccount') `
+        -or $PSBoundParameters.ContainsKey('Credential') `
+        -or $PSBoundParameters.ContainsKey('DesktopInteract'))
     {
-        $writeCredentialPropertiesArguments = @{ "ServiceWmi" = $serviceWmi }
+        $writeCredentialPropertiesArguments = @{ 'ServiceWmi' = $serviceWmi }
 
-        if($PSBoundParameters.ContainsKey("BuiltInAccount"))
+        if($PSBoundParameters.ContainsKey('BuiltInAccount'))
         {
-            $null = $writeCredentialPropertiesArguments.Add("BuiltInAccount",$BuiltInAccount)
+            $null = $writeCredentialPropertiesArguments.Add('BuiltInAccount',$BuiltInAccount)
         } # if
 
-        if($PSBoundParameters.ContainsKey("Credential"))
+        if($PSBoundParameters.ContainsKey('Credential'))
         {
-            $null = $writeCredentialPropertiesArguments.Add("Credential",$Credential)
+            $null = $writeCredentialPropertiesArguments.Add('Credential',$Credential)
         } # if
 
-        if($PSBoundParameters.ContainsKey("DesktopInteract"))
+        if($PSBoundParameters.ContainsKey('DesktopInteract'))
         {
-            $null = $writeCredentialPropertiesArguments.Add("DesktopInteract",$DesktopInteract)
+            $null = $writeCredentialPropertiesArguments.Add('DesktopInteract',$DesktopInteract)
         } # if
 
         Write-CredentialProperty @writeCredentialPropertiesArguments
     } # if
 
     # Update startup type
-    if($PSBoundParameters.ContainsKey("StartupType"))
+    if($PSBoundParameters.ContainsKey('StartupType'))
     {
         Set-ServiceStartMode -Win32ServiceObject $serviceWmi -StartupType $StartupType
     } # if
@@ -853,7 +853,7 @@ function Write-CredentialProperty
         $ServiceWmi,
 
         [System.String]
-        [ValidateSet("LocalSystem", "LocalService", "NetworkService")]
+        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         $BuiltInAccount,
 
         [System.Management.Automation.PSCredential]
@@ -864,9 +864,9 @@ function Write-CredentialProperty
         $DesktopInteract
     )
 
-    if(-not $PSBoundParameters.ContainsKey("Credential") `
-        -and -not $PSBoundParameters.ContainsKey("BuiltInAccount") `
-        -and -not $PSBoundParameters.ContainsKey("DesktopInteract"))
+    if(-not $PSBoundParameters.ContainsKey('Credential') `
+        -and -not $PSBoundParameters.ContainsKey('BuiltInAccount') `
+        -and -not $PSBoundParameters.ContainsKey('DesktopInteract'))
     {
         # No change parameters actually passed - nothing to change
         return
@@ -878,23 +878,23 @@ function Write-CredentialProperty
     # Get the Username and Password to change to (if applicable)
     $getUserNameAndPasswordArgs = @{}
 
-    if($PSBoundParameters.ContainsKey("BuiltInAccount"))
+    if($PSBoundParameters.ContainsKey('BuiltInAccount'))
     {
-        $null = $getUserNameAndPasswordArgs.Add("BuiltInAccount",$BuiltInAccount)
+        $null = $getUserNameAndPasswordArgs.Add('BuiltInAccount',$BuiltInAccount)
     } # if
 
-    if($PSBoundParameters.ContainsKey("Credential"))
+    if($PSBoundParameters.ContainsKey('Credential'))
     {
-        $null = $getUserNameAndPasswordArgs.Add("Credential",$Credential)
+        $null = $getUserNameAndPasswordArgs.Add('Credential',$Credential)
     } # if
 
     if($getUserNameAndPasswordArgs.Count -gt 1)
     {
         # Both credentials and buildinaccount were set - throw
         New-InvalidArgumentError `
-            -ErrorId "OnlyCredentialOrBuiltInAccount" `
+            -ErrorId 'OnlyCredentialOrBuiltInAccount' `
             -ErrorMessage ($LocalizedData.OnlyOneParameterCanBeSpecified `
-                -f "Credential","BuiltInAccount")
+                -f 'Credential','BuiltInAccount')
     } # if
 
     $userName,$password = Get-UserNameAndPassword @getUserNameAndPasswordArgs
@@ -904,7 +904,7 @@ function Write-CredentialProperty
         -and -not (Test-UserName -ServiceWmi $ServiceWmi -Username $userName))
     {
         # A specific user account was passed so set log on as a service policy
-        if($PSBoundParameters.ContainsKey("Credential"))
+        if($PSBoundParameters.ContainsKey('Credential'))
         {
             Set-LogOnAsServicePolicy -Username $userName
         } # if
@@ -916,7 +916,7 @@ function Write-CredentialProperty
     } # if
 
     # The desktop interact flag was passed to set that value
-    if($PSBoundParameters.ContainsKey("DesktopInteract") `
+    if($PSBoundParameters.ContainsKey('DesktopInteract') `
         -and ($DesktopInteract -ne $ServiceWmi.DesktopInteract))
     {
         $changeArgs.DesktopInteract = $DesktopInteract
@@ -932,11 +932,11 @@ function Write-CredentialProperty
         if($ret.ReturnValue -ne 0)
         {
             $innerMessage = ($LocalizedData.MethodFailed `
-                -f "Change","Win32_Service",$ret.ReturnValue)
+                -f 'Change','Win32_Service',$ret.ReturnValue)
             $errorMessage = ($LocalizedData.ErrorChangingProperty `
-                -f "Credential",$innerMessage)
+                -f 'Credential',$innerMessage)
             New-InvalidArgumentError `
-                -ErrorId "ChangeCredentialFailed" `
+                -ErrorId 'ChangeCredentialFailed' `
                 -ErrorMessage $errorMessage
         } # if
     } # if
@@ -975,11 +975,11 @@ function Write-BinaryProperty
     if ($changeResult.ReturnValue -ne 0)
     {
         $innerMessage = ($LocalizedData.MethodFailed `
-            -f "Change", "Win32_Service", $changeResult.ReturnValue)
+            -f 'Change', 'Win32_Service', $changeResult.ReturnValue)
         $errorMessage = ($LocalizedData.ErrorChangingProperty `
-            -f "Binary Path", $innerMessage)
+            -f 'Binary Path', $innerMessage)
         New-InvalidArgumentError `
-            -ErrorId "ChangeBinaryPathFailed" `
+            -ErrorId 'ChangeBinaryPathFailed' `
             -ErrorMessage $errorMessage
     } # if
 
@@ -1027,7 +1027,7 @@ function Get-UserNameAndPassword
     param
     (
         [System.String]
-        [ValidateSet("LocalSystem", "LocalService", "NetworkService")]
+        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         $BuiltInAccount,
 
         [System.Management.Automation.PSCredential]
@@ -1035,18 +1035,18 @@ function Get-UserNameAndPassword
         $Credential
     )
 
-    if($PSBoundParameters.ContainsKey("BuiltInAccount"))
+    if ($PSBoundParameters.ContainsKey('BuiltInAccount'))
     {
         return (Resolve-UserName -UserName $BuiltInAccount.ToString()),$null
     }
 
-    if($PSBoundParameters.ContainsKey("Credential"))
+    if ($PSBoundParameters.ContainsKey('Credential'))
     {
         return (Resolve-UserName -UserName $Credential.UserName),`
             $Credential.GetNetworkCredential().Password
     }
 
-    return $null,$null
+    return $null, $null
 } # function Get-UserNameAndPassword
 
 <#
@@ -1074,7 +1074,7 @@ function Remove-Service
     )
 
     # Delete the service
-    & "sc.exe" "delete" "$Name"
+    & 'sc.exe' 'delete' "$Name"
 
     # Wait for the service to be deleted
     $serviceDeletedSuccessfully = $false
@@ -1104,7 +1104,7 @@ function Remove-Service
     {
         # Service was not deleted
         New-InvalidArgumentError `
-            -ErrorId "ErrorDeletingService" `
+            -ErrorId 'ErrorDeletingService' `
             -ErrorMessage ($LocalizedData.ErrorDeletingService -f $Name)
     } # if
 } # function Remove-Service
@@ -1160,7 +1160,7 @@ function Start-ServiceResource
             $errorMessage = ($LocalizedData.ErrorStartingService -f `
                 $service.Name, $servicePath, $_.Exception.Message)
             New-InvalidArgumentError `
-                -ErrorId "ErrorStartingService" `
+                -ErrorId 'ErrorStartingService' `
                 -ErrorMessage $errorMessage
         } # try
 
@@ -1244,21 +1244,21 @@ function Resolve-UserName
     {
         'NetworkService'
         {
-            return "NT Authority\NetworkService"
+            return 'NT Authority\NetworkService'
         } # 'NetworkService'
         'LocalService'
         {
-            return "NT Authority\LocalService"
+            return 'NT Authority\LocalService'
         } # 'LocalService'
         'LocalSystem'
         {
-            return ".\LocalSystem"
+            return '.\LocalSystem'
         } # 'LocalSystem'
         default
         {
-            if ($UserName.IndexOf("\") -eq -1)
+            if ($UserName.IndexOf('\') -eq -1)
             {
-                return ".\" + $UserName
+                return '.\' + $UserName
             } # if
         } # default
     } # switch
@@ -1386,7 +1386,7 @@ function Get-ServiceResource
     if ($null -eq $service)
     {
         New-InvalidArgumentError `
-            -ErrorId "ServiceNotFound" `
+            -ErrorId 'ServiceNotFound' `
             -ErrorMessage ($LocalizedData.ServiceNotFound -f $Name)
     } # if
 
@@ -1756,24 +1756,24 @@ function Set-LogOnAsServicePolicy
     }
     catch
     {
-        $logOnAsServiceText = $logOnAsServiceText.Replace("CannotOpenPolicyErrorMessage",`
+        $logOnAsServiceText = $logOnAsServiceText.Replace('CannotOpenPolicyErrorMessage',`
             $LocalizedData.CannotOpenPolicyErrorMessage)
-        $logOnAsServiceText = $logOnAsServiceText.Replace("UserNameTooLongErrorMessage",`
+        $logOnAsServiceText = $logOnAsServiceText.Replace('UserNameTooLongErrorMessage',`
             $LocalizedData.UserNameTooLongErrorMessage)
-        $logOnAsServiceText = $logOnAsServiceText.Replace("CannotLookupNamesErrorMessage",`
+        $logOnAsServiceText = $logOnAsServiceText.Replace('CannotLookupNamesErrorMessage',`
             $LocalizedData.CannotLookupNamesErrorMessage)
-        $logOnAsServiceText = $logOnAsServiceText.Replace("CannotOpenAccountErrorMessage",`
+        $logOnAsServiceText = $logOnAsServiceText.Replace('CannotOpenAccountErrorMessage',`
             $LocalizedData.CannotOpenAccountErrorMessage)
-        $logOnAsServiceText = $logOnAsServiceText.Replace("CannotCreateAccountAccessErrorMessage",`
+        $logOnAsServiceText = $logOnAsServiceText.Replace('CannotCreateAccountAccessErrorMessage',`
             $LocalizedData.CannotCreateAccountAccessErrorMessage)
-        $logOnAsServiceText = $logOnAsServiceText.Replace("CannotGetAccountAccessErrorMessage",`
+        $logOnAsServiceText = $logOnAsServiceText.Replace('CannotGetAccountAccessErrorMessage',`
             $LocalizedData.CannotGetAccountAccessErrorMessage)
-        $logOnAsServiceText = $logOnAsServiceText.Replace("CannotSetAccountAccessErrorMessage",`
+        $logOnAsServiceText = $logOnAsServiceText.Replace('CannotSetAccountAccessErrorMessage',`
             $LocalizedData.CannotSetAccountAccessErrorMessage)
         $null = Add-Type $logOnAsServiceText -PassThru -Debug:$false
     } # try
 
-    if($UserName.StartsWith(".\"))
+    if($UserName.StartsWith('.\'))
     {
         $UserName = $UserName.Substring(2)
     } # if
@@ -1786,7 +1786,7 @@ function Set-LogOnAsServicePolicy
     {
         $message = ($LocalizedData.ErrorSettingLogOnAsServiceRightsForUser `
             -f $UserName,$_.Exception.Message)
-        New-InvalidArgumentError -ErrorId "ErrorSettingLogOnAsServiceRightsForUser" -ErrorMessage $message
+        New-InvalidArgumentError -ErrorId 'ErrorSettingLogOnAsServiceRightsForUser' -ErrorMessage $message
     } # try
 } # function Set-LogOnAsServicePolicy
 
