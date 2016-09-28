@@ -25,6 +25,10 @@ $TestEnvironment = Initialize-TestEnvironment `
 # Begin Testing
 try
 {
+
+    # This is needed so that the ServiceControllerStatus enum is recognized as a valid type
+    Add-Type -AssemblyName 'System.ServiceProcess'
+
     InModuleScope $script:DSCResourceName {
         $DSCResourceName = 'MSFT_xServiceResource'
 

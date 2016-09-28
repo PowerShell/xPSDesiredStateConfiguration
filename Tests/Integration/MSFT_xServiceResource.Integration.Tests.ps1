@@ -31,6 +31,12 @@ try
     $script:testServiceNewDescription = 'New: This is a DSC test service used for integration testing MSFT_xServiceResource'
     $script:testServiceNewDependsOn = 'spooler'
     $script:testServiceNewExecutablePath = Join-Path -Path $ENV:Temp -ChildPath 'NewDscTestService.exe'
+    
+    <#
+        Nano Server doesn't recognize 'spooler', so if these tests are being run on Nano
+        this value must stay as 'winrm'
+    #>
+    if ($PSVersionTable.PSEdition -ieq 'Core') { $script:testServiceNewDependsOn = 'winrm' }
 
     Import-Module "$PSScriptRoot\..\CommonTestHelper.psm1" -Force
     Import-Module "$PSScriptRoot\..\MSFT_xServiceResource.TestHelper.psm1" -Force
@@ -75,7 +81,7 @@ try
         }
 
         It 'Should be able to call Get-DscConfiguration without throwing' {
-            { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should not throw
+            { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not Throw
         }
         #endregion
 
@@ -123,7 +129,7 @@ try
         }
 
         It 'Should be able to call Get-DscConfiguration without throwing' {
-            { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not throw
+            { Get-DscConfiguration -Verbose -ErrorAction Stop } | Should Not Throw
         }
         #endregion
 
