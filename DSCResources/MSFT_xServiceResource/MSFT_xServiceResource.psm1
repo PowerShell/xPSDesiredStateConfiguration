@@ -43,6 +43,7 @@ function Get-TargetResource
 
     if (Test-ServiceExist -Name $Name -ErrorAction SilentlyContinue)
     {
+        Write-Verbose -Message 'Service exists - getting service'
         $service = Get-ServiceResource -Name $Name
         $serviceWmi = Get-Win32ServiceObject -Name $Name
 
@@ -82,6 +83,7 @@ function Get-TargetResource
     }
     else
     {
+        Write-Verbose -Message 'Service with given name does not exist'
         return @{
             Name            = $service.Name
             Ensure          = 'Absent'
