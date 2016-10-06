@@ -394,6 +394,38 @@ try
                 }
             }
 
+            Context 'Service exists and should, everything matches and State is set to Ignore' {
+                # Mocks that should be called
+                Mock `
+                    -CommandName Compare-ServicePath `
+                    -MockWith { $false } `
+                    -Verifiable
+
+                # Mocks that should not be called
+                Mock -CommandName Test-UserName
+
+                It 'Should not throw an exception' {
+                    $Splat = $script:splatServiceExistsAutomatic.Clone()
+                    $Splat.State = 'Stopped'
+                    { $script:result = Test-TargetResource @Splat `
+                        -Verbose } | Should Not Throw
+                }
+
+                It 'Should return true' {
+                    $script:result | Should Be $true
+                }
+
+                It 'Should call expected Mocks' {
+                    Assert-VerifiableMocks
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
+                    Assert-MockCalled -CommandName Get-ServiceResource -Exactly 1
+                    Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
+                    Assert-MockCalled -CommandName Test-StartupType -Exactly 1
+                    Assert-MockCalled -CommandName Compare-ServicePath -Exactly 1
+                    Assert-MockCalled -CommandName Test-UserName -Exactly 0
+                }
+            }
+
             Context 'Service exists and should not' {
                 # Mocks that should not be called
                 Mock -CommandName Compare-ServicePath
@@ -664,6 +696,53 @@ try
                     Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 1
+                    Assert-MockCalled -CommandName Remove-Service -Exactly 0
+                    Assert-MockCalled -CommandName New-Service -Exactly 0
+                    Assert-MockCalled -CommandName Compare-ServicePath -Exactly 1
+                    Assert-MockCalled -CommandName Write-WriteProperty -Exactly 1
+                }
+            }
+
+             Context 'Service exists and should, State is Ignore, all parameters passed and match' {
+                # Mocks that should be called
+                Mock `
+                    -CommandName Test-StartupType `
+                    -Verifiable
+
+                Mock `
+                    -CommandName Test-ServiceExists `
+                    -MockWith { $true } `
+                    -Verifiable
+
+                Mock `
+                    -CommandName Compare-ServicePath `
+                    -MockWith { $true } `
+                    -Verifiable
+
+                Mock `
+                    -CommandName Write-WriteProperty `
+                    -MockWith { $false } `
+                    -Verifiable
+
+                # Mocks that should not be called
+                Mock -CommandName New-Service
+                Mock -CommandName Remove-Service
+                Mock -CommandName Start-ServiceResource
+                Mock -CommandName Stop-ServiceResource
+
+                It 'Should not throw an exception' {
+                    $Splat = $script:splatServiceExistsAutomatic.Clone()
+                    $Splat.State = 'Ignore'
+                    { Set-TargetResource @Splat `
+                        -Verbose } | Should Not Throw
+                }
+
+                It 'Should call expected Mocks' {
+                    Assert-VerifiableMocks
+                    Assert-MockCalled -CommandName Test-StartupType -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
+                    Assert-MockCalled -CommandName Start-ServiceResource -Exactly 0
+                    Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Remove-Service -Exactly 0
                     Assert-MockCalled -CommandName New-Service -Exactly 0
                     Assert-MockCalled -CommandName Compare-ServicePath -Exactly 1
