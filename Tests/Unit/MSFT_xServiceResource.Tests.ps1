@@ -149,7 +149,7 @@ try
             Context 'Service exists' {
                 # Mocks that should be called
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $true } `
                     -Verifiable
 
@@ -184,7 +184,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                 }
@@ -192,7 +192,7 @@ try
 
             Context 'Service does not exist' {
                 # Mocks that should be called
-                Mock -CommandName Test-ServiceExist -MockWith { $false } -Verifiable
+                Mock -CommandName Test-ServiceExists -MockWith { $false } -Verifiable
 
                 # Mocks that should not be called
                 Mock -CommandName Get-serviceResource
@@ -212,7 +212,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-serviceResource -Exactly 0
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 0
                 }
@@ -222,7 +222,7 @@ try
         Describe "$DSCResourceName\Test-TargetResource" {
             # Mocks that should be called
             Mock `
-                -CommandName Test-ServiceExist `
+                -CommandName Test-ServiceExists `
                 -MockWith { $true } `
                 -Verifiable
 
@@ -263,7 +263,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
@@ -295,7 +295,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
@@ -324,7 +324,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
@@ -353,7 +353,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
@@ -385,7 +385,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
@@ -414,7 +414,7 @@ try
 
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Get-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 0
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
@@ -432,7 +432,7 @@ try
                     -Verifiable
 
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $true } `
                     -Verifiable
 
@@ -460,7 +460,7 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Remove-Service -Exactly 1
@@ -477,7 +477,7 @@ try
                     -Verifiable
 
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $true } `
                     -Verifiable
 
@@ -509,7 +509,7 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Remove-Service -Exactly 0
@@ -526,7 +526,7 @@ try
                     -Verifiable
 
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $true } `
                     -Verifiable
 
@@ -559,7 +559,7 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Remove-Service -Exactly 0
@@ -576,7 +576,7 @@ try
                     -Verifiable
 
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $true } `
                     -Verifiable
 
@@ -611,7 +611,7 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Remove-Service -Exactly 0
@@ -628,7 +628,7 @@ try
                     -Verifiable
 
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $true } `
                     -Verifiable
 
@@ -661,7 +661,7 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Remove-Service -Exactly 0
@@ -678,7 +678,7 @@ try
                     -Verifiable
 
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $false } `
                     -Verifiable
 
@@ -710,7 +710,7 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 1
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Remove-Service -Exactly 0
@@ -727,7 +727,7 @@ try
                     -Verifiable
 
                 Mock `
-                    -CommandName Test-ServiceExist `
+                    -CommandName Test-ServiceExists `
                     -MockWith { $false } `
                     -Verifiable
 
@@ -754,7 +754,7 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Stop-ServiceResource -Exactly 0
                     Assert-MockCalled -CommandName Remove-Service -Exactly 0
@@ -1714,7 +1714,7 @@ try
         Describe "$DSCResourceName\Remove-Service" {
             # Mocks that should be called
             Mock -CommandName 'sc.exe' -Verifiable
-            Mock -CommandName Test-ServiceExist -MockWith { $false } -Verifiable
+            Mock -CommandName Test-ServiceExists -MockWith { $false } -Verifiable
 
             Context 'Service is deleted successfully' {
                 # Mocks that should not be called
@@ -1729,12 +1729,12 @@ try
                 It 'Should call expected Mocks' {
                     Assert-VerifiableMocks
                     Assert-MockCalled -CommandName 'sc.exe' -Exactly 1
-                    Assert-MockCalled -CommandName Test-ServiceExist -Exactly 1
+                    Assert-MockCalled -CommandName Test-ServiceExists -Exactly 1
                     Assert-MockCalled -CommandName Start-Sleep -Exactly 0
                 }
             }
 
-            Mock -CommandName Test-ServiceExist -MockWith { $true } -Verifiable
+            Mock -CommandName Test-ServiceExists -MockWith { $true } -Verifiable
 
             Context 'Service can not be deleted (will take 5 seconds)' {
                 Mock -CommandName Start-Sleep -Verifiable
@@ -1902,7 +1902,7 @@ try
             }
         }
 
-        Describe "$DSCResourceName\Test-ServiceExist" {
+        Describe "$DSCResourceName\Test-ServiceExists" {
             Context 'Service exists' {
                 # Mocks that should be called
                 Mock `
@@ -1913,7 +1913,7 @@ try
 
                 It 'Should not throw an exception' {
                     {
-                        $script:result = Test-ServiceExist -Name $script:testServiceName -Verbose
+                        $script:result = Test-ServiceExists -Name $script:testServiceName -Verbose
                     } | Should Not Throw
                 }
 
@@ -1939,7 +1939,7 @@ try
 
                 It 'Should not throw an exception' {
                     {
-                        $script:result = Test-ServiceExist -Name $script:testServiceName -Verbose
+                        $script:result = Test-ServiceExists -Name $script:testServiceName -Verbose
                     } | Should Not Throw
                 }
 
