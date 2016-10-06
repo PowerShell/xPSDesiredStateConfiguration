@@ -366,11 +366,13 @@ try
                 # Mocks that should be called
                 Mock `
                     -CommandName Compare-ServicePath `
-                    -MockWith { $false } `
+                    -MockWith { $true } `
                     -Verifiable
 
-                # Mocks that should not be called
-                Mock -CommandName Test-UserName
+                Mock `
+                    -CommandName Test-UserName `
+                    -MockWith { $true } `
+                    -Verifiable
 
                 It 'Should not throw an exception' {
                     $Splat = $script:splatServiceExistsAutomatic.Clone()
@@ -380,7 +382,7 @@ try
                 }
 
                 It 'Should return false' {
-                    $script:result | Should Be $False
+                    $script:result | Should Be $false
                 }
 
                 It 'Should call expected Mocks' {
@@ -390,7 +392,7 @@ try
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
                     Assert-MockCalled -CommandName Compare-ServicePath -Exactly 1
-                    Assert-MockCalled -CommandName Test-UserName -Exactly 0
+                    Assert-MockCalled -CommandName Test-UserName -Exactly 1
                 }
             }
 
@@ -398,11 +400,13 @@ try
                 # Mocks that should be called
                 Mock `
                     -CommandName Compare-ServicePath `
-                    -MockWith { $false } `
+                    -MockWith { $true } `
                     -Verifiable
 
-                # Mocks that should not be called
-                Mock -CommandName Test-UserName
+                Mock `
+                    -CommandName Test-UserName `
+                    -MockWith { $true } `
+                    -Verifiable
 
                 It 'Should not throw an exception' {
                     $Splat = $script:splatServiceExistsAutomatic.Clone()
@@ -422,7 +426,7 @@ try
                     Assert-MockCalled -CommandName Get-Win32ServiceObject -Exactly 1
                     Assert-MockCalled -CommandName Test-StartupType -Exactly 1
                     Assert-MockCalled -CommandName Compare-ServicePath -Exactly 1
-                    Assert-MockCalled -CommandName Test-UserName -Exactly 0
+                    Assert-MockCalled -CommandName Test-UserName -Exactly 1
                 }
             }
 

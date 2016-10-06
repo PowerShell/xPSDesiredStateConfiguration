@@ -489,6 +489,7 @@ function Test-TargetResource
         }
 
         $userName, $password = Get-UserNameAndPassword @getUserNameAndPasswordArgs
+
         if ($null -ne $userName  -and `
             -not (Test-UserName -ServiceWmi $serviceWmi -Username $userName))
         {
