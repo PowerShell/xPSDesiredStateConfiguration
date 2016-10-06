@@ -814,6 +814,24 @@ try
                         -Verbose } | Should Not Throw
                 }
             }
+
+            Context 'State is Ignore' {
+                It 'Shoult not throw exception for Disabled' {
+                    { Test-StartupType `
+                        -Name $script:testServiceName `
+                        -StartupType 'Disabled' `
+                        -State 'Ignore' `
+                        -Verbose } | Should Not Throw
+                }
+
+                It 'Shoult not throw exception for Automatic' {
+                    { Test-StartupType `
+                        -Name $script:testServiceName `
+                        -StartupType 'Automatic' `
+                        -State 'Ignore' `
+                        -Verbose } | Should Not Throw
+                }
+            }
         }
 
         Describe "$DSCResourceName\ConvertTo-StartModeString" {

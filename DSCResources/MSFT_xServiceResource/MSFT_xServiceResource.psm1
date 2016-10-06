@@ -187,7 +187,7 @@ function Set-TargetResource
 
     if ($PSBoundParameters.ContainsKey('StartupType'))
     {
-        # Throw an exception if the requested StartupType will conflict with the current state
+        # Throw an exception if the requested StartupType conflicts with State
         Test-StartupType -Name $Name -StartupType $StartupType -State $State
     }
 
@@ -409,7 +409,7 @@ function Test-TargetResource
 
     if ($PSBoundParameters.ContainsKey('StartupType'))
     {
-        # Throw an exception if the requested StartupType will conflict with the current state
+        # Throw an exception if the StartupTypeconflicts with the state
         Test-StartupType -Name $Name -StartupType $StartupType -State $State
     }
 
@@ -559,10 +559,6 @@ function Test-StartupType
         [String]
         $State = 'Running'
     )
-
-    if ($State -eq 'Ignore')
-    {
-    }
 
     if ($State -eq 'Stopped')
     {
