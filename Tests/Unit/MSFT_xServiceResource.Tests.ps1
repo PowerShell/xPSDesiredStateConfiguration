@@ -406,7 +406,7 @@ try
 
                 It 'Should not throw an exception' {
                     $Splat = $script:splatServiceExistsAutomatic.Clone()
-                    $Splat.State = 'Stopped'
+                    $Splat.State = 'Ignore'
                     { $script:result = Test-TargetResource @Splat `
                         -Verbose } | Should Not Throw
                 }
