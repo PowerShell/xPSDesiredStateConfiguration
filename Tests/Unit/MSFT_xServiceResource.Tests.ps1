@@ -1902,21 +1902,6 @@ try
             }
         }
 
-        Describe "$DSCResourceName\New-InvalidArgumentError" {
-            Context 'Throws exception' {
-                $errorRecord = Get-InvalidArgumentError `
-                    -ErrorId 'ErrorId' `
-                    -ErrorMessage 'ErrorMessage'
-
-                It 'Throws exception' {
-                    { New-InvalidArgumentError `
-                        -ErrorId 'ErrorId' `
-                        -ErrorMessage 'ErrorMessage'
-                    } | Should Throw $errorRecord
-                }
-            }
-        }
-
         Describe "$DSCResourceName\Test-ServiceExist" {
             Context 'Service exists' {
                 # Mocks that should be called
