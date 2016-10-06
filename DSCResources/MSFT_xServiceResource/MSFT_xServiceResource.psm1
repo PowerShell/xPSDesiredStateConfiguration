@@ -111,7 +111,7 @@ function Get-TargetResource
         Must be false for services not running as LocalSystem. Optional. Defaults to false.
 
     .PARAMETER State
-        Indicates the state the service should be in. Optional. Defaults to Running.
+        Indicates the state the service should be in. Optional. Default is Running.
 
     .PARAMETER DisplayName
         The display name of the service. Optional.
@@ -162,7 +162,7 @@ function Set-TargetResource
         [Boolean]
         $DesktopInteract,
 
-        [ValidateSet('Running', 'Stopped')]
+        [ValidateSet('Running', 'Stopped', 'Ignore')]
         [String]
         $State = 'Running',
 
@@ -329,7 +329,7 @@ function Set-TargetResource
         Must be false for services not running as LocalSystem. Optional.
 
     .PARAMETER State
-        Indicates the state that the service should be in. Optional. Defaults to Running.
+        Indicates the state that the service should be in. Optional. Default is Running.
 
     .PARAMETER DisplayName
         The display name that the service should have. Optional.
@@ -384,7 +384,7 @@ function Test-TargetResource
         [Boolean]
         $DesktopInteract,
 
-        [ValidateSet('Running', 'Stopped')]
+        [ValidateSet('Running', 'Stopped', 'Ignore')]
         [String]
         $State = 'Running',
 
@@ -514,7 +514,7 @@ function Test-TargetResource
         }
     }
 
-    if ($State -ne $service.Status)
+    if (($State -ne $service.Status) -and ($State -ne 'Ignore'))
     {
         Write-Verbose -Message ($LocalizedData.TestStateMismatch `
             -f $serviceWmi.Name, $service.Status, $State)
@@ -527,7 +527,8 @@ function Test-TargetResource
 
 <#
     .SYNOPSIS
-        Tests if the given StartupType is valid with the given State parameter for the service with the given name.
+        Tests if the given StartupType is valid with the State parameter of the service 
+        with the given Name.
 
     .PARAMETER Name
         The name of the service for which to check the StartupType and State
@@ -554,10 +555,14 @@ function Test-StartupType
         [String]
         $StartupType,
 
-        [ValidateSet('Running', 'Stopped')]
+        [ValidateSet('Running', 'Stopped', 'Ignore')]
         [String]
         $State = 'Running'
     )
+
+    if ($State -eq 'Ignore')
+    {
+    }
 
     if ($State -eq 'Stopped')
     {
@@ -569,7 +574,7 @@ function Test-StartupType
                 -ArgumentName 'State'
         }
     }
-    else
+    elseif ($State -eq 'Running')
     {
         if ($StartupType -eq 'Disabled')
         {
