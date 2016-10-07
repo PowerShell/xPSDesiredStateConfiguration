@@ -18,17 +18,17 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 
 * **xArchive** provides a mechanism to unpack archive (.zip) files or removed unpacked archive (.zip) files at a specific path.
 * **xDscWebService** configures an OData endpoint for DSC service to make a node a DSC pull server.
+* **xGroup** provides a mechanism to manage local groups on the target node.
+* **xGroupSet** configures multiple xGroups with common settings but different names.
 * **xWindowsProcess** configures and manages Windows processes.
 * **xService** configures and manages Windows services.
 * **xRemoteFile** ensures the presence of remote files on a local machine.
 * **xPackage** manages the installation of .msi and .exe packages.
-* **xGroup** provides a mechanism to manage local groups on the target node.
 * **xFileUpload** is a composite resource which ensures that local files exist on an SMB share.
 * **xRegistry** provides a mechanism to manage registry keys and values on a target node.
 * **xEnvironment** configures and manages environment variables.
 * **xWindowsFeature** provides a mechanism to ensure that roles and features are added or removed on a target node.
 * **xScript** provides a mechanism to run Windows PowerShell script blocks on target nodes.
-* **xGroupSet** configures multiple xGroups with common settings but different names.
 * **xProcessSet** allows starting and stopping of a group of windows processes with no arguments.
 * **xServiceSet** allows starting, stopping and change in state or account type for a group of services.
 * **xWindowsFeatureSet** allows installation and uninstallation of a group of Windows features and their subfeatures.
@@ -37,6 +37,7 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 
 Resources that work on Nano Server:
 
+* xGroup
 * xWindowsOptionalFeature
 
 ### xArchive
@@ -69,6 +70,32 @@ Resources that work on Nano Server:
 * **RegistrationKeyPath**: Folder location where DSC pull server registration key file is stored.
 * **AcceptSelfSignedCertificate**: Whether self signed certificate can be used to setup pull server.
 * **UseUpToDateSecuritySettings**: Whether to use enhanced security settings for the node where pull server resides on.
+
+### xGroup
+Provides a mechanism to manage local groups on the target node.
+This resource works on Nano Server.
+
+#### Requirements
+
+None
+
+#### Parameters
+* **[String] GroupName** _(Key)_: The name of the group to create, modify, or remove.
+* **[String] Ensure** _(Write)_: Indicates if the group should exist or not. To add a group or modify an existing group, set this property to Present. To remove a group, set this property to Absent. The default value is Present. { *Present* | Absent }.
+* **[String] Description** _(Write)_: The description the group should have.
+* **[String[]] Members** _(Write)_: The members the group should have. This property will replace all the current group members with the specified members. Members should be specified as strings in the format of their domain qualified name (domain\username), their UPN (username@domainname), their distinguished name (CN=username,DC=...), or their username (for local machine accounts). Using either the MembersToExclude or MembersToInclude properties in the same configuration as this property will generate an error.
+* **[String[]] MembersToInclude** _(Write)_: The members the group should include. This property will only add members to a group. Members should be specified as strings in the format of their domain qualified name (domain\username), their UPN (username@domainname), their distinguished name (CN=username,DC=...), or their username (for local machine accounts). Using the Members property in the same configuration as this property will generate an error.
+* **[String[]] MembersToExclude** _(Write)_: The members the group should exclude. This property will only remove members from a group. Members should be specified as strings in the format of their domain qualified name (domain\username), their UPN (username@domainname), their distinguished name (CN=username,DC=...), or their username (for local machine accounts). Using the Members property in the same configuration as this property will generate an error.
+* **[System.Management.Automation.PSCredential] Credential** _(Write)_: A credential to resolve non-local group members.
+
+#### Read-Only Properties from Get-TargetResource
+
+None
+
+#### Examples
+
+* [Create or modify a group with Members](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
+* [Create or modify a group with MembersToInclude and/or MembersToExclude](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
 
 ### xWindowsProcess
 
@@ -136,30 +163,6 @@ Read-Only Properties:
 * **Size**: Size of the installation.
 * **Version**: Version of the package.
 * **Installed**: Is the package installed?
-
-### xGroup
-
-* **GroupName**: (Key) The name of the group for which you want to ensure a specific state.
-* **Ensure**: Indicates if the group exists. Set this property to "Absent" to ensure that the group does not exist. Setting it to "Present" (the default value) ensures that the group exists.
-   - Supported values: Present, Absent
-   - Default Value: Present
-* **Description**: The description of the group.
-* **Members**: Use this property to replace the current group membership with the specified members. The value of this property is an array of strings of the form Domain\UserName. If you set this property in a configuration, do not use either the MembersToExclude or MembersToInclude property. Doing so will generate an error. Note: If the group already exists, the listed items in this property replaces what is in the group.
-* **MembersToInclude**: Use this property to add members to the existing membership of the group. The value of this property is an array of strings of the form Domain\UserName. If you set this property in a configuration, do not use the Members property. Doing so will generate an error. Note: This property is ignored if 'Members' is specified.
-* **MembersToExclude**: Use this property to remove members from the existing membership of the group. The value of this property is an array of strings of the form Domain\UserName. If you set this property in a configuration, do not use the Members property. Doing so will generate an error. Note: This property is ignored if 'Members' is specified.
-* **Credential**: The credentials required to access remote resources. Note: This account must have the appropriate Active Directory permissions to add all non-local accounts to the group; otherwise, an error will occur.
-
-Local accounts may be specified in one of the following ways:
-
-* The simple name of the account of the group or local user.
-* The account name scoped to the explicit machine name (eg. myserver\users or myserver\username).
-* The account name scoped using the explicit local machine qualifier (eg. .\users or .\username).
-
-Domain members may be specified using domain\name or User Principal Name (UPN) formatting. The following illustrates the various formats
-
-* Domain joined machines: mydomain\myserver or myserver@mydomain.com
-* Domain user accounts: mydomain\username or username@mydomain.com
-* Domain group accounts: mydomain\groupname or groupname@mydomain.com
 
 ### xFileUpload
 
@@ -366,7 +369,9 @@ These parameters will be the same for each Windows optional feature in the set. 
     * Missing comment-based help added for Get-/Set-/Test-TargetResource
     * Typos fixed in Unit test script
     * Unit test 'Get-TargetResource/Should return hashtable with correct values when group 
-    has no members' updated to handle the expected empty Members array correctly    
+    has no members' updated to handle the expected empty Members array correctly
+    * Added a lot of unit tests
+    * Cleaned resource
 
 ### 4.0.0.0
 
