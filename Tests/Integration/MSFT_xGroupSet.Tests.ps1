@@ -8,7 +8,7 @@ $TestEnvironment = Initialize-TestEnvironment `
 
 Describe "xGroupSet Integration Tests" {
     BeforeAll {
-        Import-Module "$PSScriptRoot\..\Unit\MSFT_xGroupResource.TestHelper.psm1" -Force
+        Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'MSFT_xGroupResource.TestHelper.psm1')
         Import-Module "$PSScriptRoot\..\CommonTestHelper.psm1" -Force
         Import-Module "$PSScriptRoot\..\..\DSCResources\CommonResourceHelper.psm1" -Force
     }

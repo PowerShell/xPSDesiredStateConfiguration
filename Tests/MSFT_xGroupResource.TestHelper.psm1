@@ -1,4 +1,4 @@
-﻿Import-Module "$PSScriptRoot\..\..\DSCResources\CommonResourceHelper.psm1" -Force
+﻿Import-Module -Name (Join-Path -Path (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'DSCResources') -ChildPath 'CommonResourceHelper.psm1')
 
 <#
     .SYNOPSIS
@@ -101,14 +101,11 @@ function Test-GroupExistsOnFullSKU
 
     $adsiComputerEntry = [ADSI] "WinNT://$ComputerName"
 
-    if ($null -ne $adsiComputerEntry.Children)
+    foreach ($adsiComputerEntryChild in $adsiComputerEntry.Children)
     {
-        foreach ($adsiComputerEntryChild in $adsiComputerEntry.Children)
+        if ($adsiComputerEntryChild.Path -like "WinNT://*$ComputerName/$GroupName")
         {
-            if ($adsiComputerEntryChild.Path -like "WinNT://*$ComputerName/$GroupName")
-            {
-                return $true
-            }
+            return $true
         }
     }
 
