@@ -1,6 +1,6 @@
 ﻿<#
     .SYNOPSIS
-    Returns false if the OS is windows 7 and true otherwise.  
+        Returns false if the OS is windows 7 and true otherwise.  
 #>
 function Get-IsWin8orAbove
 {
@@ -21,21 +21,23 @@ function Get-IsWin8orAbove
 
 <#
     .SYNOPSIS
-    Checks if the computer is running a Windows Server operating system.
-    To be used in 'should run' methods.
+        Checks if the computer is running a Windows Server operating system.
+        To be used in 'should run' methods.
 #>
 function Get-IsServerSKU
 {
     [OutputType([System.Boolean])]
     [CmdletBinding()]
-    param (
+    param
+    (
         [String]
         $TargetComputerName
     )
 
     if ($TargetComputerName)
     {
-        $operatingSystem = Get-CimInstance -ClassName  Win32_OperatingSystem -ComputerName $TargetComputerName
+        $operatingSystem = Get-CimInstance -ClassName  Win32_OperatingSystem `
+                                           -ComputerName $TargetComputerName
     }
     else
     {
@@ -48,7 +50,7 @@ function Get-IsServerSKU
 
 <#
     .SYNOPSIS
-    Checks if the computer is running Windows Server 2008 R2 Server Core.
+        Checks if the computer is running Windows Server 2008 R2 Server Core.
 #>
 function Get-IsServer2008R2Core
 {
@@ -61,9 +63,12 @@ function Get-IsServer2008R2Core
     $enterpriseServerCore = 14
 
     $operatingSystem = Get-CimInstance -Class Win32_OperatingSystem
+
     if ($operatingSystem.Version.StartsWith('6.1.')) 
     {
-        if (($operatingSystem.OperatingSystemSKU -eq $datacenterServerCore) -or ($operatingSystem.OperatingSystemSKU -eq $standardServerCore) -or ($operatingSystem.OperatingSystemSKU -eq $enterpriseServerCore))
+        if (($operatingSystem.OperatingSystemSKU -eq $datacenterServerCore) -or `
+            ($operatingSystem.OperatingSystemSKU -eq $standardServerCore) -or `
+            ($operatingSystem.OperatingSystemSKU -eq $enterpriseServerCore))
         {
             return $true
         }
@@ -74,7 +79,7 @@ function Get-IsServer2008R2Core
 
 <#
     .SYNOPSIS
-    Checks if the computer is running Windows Server 2012 Server Core.
+        Checks if the computer is running Windows Server 2012 Server Core.
 #>
 function Get-IsServer2012Core
 {
@@ -83,16 +88,21 @@ function Get-IsServer2012Core
     param ()
 
     $operatingSystem = Get-CimInstance -Class Win32_OperatingSystem
+
     if ($operatingSystem.Version.StartsWith('6.2.'))
     {
-        $hasKey = Test-Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels" 
+        $hasKey = Test-Path -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels'
+
         if (-not $hasKey) 
         { 
             return $false
         }
 
-        $extendedKey = Get-Item "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels" 
-        if ($extendedKey.GetValue("ServerCoreExtended") -eq 0 -or ($extendedKey.GetValue("ServerCore") -eq 1 -and -not ($extendedKey.GetValue("Server-Gui-Mgmt") -eq 1 -and $extendedKey.GetValue("Server-Gui-Shell") -eq 1))) 
+        $extendedKey = Get-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels'
+        if (($extendedKey.GetValue('ServerCoreExtended') -eq 0) -or `
+           (($extendedKey.GetValue('ServerCore') -eq 1) -and `
+           -not (($extendedKey.GetValue('Server-Gui-Mgmt') -eq 1) -and `
+           ($extendedKey.GetValue('Server-Gui-Shell') -eq 1)))) 
         { 
              return $true
         }
@@ -103,7 +113,8 @@ function Get-IsServer2012Core
 
 <#
     .SYNOPSIS
-    Checks if the computer is running Windows Server 2012 Server Core or Windows Server 2008 R2 Server Core.
+        Checks if the computer is running Windows Server 2012,
+        Server Core, or Windows Server 2008 R2 Server Core.
 #>
 function Get-IsWMFServerCore
 {

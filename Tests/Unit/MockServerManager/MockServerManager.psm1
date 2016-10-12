@@ -1,8 +1,17 @@
-﻿function Test-Credential {
+﻿
+<#
+    .SYNOPSIS
+        Tests if a given credential is valid. If user name and/or
+        Password of the credential are not valid then an exception is thrown.
+
+    .PARAMETER Credential
+        The credential to check for validity.
+#>
+function Test-Credential {
     [CmdletBinding()]
     param (
         [System.Management.Automation.PSCredential]
-        [System.Management.Automation.CredentialAttribute()]
+        [System.Management.Automation.Credential()]
         $Credential
     )
 
@@ -18,18 +27,24 @@
         $directoryServicesMachineContext.Dispose()
         $directoryServicesMachineContext = $null
                 
-        if(-not $credentialsAreValid)
+        if (-not $credentialsAreValid)
         {
-            throw "Invalid credentials."
+            throw 'Invalid credentials.'
         }
     }
 }
 
 <#
- #  Powershell mock module for Servermanager that creates a pseudo cmdlet for Add-WindowsFeature, Remove-WindowsFeature and Get-WindowsFeature
- #  Each of these cmdlets will manipulate a global object (defined at the end of this module), instead of performing their original actions.
- #  
- #>
+    Powershell mock module for Servermanager that creates a pseudo cmdlet for
+    Add-WindowsFeature, Remove-WindowsFeature and Get-WindowsFeature.
+    Each of these cmdlets will manipulate a global object (defined at the end of this module),
+    instead of performing their original actions.  
+#>
+
+<#
+    .SYNOPSIS
+        Mock Add-WindowsFeature cmdlet.
+#>
 function Add-WindowsFeature
 {
     [CmdletBinding()]
@@ -72,7 +87,7 @@ function Add-WindowsFeature
 
     $changeMade = $false
     $featureResult = @()
-    $exitCode = "NoChangeNeeded"
+    $exitCode = 'NoChangeNeeded'
 
     if (-not $script:mockWindowsFeatures[$Name].Installed)
     {
@@ -96,7 +111,7 @@ function Add-WindowsFeature
 
     if ($changeMade)
     {
-        $exitCode = "Success"
+        $exitCode = 'Success'
     }
 
     $windowsFeature = @{
@@ -107,11 +122,15 @@ function Add-WindowsFeature
     }
 
     $windowsFeatureObject = New-Object PSObject -Property $windowsFeature
-    $windowsFeatureObject.PSTypeNames[0] = "Microsoft.Windows.ServerManager.Commands.FeatureOperationResult"
+    $windowsFeatureObject.PSTypeNames[0] = 'Microsoft.Windows.ServerManager.Commands.FeatureOperationResult'
             
     return $windowsFeatureObject
 }
 
+<#
+    .SYNOPSIS
+        Mock Get-WindowsFeature cmdlet.
+#>
 function Get-WindowsFeature
 {
     [CmdletBinding()]
@@ -120,7 +139,7 @@ function Get-WindowsFeature
         [System.Object]
         ${Vhd},
 
-        [parameter(Position = 1)]
+        [Parameter(Mandatory = $true, Position = 1)]
         [System.Object]
         ${Name},
 
@@ -141,11 +160,15 @@ function Get-WindowsFeature
 
     $windowsFeature = $script:mockWindowsFeatures[$Name]
     $windowsFeatureObject = New-Object PSObject -Property $windowsFeature
-    $windowsFeatureObject.PSTypeNames[0] = "Microsoft.Windows.ServerManager.Commands.Feature"
+    $windowsFeatureObject.PSTypeNames[0] = 'Microsoft.Windows.ServerManager.Commands.Feature'
             
     return $windowsFeatureObject
 }
 
+<#
+    .SYNOPSIS
+        Mock Remove-WindowsFeature cmdlet.
+#>
 function Remove-WindowsFeature
 {
     [CmdletBinding(DefaultParameterSetName = 'RunningComputer', SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
@@ -189,7 +212,7 @@ function Remove-WindowsFeature
 
     $changeMade = $false
     $featureResult = @()
-    $exitCode = "NoChangeNeeded"
+    $exitCode = 'NoChangeNeeded'
 
     if ($script:mockWindowsFeatures[$Name].Installed)
     {
@@ -210,7 +233,7 @@ function Remove-WindowsFeature
                 
     if ($changeMade)
     {
-        $exitCode="Success"
+        $exitCode='Success'
     }
 
     $windowsFeature = @{
@@ -221,7 +244,7 @@ function Remove-WindowsFeature
     }
 
     $windowsFeatureObject =New-Object PSObject -Property $windowsFeature
-    $windowsFeatureObject.PSTypeNames[0] = "Microsoft.Windows.ServerManager.Commands.FeatureOperationResult"
+    $windowsFeatureObject.PSTypeNames[0] = 'Microsoft.Windows.ServerManager.Commands.FeatureOperationResult'
             
     return $windowsFeatureObject       
 }
@@ -229,37 +252,37 @@ function Remove-WindowsFeature
 # The following mock windows feature objects are structured the same as the output from Get-WindowsFeature.
 $script:mockWindowsFeatures = @{
     Test1 = @{ 
-        Name                      = "Test1"
-        DisplayName               = "Test Feature 1"
-        Description               = "Test Feature with 3 subfeatures"
+        Name                      = 'Test1'
+        DisplayName               = 'Test Feature 1'
+        Description               = 'Test Feature with 3 subfeatures'
         Installed                 = $false 
-        InstallState              = "Available" 
-        FeatureType               = "Role Service"
-        Path                      = "Test1"
+        InstallState              = 'Available' 
+        FeatureType               = 'Role Service'
+        Path                      = 'Test1'
         Depth                     = 1
         DependsOn                 = @()
-        Parent                    = ""
-        ServerComponentDescriptor = "ServerComponent_Test_Cert_Authority"
-        Subfeatures               = @("SubTest1","SubTest2","SubTest3")
+        Parent                    = ''
+        ServerComponentDescriptor = 'ServerComponent_Test_Cert_Authority'
+        Subfeatures               = @('SubTest1','SubTest2','SubTest3')
         SystemService             = @()
         Notification              = @()
         BestPracticesModelId      = $null
         EventQuery                = $null
         PostConfigurationNeeded   = $false
-        AdditionalInfo            = @("MajorVersion", "MinorVersion", "NumericId", "InstallName")
+        AdditionalInfo            = @('MajorVersion', 'MinorVersion', 'NumericId', 'InstallName')
     }
 
     SubTest1 = @{ 
-        Name                      = "SubTest1"
-        DisplayName               = "Sub Test Feature 1"
-        Description               = "Sub Test Feature with parent as test1"
+        Name                      = 'SubTest1'
+        DisplayName               = 'Sub Test Feature 1'
+        Description               = 'Sub Test Feature with parent as test1'
         Installed                 = $false
-        InstallState              = "Available"
-        FeatureType               = "Role Service"
-        Path                      = "Test1\SubTest1"
+        InstallState              = 'Available'
+        FeatureType               = 'Role Service'
+        Path                      = 'Test1\SubTest1'
         Depth                     = 2
         DependsOn                 = @()
-        Parent                    = "Test1"
+        Parent                    = 'Test1'
         ServerComponentDescriptor = $null
         Subfeatures               = @()
         SystemService             = @()
@@ -267,20 +290,20 @@ $script:mockWindowsFeatures = @{
         BestPracticesModelId      = $null
         EventQuery                = $null
         PostConfigurationNeeded   = $false
-        AdditionalInfo            = @("MajorVersion", "MinorVersion", "NumericId", "InstallName")
+        AdditionalInfo            = @('MajorVersion', 'MinorVersion', 'NumericId', 'InstallName')
     }
 
     SubTest2 = @{ 
-        Name                      = "SubTest2"
-        DisplayName               = "Sub Test Feature 2"
-        Description               = "Sub Test Feature with parent as test1"
+        Name                      = 'SubTest2'
+        DisplayName               = 'Sub Test Feature 2'
+        Description               = 'Sub Test Feature with parent as test1'
         Installed                 = $false
-        InstallState              = "Available"
-        FeatureType               = "Role Service"
-        Path                      = "Test1\SubTest2"
+        InstallState              = 'Available'
+        FeatureType               = 'Role Service'
+        Path                      = 'Test1\SubTest2'
         Depth                     = 2
         DependsOn                 = @()
-        Parent                    = "Test1"
+        Parent                    = 'Test1'
         ServerComponentDescriptor = $null
         Subfeatures               = @()
         SystemService             = @()
@@ -288,20 +311,20 @@ $script:mockWindowsFeatures = @{
         BestPracticesModelId      = $null
         EventQuery                = $null
         PostConfigurationNeeded   = $false
-        AdditionalInfo            = @("MajorVersion", "MinorVersion", "NumericId", "InstallName")
+        AdditionalInfo            = @('MajorVersion', 'MinorVersion', 'NumericId', 'InstallName')
     }
 
     SubTest3 = @{
-        Name                      = "SubTest3"
-        DisplayName               = "Sub Test Feature 3"
-        Description               = "Sub Test Feature with parent as test1"
+        Name                      = 'SubTest3'
+        DisplayName               = 'Sub Test Feature 3'
+        Description               = 'Sub Test Feature with parent as test1'
         Installed                 = $false
-        InstallState              = "Available"
-        FeatureType               = "Role Service"
-        Path                      = "Test\SubTest3"
+        InstallState              = 'Available'
+        FeatureType               = 'Role Service'
+        Path                      = 'Test\SubTest3'
         Depth                     = 2
         DependsOn                 = @()
-        Parent                    = "Test1"
+        Parent                    = 'Test1'
         ServerComponentDescriptor = $null
         Subfeatures               = @()
         SystemService             = @()
@@ -309,6 +332,6 @@ $script:mockWindowsFeatures = @{
         BestPracticesModelId      = $null
         EventQuery                = $null
         PostConfigurationNeeded   = $false
-        AdditionalInfo            = @("MajorVersion", "MinorVersion", "NumericId", "InstallName")
+        AdditionalInfo            = @('MajorVersion', 'MinorVersion', 'NumericId', 'InstallName')
     }
 }

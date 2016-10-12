@@ -8,5 +8,5 @@
     PowerShellVersion = '3.0'
     CLRVersion = '4.0'
     RootModule = 'MockServerManager.psm1'
-    CmdletsToExport = "Get-WindowsFeature", "Add-WindowsFeature", "Remove-WindowsFeature"
+    CmdletsToExport = 'Get-WindowsFeature', 'Add-WindowsFeature', 'Remove-WindowsFeature'
 }

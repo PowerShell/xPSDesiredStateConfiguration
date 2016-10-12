@@ -4,7 +4,9 @@
 
     xWindowsFeature RoleExample
     {
-        Ensure = "Present" # Alternatively, to ensure the role is uninstalled, set Ensure to "Absent"
-        Name = "Web-Server" # Use the Name property from Get-WindowsFeature  
+        # Alternatively, to ensure the role is uninstalled, set Ensure to 'Absent'
+        Ensure = 'Present'
+        # Use the Name property from Get-WindowsFeature
+        Name = 'Web-Server'
     }
 }

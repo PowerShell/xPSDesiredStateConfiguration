@@ -135,7 +135,7 @@ function Get-TargetResource
 
                 # Add all feature properties to the hash table
                 $getTargetResourceResult = @{
-                                                Name = $feature.Name;
+                                                Name = $Name;
                                                 DisplayName = $feature.DisplayName;
                                                 Ensure = $ensureResult;
                                                 IncludeAllSubFeature = $includeAllSubFeature;
