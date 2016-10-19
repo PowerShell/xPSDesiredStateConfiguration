@@ -273,7 +273,7 @@ try
                     $testPathResult = Test-Path -Path "$destinationDirectoryPath\Folder1\Folder12\Folder13\Folder14"
                     $testPathResult | Should Be $false
                 }
-
+                
                 It 'Should not remove an added file with Validate and any Checksum value specified'{
                     $zipFileName = 'ChecksumWithModifiedFile'
                     $fileToEditName = 'File1'
@@ -329,6 +329,19 @@ try
             }
 
             Context 'Test-TargetResource' {
+                It 'Should not throw when zip file contains wildcard characters' {
+                    $zipFileName = 'ReturnCorrectValue['
+
+                    $zipFileStructure = @{
+                        Folder1 = @{
+                            File1 = 'Fake file contents'
+                        }
+                    }
+
+                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
+
+                    { Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $script:currentTestDirectoryPath } | Should not throw
+                }
                 It 'Should return correct value based on presence or absence of an archive at the given location' {
                     $zipFileName = 'ReturnCorrectValue'
 

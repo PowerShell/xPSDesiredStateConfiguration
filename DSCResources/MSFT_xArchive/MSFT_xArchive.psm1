@@ -173,7 +173,7 @@ function Set-TargetResource
 
         Write-Verbose -Message $LocalizedData.ConfigurationStarted
 
-        if (-not (Test-Path -Path $Destination))
+        if (-not (Test-Path -LiteralPath $Destination))
         {
             New-Item -Path $Destination -ItemType Directory | Out-Null
         }
@@ -245,7 +245,7 @@ function Set-TargetResource
                 if (-not $Checksum -and $PSCmdlet.ShouldProcess(($LocalizedData.RemoveFile -f $archiveEntryDestinationPath), $null, $null))
                 {
                     Write-Verbose -Message ($LocalizedData.RemovingDir -f $archiveEntryDestinationPath)
-                    Remove-Item -Path $archiveEntryDestinationPath
+                    Remove-Item -LiteralPath $archiveEntryDestinationPath
                     continue
                 }
 
@@ -254,7 +254,7 @@ function Set-TargetResource
                     if ((Test-FileHashMatchesArchiveEntryHash -FilePath $archiveEntryDestinationPath -ArchiveEntry $archiveEntry -HashAlgorithmName $Checksum) -and $PSCmdlet.ShouldProcess(($LocalizedData.RemoveFile -f $archiveEntryDestinationPath), $null, $null))
                     {
                         Write-Verbose -Message ($LocalizedData.HashesOfExistingAndZipFilesMatchRemoving)
-                        Remove-Item -Path $archiveEntryDestinationPath
+                        Remove-Item -LiteralPath $archiveEntryDestinationPath
                     }
                     else
                     {
@@ -267,7 +267,7 @@ function Set-TargetResource
                     if ($relevantTimestamp.Equals($archiveEntry.LastWriteTime.DateTime) -and $PSCmdlet.ShouldProcess(($LocalizedData.RemoveFile -f $archiveEntryDestinationPath), $null, $null))
                     {
                         Write-Verbose -Message ($LocalizedData.InSetTargetResourceexistsselectedtimestampmatched -f $archiveEntryDestinationPath, $Checksum)
-                        Remove-Item -Path $archiveEntryDestinationPath
+                        Remove-Item -LiteralPath $archiveEntryDestinationPath
                     }
                     else
                     {
@@ -296,7 +296,7 @@ function Set-TargetResource
                         -and $PSCmdlet.ShouldProcess(($LocalizedData.RemoveDirectory -f $fileInfoAtDestinationPath), $null, $null))
                 {
                     Write-Verbose -Message ($LocalizedData.ExistingaAppearsToBeAneEmptyDirectoryRemovingit -f $fileInfoAtDestinationPath)
-                    Remove-Item -Path $fileInfoAtDestinationPath
+                    Remove-Item -LiteralPath $fileInfoAtDestinationPath
                 }
             }
 
@@ -388,7 +388,7 @@ function Set-TargetResource
 
                         if ($PSCmdlet.ShouldProcess(($LocalizedData.RemoveDirectory -f $archiveEntryDestinationPath), $null, $null))
                         {
-                            Remove-Item -Path $archiveEntryDestinationPath -Recurse -Force | Out-Null
+                            Remove-Item -LiteralPath $archiveEntryDestinationPath -Recurse -Force | Out-Null
                         }
                     }
                     else
@@ -400,7 +400,7 @@ function Set-TargetResource
             }
 
             $archiveEntryDestinationParentPath = Split-Path -Path $archiveEntryDestinationPath
-            if (-not (Test-Path $archiveEntryDestinationParentPath) -and $PSCmdlet.ShouldProcess(($LocalizedData.MakeDirectory -f $archiveEntryDestinationParentPath), $null, $null))
+            if (-not (Test-Path -LiteralPath $archiveEntryDestinationParentPath) -and $PSCmdlet.ShouldProcess(($LocalizedData.MakeDirectory -f $archiveEntryDestinationParentPath), $null, $null))
             {
                 <#
                         TODO: This is an edge case we need to revisit. We should be correctly handling wrong file types along
@@ -451,9 +451,9 @@ function Set-TargetResource
                     $updatedTimestamp = $archiveEntry.LastWriteTime.DateTime
                     $archiveEntry.ExistingItemTimestamp = $updatedTimestamp
 
-                    Set-ItemProperty -Path $archiveEntryDestinationPath -Name 'LastWriteTime' -Value $updatedTimestamp
-                    Set-ItemProperty -Path $archiveEntryDestinationPath -Name 'LastAccessTime' -Value $updatedTimestamp
-                    Set-ItemProperty -Path $archiveEntryDestinationPath -Name 'CreationTime' -Value $updatedTimestamp
+                    Set-ItemProperty -LiteralPath $archiveEntryDestinationPath -Name 'LastWriteTime' -Value $updatedTimestamp
+                    Set-ItemProperty -LiteralPath $archiveEntryDestinationPath -Name 'LastAccessTime' -Value $updatedTimestamp
+                    Set-ItemProperty -LiteralPath $archiveEntryDestinationPath -Name 'CreationTime' -Value $updatedTimestamp
                 }
             }
             finally
@@ -571,7 +571,7 @@ function Test-TargetResource
                 if ($archiveEntryDestinationPath.EndsWith('\'))
                 {
                     $archiveEntryDestinationPath = $archiveEntryDestinationPath.TrimEnd('\')
-                    if (-not (Test-Path -Path $archiveEntryDestinationPath -PathType Container))
+                    if (-not (Test-Path -LiteralPath $archiveEntryDestinationPath -PathType Container))
                     {
                         Write-Verbose ($LocalizedData.DestMissingOrIncorrectTypeReason -f $archiveEntryDestinationPath)
                         $individualResult = $result = $false
@@ -749,7 +749,7 @@ function Get-CacheEntry
     Write-Verbose -Message ($LocalizedData.UsingKeyToRetrieveHashValue -f $cacheEntryKey)
 
     $cacheEntryPath = Join-Path -Path $script:cacheLocation -ChildPath $cacheEntryKey
-    if (-not (Test-Path -Path $cacheEntryPath))
+    if (-not (Test-Path -LiteralPath $cacheEntryPath))
     {
         Write-Verbose -Message ($LocalizedData.NoCacheValueFound)
     }
@@ -758,7 +758,7 @@ function Get-CacheEntry
         # ErrorAction seems to have no affect on this exception, (see: https://microsoft.visualstudio.com/web/wi.aspx?pcguid=cb55739e-4afe-46a3-970f-1b49d8ee7564&id=1185735)
         try
         {
-            $cacheEntry = Import-CliXml -Path $cacheEntryPath
+            $cacheEntry = Import-CliXml -LiteralPath $cacheEntryPath
             Write-Verbose -Message ($LocalizedData.CacheValueFoundReturning -f $cacheEntry)
         }
         catch [System.Xml.XmlException]
@@ -805,12 +805,12 @@ function Set-CacheEntry
     $cacheEntryPath = Join-Path -Path $script:cacheLocation -ChildPath $cacheEntryKey
 
     Write-Verbose -Message ($LocalizedData.AboutToCacheValueInputObject -f $InputObject)
-    if (-not (Test-Path -Path $script:cacheLocation))
+    if (-not (Test-Path -LiteralPath $script:cacheLocation))
     {
         New-Item -Path $script:cacheLocation -ItemType Directory | Out-Null
     }
 
-    Export-CliXml -Path $cacheEntryPath -InputObject $InputObject
+    Export-CliXml -LiteralPath $cacheEntryPath -InputObject $InputObject
 }
 
 <#
@@ -833,7 +833,7 @@ function Assert-PathArgumentValid
 
     $ErrorActionPreference = 'Stop'
 
-    if (-not (Test-Path -Path $Path -PathType Leaf))
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf))
     {
         New-InvalidArgumentException -Message ($LocalizedData.InvalidSourcePath -f $Path) -ArgumentName 'Path'
     }
@@ -1090,7 +1090,7 @@ function Mount-NetworkPath
     $psDrive = $null
 
     # Mount the drive only if not accessible
-    if (Test-Path -Path $Path -ErrorAction Ignore)
+    if (Test-Path -LiteralPath $Path -ErrorAction Ignore)
     {
         Write-Verbose -Message  ($LocalizedData.PathPathIsAlreadyAccessiableNoMountNeeded -f $Path)
     }
@@ -1169,7 +1169,7 @@ function New-Directory
             if ($Force -and $PSCmdlet.ShouldProcess(($LocalizedData.RemoveFileAndRecreateAsDirectory -f $Path), $null, $null))
             {
                 Write-Verbose -Message ($LocalizedData.RemovingDir -f $Path)
-                Remove-Item -Path $Path | Out-Null
+                Remove-Item -LiteralPath $Path | Out-Null
                 New-Item -Path $Path -ItemType Directory | Out-Null
             }
             else

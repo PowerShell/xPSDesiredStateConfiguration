@@ -38,7 +38,7 @@ function ConvertTo-FileStructure
         {
             $newFilePath = Join-Path -Path $ParentPath -ChildPath $key
             New-Item -Path $newFilePath -ItemType File | Out-Null
-            Set-Content -Path $newFilePath -Value $ZipFileStructure[$key]
+            Set-Content -LiteralPath $newFilePath -Value $ZipFileStructure[$key]
         }
         else
         {
