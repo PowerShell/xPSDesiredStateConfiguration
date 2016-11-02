@@ -1,12 +1,16 @@
-﻿Import-Module "$PSScriptRoot\..\ResourceSetHelper.psm1"
+﻿Set-StrictMode -Version 'latest'
+$errorActionPreference = 'stop'
+
+Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'ResourceSetHelper.psm1')
 
 Configuration xProcessSet
 {
-    [CmdletBinding(SupportsShouldProcess = $true)]
-    param (
+    [CmdletBinding()]
+    param
+    (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [System.String[]]
+        [String[]]
         $Path,
 
         [ValidateNotNullOrEmpty()]
@@ -14,35 +18,34 @@ Configuration xProcessSet
         $Credential,
 
         [ValidateSet('Present', 'Absent')]
-        [System.String]
+        [String]
         $Ensure,
 
-        [System.String]
+        [String]
         $StandardOutputPath,
 
-        [System.String]
+        [String]
         $StandardErrorPath,
 
-        [System.String]
+        [String]
         $StandardInputPath,
 
-        [System.String]
+        [String]
         $WorkingDirectory
     )
+    
+    $newResourceSetConfigurationParams = @{
+        ResourceName = 'xWindowsProcess'
+        KeyParameterName = 'Path'
+        CommonParameterNames = @( 'Credential', 'Ensure', 'StandardOutputPath', 'StandardErrorPath', 'StandardInputPath', 'WorkingDirectory', 'Arguments' )
+        Parameters = $PSBoundParameters
+    }
 
-    $commonParameterNames = @("Credential", "Ensure", "StandardOutputPath", "StandardErrorPath", "StandardInputPath", "WorkingDirectory")
-    $keyParameterName = "Path"
-    $resourceName = "xWindowsProcess"
+    # Arguments is a key parameter in xProcess resource. Adding it as a common parameter with an empty value string
+    $newResourceSetConfigurationParams['Parameters']['Arguments'] = ''
+    
+    $configurationScriptBlock = New-ResourceSetConfigurationScriptBlock @newResourceSetConfigurationParams
 
-    # Build common parameters for all xProcess resource nodes
-    [string] $commonParameters = New-ResourceCommonParameterString -KeyParameterName $keyParameterName -CommonParameterNames $commonParameterNames -Parameters $PSBoundParameters
-
-    # Arguments is a key parameter in xProcess resource. Adding it as default parameter with an empty value string
-    $defaultParameters = 'Arguments = ""'
-
-    # Build WindowsProcess resource string
-    [string] $resourceString = New-ResourceString -KeyParameterValues $PSBoundParameters[$keyParameterName] -KeyParameterName $keyParameterName -CommonParameters $commonParameters -ResourceName $resourceName -DefaultParameters $defaultParameters
-
-    $configurationScript = [ScriptBlock]::Create($resourceString)
-    . $configurationScript
+    # This script block must be run directly in this configuration in order to resolve variables
+    . $configurationScriptBlock
 }

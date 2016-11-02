@@ -1,4 +1,4 @@
-﻿Import-Module -Name "$PSScriptRoot\..\CommonTestHelper.psm1"
+﻿Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath 'CommonTestHelper.psm1')
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `

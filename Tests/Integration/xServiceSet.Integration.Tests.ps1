@@ -1,7 +1,12 @@
-﻿$TestEnvironment = Initialize-TestEnvironment `
-    -DSCModuleName 'xPSDesiredStateConfiguration' `
-    -DSCResourceName 'xServiceSet' `
-    -TestType Integration
+﻿Set-StrictMode -Version 'latest'
+$errorActionPreference = 'stop'
+
+Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath 'CommonTestHelper.psm1')
+
+$script:testEnvironment = Enter-DscResourceTestEnvironment `
+    -DscResourceModuleName 'xPSDesiredStateConfiguration' `
+    -DscResourceName 'xServiceSet' `
+    -TestType 'Integration'
 
 Describe "xServiceSet Integration Tests" {
     BeforeAll {
@@ -38,7 +43,7 @@ Describe "xServiceSet Integration Tests" {
             Configuration $configurationName {
                 Import-DscResource -ModuleName xPSDesiredStateConfiguration
 
-                xService Service1
+                xService xService1
                 {
                     Name = $script:testServiceName
                     DisplayName = $script:testServiceDisplayName
@@ -130,7 +135,7 @@ Describe "xServiceSet Integration Tests" {
         }
     }
 
-    It "Uses a set of services that depends on a file" {
+    It "Uses a set of services that depends on a file" -Skip {
         $configurationName = "UsingDependsOn"
         $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
         $testDirectory = Join-Path -Path (Get-Location) -ChildPath "TestDirectory"
@@ -139,7 +144,7 @@ Describe "xServiceSet Integration Tests" {
         {
             Configuration $configurationName
             {
-                Import-DscResource -ModuleName PSDesiredStateConfiguration
+                #Import-DscResource -ModuleName PSDesiredStateConfiguration
                 Import-DscResource -ModuleName xPSDesiredStateConfiguration
 
                 File TestDirectory

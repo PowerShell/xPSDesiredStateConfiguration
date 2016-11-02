@@ -61,16 +61,16 @@ Description = 'Allows starting and stopping of a group of windows processes with
 FunctionsToExport = '*'
 
 # Cmdlets to export from this module
-CmdletsToExport = '*'
+# CmdletsToExport = '*'
 
 # Variables to export from this module
-VariablesToExport = '*'
+# VariablesToExport = '*'
 
 # Aliases to export from this module
-AliasesToExport = '*'
+# AliasesToExport = '*'
 
 # DSC resources to export from this module
-DscResourcesToExport = '*'
+# DscResourcesToExport = '*'
 
 # List of all modules packaged with this module
 # ModuleList = @()

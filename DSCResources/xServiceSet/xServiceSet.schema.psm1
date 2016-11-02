@@ -1,28 +1,32 @@
-﻿Import-Module "$PSScriptRoot\..\ResourceSetHelper.psm1"
+﻿Set-StrictMode -Version 'latest'
+$errorActionPreference = 'stop'
+
+Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'ResourceSetHelper.psm1')
 
 Configuration xServiceSet
 {
-    [CmdletBinding(SupportsShouldProcess = $true)]
-    param (
+    [CmdletBinding()]
+    param
+    (
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [System.String[]]
+        [String[]]
         $Name,
 
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [System.String]
+        [String]
         $StartupType,
 
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        [System.String]
+        [String]
         $BuiltInAccount,
 
         [ValidateSet('Running', 'Stopped')]
-        [System.String]
+        [String]
         $State,
 
         [ValidateSet('Present', 'Absent')]
-        [System.String]
+        [String]
         $Ensure,
 
         [ValidateNotNull()]
@@ -30,16 +34,15 @@ Configuration xServiceSet
         $Credential
     )
 
-    $commonParameterNames = @("StartupType", "BuiltInAccount", "State", "Ensure", "Credential")
-    $keyParameterName = "Name"
-    $resourceName = "xService"
+    $newResourceSetConfigurationParams = @{
+        ResourceName = 'xService'
+        KeyParameterName = 'Name'
+        CommonParameterNames = @( 'StartupType', 'BuiltInAccount', 'State', 'Ensure', 'Credential' )
+        Parameters = $PSBoundParameters
+    }
+    
+    $configurationScriptBlock = New-ResourceSetConfigurationScriptBlock @newResourceSetConfigurationParams
 
-    # Build common parameters for all xService resource nodes
-    [string] $commonParameters = New-ResourceCommonParameterString -KeyParameterName $keyParameterName -CommonParameterNames $commonParameterNames -Parameters $PSBoundParameters
-
-    # Build xService resource string
-    [string] $resourceString = New-ResourceString -KeyParameterValues $PSBoundParameters[$keyParameterName] -KeyParameterName $keyParameterName -CommonParameters $commonParameters -ResourceName $resourceName
-
-    $configurationScript = [ScriptBlock]::Create($resourceString)
-    . $configurationScript
+    # This script block must be run directly in this configuration in order to resolve variables
+    . $configurationScriptBlock
 }

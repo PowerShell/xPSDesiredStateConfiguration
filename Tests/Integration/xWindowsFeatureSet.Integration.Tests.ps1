@@ -1,7 +1,12 @@
-﻿$TestEnvironment = Initialize-TestEnvironment `
-    -DSCModuleName 'xPSDesiredStateConfiguration' `
-    -DSCResourceName 'xWindowsFeatureSet' `
-    -TestType Integration
+﻿Set-StrictMode -Version 'latest'
+$errorActionPreference = 'stop'
+
+Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath 'CommonTestHelper.psm1')
+
+$script:testEnvironment = Enter-DscResourceTestEnvironment `
+    -DscResourceModuleName 'xPSDesiredStateConfiguration' `
+    -DscResourceName 'xWindowsFeatureSet' `
+    -TestType 'Integration'
 
 Describe "xWindowsFeatureSet Integration Tests" {
     It "Prepare to install a set of Windows features with their sub features" {
@@ -16,7 +21,7 @@ Describe "xWindowsFeatureSet Integration Tests" {
             {
                 Import-DscResource -ModuleName xPSDesiredStateConfiguration
 
-                xWindowsFeatureSet WindowsFeatureSet1
+                xWindowsFeatureSet xWindowsFeatureSet1
                 {
                     Name = $featureNames
                     Ensure = "Present"

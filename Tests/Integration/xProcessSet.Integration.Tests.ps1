@@ -1,7 +1,12 @@
-﻿$TestEnvironment = Initialize-TestEnvironment `
-    -DSCModuleName 'xPSDesiredStateConfiguration' `
-    -DSCResourceName 'xProcessSet' `
-    -TestType Integration
+﻿Set-StrictMode -Version 'latest'
+$errorActionPreference = 'stop'
+
+Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) -ChildPath 'CommonTestHelper.psm1')
+
+$script:testEnvironment = Enter-DscResourceTestEnvironment `
+    -DscResourceModuleName 'xPSDesiredStateConfiguration' `
+    -DscResourceName 'xProcessSet' `
+    -TestType 'Integration'
 
 Describe "xProcessSet Integration Tests" {
     BeforeAll {
@@ -40,7 +45,7 @@ Describe "xProcessSet Integration Tests" {
             {
                 Import-DscResource -ModuleName xPSDesiredStateConfiguration
 
-                xProcessSet ProcessSet1
+                xProcessSet xProcessSet1
                 {
                     Path = @($script:cmdProcess1FullPath, $script:cmdProcess2FullPath)
                     Ensure = "Present"
@@ -78,7 +83,7 @@ Describe "xProcessSet Integration Tests" {
             {
                 Import-DscResource -ModuleName xPSDesiredStateConfiguration
 
-                xProcessSet ProcessSet1
+                xProcessSet xProcessSet1
                 {
                     Path = @($script:cmdProcess1FullPath, $script:cmdProcess2FullPath)
                     Ensure = "Absent"

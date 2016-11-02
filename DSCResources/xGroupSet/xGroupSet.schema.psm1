@@ -1,39 +1,68 @@
-﻿Import-Module "$PSScriptRoot\..\ResourceSetHelper.psm1"
+﻿$errorActionPreference = 'Stop'
+Set-StrictMode -Version 'Latest'
 
+$script:dscResourcesFolderFilePath = Split-Path -Path $PSScriptRoot -Parent
+$script:resourceSetHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'ResourceSetHelper.psm1'
+Import-Module -Name $script:resourceSetHelperFilePath
+
+<#
+    .SYNOPSIS
+        A composite DSC resource to configure a set of similar xGroup resources.
+
+    .PARAMETER GroupName
+        An array of the names of the groups to configure.
+
+    .PARAMETER Ensure
+        Specifies whether or not the set of groups should exist.
+        
+        Set this property to Present to create or modify a set of groups.
+        Set this property to Absent to remove a set of groups.
+
+    .PARAMETER MembersToInclude
+        The members that should be included in each group in the set.
+
+    .PARAMETER MembersToExclude
+        The members that should be excluded from each group in the set.
+
+    .PARAMETER Credential
+        The credential to resolve all groups and user accounts.
+#>
 Configuration xGroupSet
 {
-    [CmdletBinding(SupportsShouldProcess = $true)]
-    param (
+    [CmdletBinding()]
+    param
+    (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [System.String[]]
+        [String[]]
         $GroupName,
 
         [ValidateSet('Present', 'Absent')]
-        [System.String]
+        [String]
         $Ensure,
 
-        [System.String[]]
+        [String[]]
         $MembersToInclude,
 
-        [System.String[]]
+        [String[]]
         $MembersToExclude,
 
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential
     )
 
-    $commonParameterNames = @("Ensure", "MembersToInclude", "MembersToExclude", "Credential")
-    $keyParameterName = "GroupName"
-    $resourceName = "xGroup"
+    $newResourceSetConfigurationParams = @{
+        ResourceName = 'xGroup'
+        ModuleName = 'xPSDesiredStateConfiguration'
+        KeyParameterName = 'GroupName'
+        CommonParameterNames = @( 'Ensure', 'MembersToInclude', 'MembersToExclude', 'Credential' )
+        Parameters = $PSBoundParameters
+    }
+    
+    $configurationScriptBlock = New-ResourceSetConfigurationScriptBlock @newResourceSetConfigurationParams
 
-    # Build common parameters for all xGroup resource nodes
-    [string] $commonParameters = New-ResourceCommonParameterString -KeyParameterName $keyParameterName -CommonParameterNames $commonParameterNames -Parameters $PSBoundParameters
-
-    # Build xGroup resource string
-    [string] $resourceString = New-ResourceString -KeyParameterValues $PSBoundParameters[$keyParameterName] -KeyParameterName $keyParameterName -CommonParameters $commonParameters -ResourceName $resourceName
-
-    $configScript = [ScriptBlock]::Create($resourceString)
-    . $configScript
+    # This script block must be run directly in this configuration in order to resolve variables
+    . $configurationScriptBlock
 }

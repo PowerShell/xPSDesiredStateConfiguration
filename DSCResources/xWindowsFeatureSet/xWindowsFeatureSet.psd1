@@ -58,19 +58,19 @@ Description = 'Allows installation and uninstallation of a group of windows feat
 # NestedModules = @()
 
 # Functions to export from this module
-FunctionsToExport = '*'
+# FunctionsToExport = '*'
 
 # Cmdlets to export from this module
-CmdletsToExport = '*'
+# CmdletsToExport = '*'
 
 # Variables to export from this module
-VariablesToExport = '*'
+# VariablesToExport = '*'
 
 # Aliases to export from this module
-AliasesToExport = '*'
+# AliasesToExport = '*'
 
 # DSC resources to export from this module
-DscResourcesToExport = '*'
+# DscResourcesToExport = '*'
 
 # List of all modules packaged with this module
 # ModuleList = @()

@@ -19,7 +19,7 @@ CompanyName = 'Microsoft Corporation'
 Copyright = '(c) 2016 Microsoft. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'Allows installation and uninstallation of a group of optional windows features.'
+Description = 'Allows installation and uninstallation of a group of xWindowsOptionalFeature resources with common parameters.'
 
 # Minimum version of the Windows PowerShell engine required by this module
 # PowerShellVersion = ''
@@ -58,19 +58,19 @@ Description = 'Allows installation and uninstallation of a group of optional win
 # NestedModules = @()
 
 # Functions to export from this module
-FunctionsToExport = '*'
+# FunctionsToExport = '*'
 
 # Cmdlets to export from this module
-CmdletsToExport = '*'
+# CmdletsToExport = '*'
 
 # Variables to export from this module
-VariablesToExport = '*'
+# VariablesToExport = '*'
 
 # Aliases to export from this module
-AliasesToExport = '*'
+# AliasesToExport = '*'
 
 # DSC resources to export from this module
-DscResourcesToExport = '*'
+# DscResourcesToExport = 'xWindowsOptionalFeatureSet' <-- Will not parse in WMF 4
 
 # List of all modules packaged with this module
 # ModuleList = @()

@@ -1,48 +1,47 @@
-﻿Import-Module "$PSScriptRoot\..\ResourceSetHelper.psm1"
+﻿Set-StrictMode -Version 'latest'
+$errorActionPreference = 'stop'
+
+Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'ResourceSetHelper.psm1')
 
 Configuration xWindowsOptionalFeatureSet
 {
     [CmdletBinding()]
-    param (
+    param
+    (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [System.String[]]
+        [String[]]
         $Name,
 
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Present", "Absent")]
-        [System.String]
+        [ValidateSet('Present', 'Absent')]
+        [String]
         $Ensure,
 
-        [ValidateNotNullOrEmpty()]
-        [System.String[]]
-        $Source,
-
-        [System.Boolean]
+        [Boolean]
         $RemoveFilesOnDisable,
 
         [ValidateNotNullOrEmpty()]
-        [System.String]
+        [String]
         $LogPath,
 
-        [System.Boolean]
+        [Boolean]
         $NoWindowsUpdateCheck,
 
         [ValidateSet('ErrorsOnly', 'ErrorsAndWarning', 'ErrorsAndWarningAndInformation')]
-        [System.String]
+        [String]
         $LogLevel
     )
 
-    $commonParameterNames = @("Ensure", "Source", "RemoveFilesOnDisable", "LogPath", "NoWindowsUpdateCheck", "LogLevel")
-    $keyParameterName = "Name"
-    $resourceName = "xWindowsOptionalFeature"
+    $newResourceSetConfigurationParams = @{
+        ResourceName = 'xWindowsOptionalFeature'
+        KeyParameterName = 'Name'
+        CommonParameterNames = @( 'Ensure', 'RemoveFilesOnDisable', 'LogPath', 'NoWindowsUpdateCheck', 'LogLevel' )
+        Parameters = $PSBoundParameters
+    }
+    
+    $configurationScriptBlock = New-ResourceSetConfigurationScriptBlock @newResourceSetConfigurationParams
 
-    # Build common parameters for all xWindowsOptionalFeature resource nodes
-    [string] $commonParameters = New-ResourceCommonParameterString -KeyParameterName $keyParameterName -CommonParameterNames $commonParameterNames -Parameters $PSBoundParameters
-
-    # Build xWindowsOptionalFeature resource string
-    [string] $resourceString = New-ResourceString -KeyParameterValues $PSBoundParameters[$keyParameterName] -KeyParameterName $keyParameterName -CommonParameters $commonParameters -ResourceName $resourceName
-
-    $configurationScript = [ScriptBlock]::Create($resourceString)
-    . $configurationScript
+    # This script block must be run directly in this configuration in order to resolve variables
+    . $configurationScriptBlock
 }
