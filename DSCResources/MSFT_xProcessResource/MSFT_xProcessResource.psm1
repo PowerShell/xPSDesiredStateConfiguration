@@ -585,13 +585,13 @@ function Expand-Path
         The arguments that should match the retrieved process.
 
     .PARAMETER Credential
-        The credential whose user name should match the owner of the process.
+        The credential whose username should match the owner of the process.
 
     .PARAMETER UseGetCimInstanceThreshold
         If the number of processes returned by the Get-Process method is greater than or equal to
         this value, this function will retrieve all processes at the executable path. This will
         help the function execute faster. Otherwise, this function will retrieve each Win32_Process
-        objects with the product ids returned from Get-Process.
+        object with the product IDs returned from Get-Process.
 #>
 function Get-Win32Process
 {
@@ -608,7 +608,7 @@ function Get-Win32Process
         $Arguments,
 
         [ValidateNotNullOrEmpty()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
 
@@ -670,8 +670,7 @@ function Get-Win32Process
 
     foreach ($process in $processes)
     {
-        $commandLine = $process.CommandLine
-        if ((Get-ArgumentsFromCommandLineInput -CommandLineInput $commandLine) -eq $Arguments)
+        if ((Get-ArgumentsFromCommandLineInput -CommandLineInput $process.CommandLine) -eq $Arguments)
         {
             $processesWithMatchingArguments += $process
         }
@@ -722,6 +721,7 @@ function Get-Win32ProcessOwner
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
+        [Object]
         $Process
     )
 
@@ -775,6 +775,7 @@ function Get-ArgumentsFromCommandLineInput
     }
 
     $endofCommandIndex = $CommandLineInput.IndexOf($endOfCommandChar, 1)
+
     if ($endofCommandIndex -eq -1)
     {
         return [String]::Empty
@@ -810,7 +811,8 @@ function Assert-HashtableDoesNotContainKey
     {
         if ($Hashtable.ContainsKey($keyName))
         {
-            New-InvalidArgumentException -ArgumentName $keyName -Message ($script:localizedData.ParameterShouldNotBeSpecified -f $keyName)
+            New-InvalidArgumentException -ArgumentName $keyName `
+                                         -Message ($script:localizedData.ParameterShouldNotBeSpecified -f $keyName)
         }
     }
 }
@@ -820,7 +822,7 @@ function Assert-HashtableDoesNotContainKey
         Waits for the given number of processes with the given settings to be running.
 
     .PARAMETER ProcessSettings
-        The settings of the running process(s) to get the count of.
+        The settings of the running process(es) to get the count of.
 
     .PARAMETER ProcessCount
         The number of processes running to wait for.
@@ -880,7 +882,11 @@ function Assert-PathArgumentRooted
 
     if (-not ([IO.Path]::IsPathRooted($PathArgument)))
     {
-        New-InvalidArgumentException -ArgumentName $PathArgumentName -Message ($script:localizedData.InvalidArgumentAndMessage -f ($script:localizedData.InvalidArgument -f $PathArgumentName, $PathArgument), $script:localizedData.PathShouldBeAbsolute)
+        $message = $script:localizedData.InvalidArgumentAndMessage -f `
+                  ($script:localizedData.InvalidArgument -f $PathArgumentName, $PathArgument),
+                   $script:localizedData.PathShouldBeAbsolute
+        New-InvalidArgumentException -ArgumentName $PathArgumentName `
+                                     -Message $message
     }
 }
 
@@ -912,7 +918,11 @@ function Assert-PathArgumentValid
 
     if (-not (Test-Path -Path $PathArgument))
     {
-        New-InvalidArgumentException -ArgumentName $PathArgumentName -Message ($script:localizedData.InvalidArgumentAndMessage -f ($script:localizedData.InvalidArgument -f $PathArgumentName, $PathArgument), $script:localizedData.PathShouldExist)
+        $message = $script:localizedData.InvalidArgumentAndMessage -f `
+                  ($script:localizedData.InvalidArgument -f $PathArgumentName, $PathArgument),
+                   $script:localizedData.PathShouldExist
+        New-InvalidArgumentException -ArgumentName $PathArgumentName `
+                                     -Message $message
     }
 }
 
@@ -934,7 +944,7 @@ function Test-IsRunFromLocalSystemUser
 
 <#
     .SYNOPSIS
-        Splits a credential into a username and domain wihtout calling GetNetworkCredential.
+        Splits a credential into a username and domain without calling GetNetworkCredential.
         Calls to GetNetworkCredential expose the password as plain text in memory.
 
     .PARAMETER Credential
@@ -951,7 +961,7 @@ function Split-Credential
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $Credential
     )
@@ -998,8 +1008,6 @@ function Split-Credential
     if ($wrongFormat)
     {
         $message = $script:localizedData.ErrorInvalidUserName -f $Credential.UserName
-
-        Write-Verbose -Message $message
 
         New-InvalidArgumentException -ArgumentName 'Credential' -Message $message
     }
