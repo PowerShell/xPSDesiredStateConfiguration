@@ -36,8 +36,8 @@ Configuration xServiceSet
 
     $newResourceSetConfigurationParams = @{
         ResourceName = 'xService'
+        ModuleName = 'xPSDesiredStateConfiguration'
         KeyParameterName = 'Name'
-        CommonParameterNames = @( 'StartupType', 'BuiltInAccount', 'State', 'Ensure', 'Credential' )
         Parameters = $PSBoundParameters
     }
     

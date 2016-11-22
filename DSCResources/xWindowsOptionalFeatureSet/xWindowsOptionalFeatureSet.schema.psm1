@@ -35,8 +35,8 @@ Configuration xWindowsOptionalFeatureSet
 
     $newResourceSetConfigurationParams = @{
         ResourceName = 'xWindowsOptionalFeature'
+        ModuleName = 'xPSDesiredStateConfiguration'
         KeyParameterName = 'Name'
-        CommonParameterNames = @( 'Ensure', 'RemoveFilesOnDisable', 'LogPath', 'NoWindowsUpdateCheck', 'LogLevel' )
         Parameters = $PSBoundParameters
     }
     

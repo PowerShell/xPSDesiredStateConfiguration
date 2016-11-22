@@ -35,8 +35,8 @@ Configuration xWindowsFeatureSet
 
     $newResourceSetConfigurationParams = @{
         ResourceName = 'xWindowsFeature'
+        ModuleName = 'xPSDesiredStateConfiguration'
         KeyParameterName = 'Name'
-        CommonParameterNames = @( 'Ensure', 'Source', 'IncludeAllSubFeature', 'Credential', 'LogPath' )
         Parameters = $PSBoundParameters
     }
     

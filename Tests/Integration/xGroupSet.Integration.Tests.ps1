@@ -18,176 +18,233 @@ try
 {
     Describe "xGroupSet Integration Tests" {
         BeforeAll {
-            # Import xGroup Test Helper for New-User, Remove-User
+            # Import xGroup Test Helper for TestGroupExists, New-Group, Remove-Group, New-User, Remove-User
             $groupTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'MSFT_xGroupResource.TestHelper.psm1'
             Import-Module -Name $groupTestHelperFilePath
 
-            # Import CommonResourceHelper for Test-IsNanoServer
-            $moduleRootFilePath = Split-Path -Path $script:testsFolderFilePath -Parent
-            $dscResourcesFolderFilePath = Join-Path -Path $moduleRootFilePath -ChildPath 'DscResources'
-            $commonResourceHelperFilePath = Join-Path -Path $dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
-            Import-Module $commonResourceHelperFilePath
+            $script:confgurationFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'xGroupSet.config.ps1'
+
+            # Fake users for testing
+            $testUsername1 = 'TestUser1'
+            $testUsername2 = 'TestUser2'
+            $testUsername3 = 'TestUser3'
+
+            $testUsernames = @( $testUsername1, $testUsername2, $testUsername3 )
+
+            $testPassword = 'T3stPassw0rd#'
+            $secureTestPassword = ConvertTo-SecureString -String $testPassword -AsPlainText -Force
+
+            foreach ($username in $testUsernames)
+            {
+                $testUserCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @( $username, $secureTestPassword )
+                $null = New-User -Credential $testUserCredential
+            }
+        }
+
+        AfterAll {
+            foreach ($username in $testUsernames)
+            {
+                Remove-User -UserName $username
+            }
         }
 
         It 'Should create a set of two empty groups' {
+            $configurationName = 'CreateEmptyGroups'
 
+            $testGroupName1 = 'TestEmptyGroup1'
+            $testGroupName2 = 'TestEmptyGroup2'
+
+            $groupSetParameters = @{
+                GroupName = @( $testGroupName1, $testGroupName2 )
+                Ensure = 'Present'
+            }
+
+            Test-GroupExists -GroupName $testGroupName1 | Should Be $false
+            Test-GroupExists -GroupName $testGroupName2 | Should Be $false
+
+            try
+            {
+                { 
+                    . $script:confgurationFilePath -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @groupSetParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+
+                Test-GroupExists -GroupName $testGroupName1 -Members @() | Should Be $true
+                Test-GroupExists -GroupName $testGroupName2 -Members @() | Should Be $true
+            }
+            finally
+            {
+                if (Test-GroupExists -GroupName $testGroupName1)
+                {
+                    Remove-Group -GroupName $testGroupName1
+                }
+
+                if (Test-GroupExists -GroupName $testGroupName2)
+                {
+                    Remove-Group -GroupName $testGroupName2
+                }
+            }
+        }
+
+        It 'Should create a set of one group with one member' {
+            $configurationName = 'CreateOneGroup'
+
+            $testGroupName1 = 'TestGroup1'
+            $groupMembers = @( $testUsername1 )
+
+            $groupSetParameters = @{
+                GroupName = @( $testGroupName1 )
+                Ensure = 'Present'
+                MembersToInclude = $groupMembers
+            }
+
+            Test-GroupExists -GroupName $testGroupName1 | Should Be $false
+
+            try
+            {
+                { 
+                    . $script:confgurationFilePath -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @groupSetParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+
+                Test-GroupExists -GroupName $testGroupName1 -MembersToInclude $groupMembers | Should Be $true
+            }
+            finally
+            {
+                if (Test-GroupExists -GroupName $testGroupName1)
+                {
+                    Remove-Group -GroupName $testGroupName1
+                }
+            }
         }
 
         It 'Should create one group with one member and add the same member to the Administrators group' {
+            $configurationName = 'CreateOneGroupAndModifyAdministrators'
 
+            $testGroupName = 'TestGroupWithMember'
+            $administratorsGroupName = 'Administrators'
+
+            $groupMembers = @( $testUsername1 )
+
+            $groupSetParameters = @{
+                GroupName = @( $testGroupName, $administratorsGroupName )
+                Ensure = 'Present'
+                MembersToInclude = $groupMembers
+            }
+
+            Test-GroupExists -GroupName $testGroupName | Should Be $false
+            Test-GroupExists -GroupName $administratorsGroupName | Should Be $true
+
+            try
+            {
+                { 
+                    . $script:confgurationFilePath -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @groupSetParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+
+                Test-GroupExists -GroupName $testGroupName -MembersToInclude $groupMembers | Should Be $true
+                Test-GroupExists -GroupName $administratorsGroupName -MembersToInclude $groupMembers | Should Be $true
+            }
+            finally
+            {
+                if (Test-GroupExists -GroupName $testGroupName)
+                {
+                    Remove-Group -GroupName $testGroupName
+                }
+            }
         }
 
         It 'Should remove two members from a set of three groups' {
+            $configurationName = 'RemoveTwoMembersFromThreeGroups'
+            
+            $testGroupNames = @('TestGroupWithMembersToExclude1', 'TestGroupWithMembersToExclude2', 'TestGroupWithMembersToExclude3')
 
+            $groupMembersToExclude = @( $testUsername2, $testUsername3 )
+
+            $groupSetParameters = @{
+                GroupName = $testGroupNames
+                Ensure = 'Present'
+                MembersToExclude = $groupMembersToExclude
+            }
+
+            foreach ($testGroupName in $testGroupNames)
+            {
+                Test-GroupExists -GroupName $testGroupName | Should Be $false
+
+                New-Group -GroupName $testGroupName -Members $testUsernames
+
+                Test-GroupExists -GroupName $testGroupName | Should Be $true
+            }
+
+            try
+            {
+                { 
+                    . $script:confgurationFilePath -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @groupSetParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+
+                foreach ($testGroupName in $testGroupNames)
+                {
+                    Test-GroupExists -GroupName $testGroupName -MembersToExclude $groupMembersToExclude | Should Be $true
+                }
+            }
+            finally
+            {
+                foreach ($testGroupName in $testGroupNames)
+                {
+                    if (Test-GroupExists -GroupName $testGroupName)
+                    {
+                        Remove-Group -GroupName $testGroupName
+                    }
+                }
+            }
         }
 
         It 'Should remove a set of groups' {
+                $configurationName = 'RemoveThreeGroups'
+            
+            $testGroupNames = @('TestGroupRemove1', 'TestGroupRemove2', 'TestGroupRemove3')
 
-        }
-
-        It "Create two new groups with the same two members" {
-            $configurationName = "CreateTestGroup"
-            $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
-
-            $testUserName1 = "LocalTestUser1"
-            $testUserName2 = "LocalTestUser2"
-            $testUserPassword = "StrongOne7."
-            $testUserDescription = "Test users for creating an xGroupSet"
-
-            $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-
-            $testCredential1 = New-Object PSCredential ($testUserName1, $secureTestPassword)
-            $testCredential2 = New-Object PSCredential ($testUserName2, $secureTestPassword)
-
-            New-User -Credential $testCredential1 -Description $testUserDescription
-            New-User -Credential $testCredential2 -Description $testUserDescription
-
-            $membersToInclude = @($testUserName1, $testUserName2)
-            $groupNames = @("TestGroupName123", "TestGroupName456")
-
-            try
-            {
-                Configuration $configurationName
-                {
-                    Import-DscResource -ModuleName xPSDesiredStateConfiguration
-
-                    Node localhost
-                    {
-                        xGroupSet xGroupSet1
-                        {
-                            GroupName = $groupNames
-                            Ensure = "Present"
-                            MembersToInclude = $membersToInclude
-                        }
-                    }
-                }
-
-                & $configurationName -OutputPath $configurationPath
-
-                Start-DscConfiguration -Path  $configurationPath -Wait -Force -Verbose
-
-                if (Test-IsNanoServer)
-                {
-                    foreach ($groupName in $groupNames)
-                    {
-                        $localGroup = Get-LocalGroup -Name $groupName -ErrorAction SilentlyContinue
-                        $localGroup | Should Not Be $null
-                    }
-                }
-                else
-                {
-                    $groupEntries = [ADSI] "WinNT://$env:ComputerName"
-
-                    foreach ($groupName in $groupNames)
-                    {
-                        $groupEntry = $groupEntries.Children | Where-Object Path -like "WinNT://*$env:ComputerName/$groupName"
-                        $groupEntry | Should Not Be $null
-                    }
-                }
+            $groupSetParameters = @{
+                GroupName = $testGroupNames
+                Ensure = 'Absent'
             }
-            finally
+
+
+            foreach ($testGroupName in $testGroupNames)
             {
-                Remove-User $testUserName1
+                Test-GroupExists -GroupName $testGroupName | Should Be $false
 
-                Remove-User $testUserName2
+                New-Group -GroupName $testGroupName
 
-                if (Test-Path $configurationPath)
-                {
-                    Remove-Item -Path $configurationPath -Recurse -Force
-                }
-            }
-        }
-
-        It "Remove a xGroupSet" {
-            $configurationName = "CreateTestGroup"
-            $configurationPath = Join-Path -Path (Get-Location) -ChildPath $configurationName
-
-            $testUserName1 = "LocalTestUser1"
-            $testUserName2 = "LocalTestUser2"
-            $testUserPassword = "StrongOne7."
-            $testUserDescription = "Test users for removing an xGroupSet"
-
-            $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-
-            $testCredential1 = New-Object PSCredential ($testUserName1, $secureTestPassword)
-            $testCredential2 = New-Object PSCredential ($testUserName2, $secureTestPassword)
-
-            New-User -Credential $testCredential1 -Description $testUserDescription
-            New-User -Credential $testCredential2 -Description $testUserDescription
-
-            $membersToExclude = @($testUserName1, $testUserName2)
-            $groupNames = @("TestGroupName123", "TestGroupName456")
-
-            # Create test groups
-            foreach($groupName in $groupNames)
-            {
-                New-Group -GroupName $groupName -Description $testUserDescription
+                Test-GroupExists -GroupName $testGroupName | Should Be $true
             }
 
             try
             {
-                Configuration $configurationName
-                {
-                    Import-DscResource -ModuleName xPSDesiredStateConfiguration
+                { 
+                    . $script:confgurationFilePath -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @groupSetParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
 
-                    xGroupSet xGroupSet1
-                    {
-                        GroupName = $groupNames
-                        Ensure = "Absent"
-                        MembersToExclude = $membersToExclude
-                    }
-                }
-
-                & $configurationName -OutputPath $configurationPath
-                Start-DscConfiguration -Path $configurationPath -Wait -Force -Verbose
-
-                if (Test-IsNanoServer)
+                foreach ($testGroupName in $testGroupNames)
                 {
-                    foreach ($groupName in $groupNames)
-                    {
-                        $localGroup = Get-LocalGroup -Name $groupName -ErrorAction Ignore
-                        $localGroup | Should Be $null
-                    }
-                }
-                else
-                {
-                    $groupEntries = [ADSI] "WinNT://$env:ComputerName"
-                    foreach($groupName in $groupNames)
-                    {
-                        $groupEntry = $groupEntries.Children | Where-Object Path -like "WinNT://*$env:ComputerName/$groupName"
-                        $groupEntry | Should Be $null
-                    }
+                    Test-GroupExists -GroupName $testGroupName | Should Be $false
                 }
             }
             finally
             {
-                Remove-User $testUserName1
-
-                Remove-User $testUserName2
-
-                if (Test-Path $configurationPath)
+                foreach ($testGroupName in $testGroupNames)
                 {
-                    Remove-Item -Path $configurationPath -Recurse -Force
+                    if (Test-GroupExists -GroupName $testGroupName)
+                    {
+                        Remove-Group -GroupName $testGroupName
+                    }
                 }
             }
         }

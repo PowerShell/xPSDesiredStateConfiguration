@@ -46,7 +46,8 @@ function New-ResourceSetCommonParameterString
 
     foreach ($parameterName in $Parameters.Keys) 
     {
-        if ($parameterName -ne $KeyParameterName)
+        # All composite resources have an extra parameter 'InstanceName'
+        if ($parameterName -ine $KeyParameterName -and $parameterName -ine 'InstanceName')
         {
             $parameterValue = $Parameters[$parameterName]
 

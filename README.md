@@ -1,6 +1,7 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8yu6c/branch/master?svg=true)](https://ci.appveyor.com/project/PowerShell/xpsdesiredstateconfiguration/branch/master)
-
 # xPSDesiredStateConfiguration
+
+master: [![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8yu6c/branch/master?svg=true)](https://ci.appveyor.com/project/PowerShell/xpsdesiredstateconfiguration/branch/master)
+dev : [![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8yu6c/branch/dev?svg=true)](https://ci.appveyor.com/project/PowerShell/xpsdesiredstateconfiguration/branch/dev)
 
 The **xPSDesiredStateConfiguration** module is a more recent, experimental version of the PSDesiredStateConfiguration module that ships in Windows as part of PowerShell 4.0.
 
@@ -10,15 +11,15 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ## Contributing
-Please check out common DSC Resources [contributing guidelines](https://github.com/PowerShell/DscResource.Kit/blob/master/CONTRIBUTING.md).
 
+Please check out common DSC Resources [contributing guidelines](https://github.com/PowerShell/DscResource.Kit/blob/master/CONTRIBUTING.md).
 
 ## Resources
 
 * **xArchive** provides a mechanism to unpack archive (.zip) files or removed unpacked archive (.zip) files at a specific path.
 * **xDscWebService** configures an OData endpoint for DSC service to make a node a DSC pull server.
 * **xGroup** provides a mechanism to manage local groups on the target node.
-* **xGroupSet** configures multiple xGroups with common settings but different names.
+* **xGroupSet** configures multiple xGroup resources with common settings but different names.
 * **xWindowsProcess** configures and manages Windows processes.
 * **xService** provides a mechanism to configure and manage Windows services.
 * **xRemoteFile** ensures the presence of remote files on a local machine.
@@ -103,6 +104,33 @@ None
 
 * [Create or modify a group with Members](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
 * [Create or modify a group with MembersToInclude and/or MembersToExclude](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
+
+### xGroupSet
+
+Configures multiple xGroup resources with common settings but different names.
+
+#### Requirements
+
+None
+
+#### Parameters
+
+* **[String] GroupName** _(Key)_: The names of the groups to create, modify, or remove.
+
+The following parameters will be the same for each group in the set:
+
+* **[String] Ensure** _(Write)_: Indicates if the groups should exist or not. To add groups or modify existing groups, set this property to Present. To remove groups, set this property to Absent. { Present | Absent }.
+* **[String[]] MembersToInclude** _(Write)_: The members the groups should include. This property will only add members to groups. Members should be specified as strings in the format of their domain qualified name (domain\username), their UPN (username@domainname), their distinguished name (CN=username,DC=...), or their username (for local machine accounts).
+* **[String[]] MembersToExclude** _(Write)_: The members the groups should exclude. This property will only remove members groups. Members should be specified as strings in the format of their domain qualified name (domain\username), their UPN (username@domainname), their distinguished name (CN=username,DC=...), or their username (for local machine accounts).
+* **[System.Management.Automation.PSCredential] Credential** _(Write)_: A credential to resolve non-local group members.
+
+#### Read-Only Properties from Get-TargetResource
+
+None
+
+#### Examples
+
+* [Create or modify a set of groups](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroupSet.ps1)
 
 ### xWindowsProcess
 
@@ -279,21 +307,6 @@ None
 
 * [Create a new User](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xUser_CreateUser.ps1)
 
-### xGroupSet
-* **GroupName**: Defines the names of the groups in the set.
-
-These parameters will be the same for each group in the set. Please refer to the xGroup section above for more details on these parameters:
-* **Ensure**: Ensures that the group specified is **Present** or **Absent**.
-* **Description**: Description of the group.
-* **Members**: The members that form the group.
-Note: If the group already exists, the listed items in this property replaces what is in the group.
-* **MembersToInclude**: List of users to add to the group.
-Note: This property is ignored if 'Members' is specified.
-* **MembersToExclude**: List of users you want to ensure are not members of the group.
-Note: This property is ignored if 'Members' is specified.
-* **Credential**: Indicates the credentials required to access remote resources.
-Note: This account must have the appropriate Active Directory permissions to add all non-local accounts to the group or an error will occur.
-
 ### xProcessSet
 Note: All processes in a process set will run without arguments.
 
@@ -439,6 +452,12 @@ None
     * Fixes null verbose log output error. This resolves issue [#224](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/224).
 * xDSCWebService
 	* Fixed issue where resource would fail to read redirection.config file. This resolves issue [#191] (https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/191)
+* ResourceSetHelper:
+    * Updated common functions for all 'Set' resources.
+* xGroupSet:
+    * Updated resource to use new ResouceSetHelper functions and added integration tests.
+* xGroup:
+    * Cleaned module imports, fixed PSSA issues, and set ErrorActionPreference to stop.
 
 ### 5.0.0.0
 

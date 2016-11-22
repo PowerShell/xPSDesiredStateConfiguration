@@ -36,8 +36,8 @@ Configuration xProcessSet
     
     $newResourceSetConfigurationParams = @{
         ResourceName = 'xWindowsProcess'
+        ModuleName = 'xPSDesiredStateConfiguration'
         KeyParameterName = 'Path'
-        CommonParameterNames = @( 'Credential', 'Ensure', 'StandardOutputPath', 'StandardErrorPath', 'StandardInputPath', 'WorkingDirectory', 'Arguments' )
         Parameters = $PSBoundParameters
     }
 

@@ -1,7 +1,13 @@
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
 param ()
 
-Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'CommonTestHelper.psm1')
+$errorActionPreference = 'Stop'
+Set-StrictMode -Version 'Latest'
+
+# Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
+$script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
+$script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
+Import-Module -Name $commonTestHelperFilePath
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
@@ -1662,8 +1668,9 @@ try
 
                     Mock 'Get-GroupMembersFromDirectoryEntry' { return @( $memberDirectoryEntry3 ) }
 
-                    It 'Should ignore stale members - Expected to write a warning' {
-                        $getMembersResult = Get-MembersAsPrincipalsList -Group $script:testGroup -PrincipalContextCache $principalContextCache -Disposables $disposables | Should Be $null
+                    It 'Should ignore stale members' {
+                        $getMembersResult = Get-MembersAsPrincipalsList -Group $script:testGroup -PrincipalContextCache $principalContextCache -Disposables $disposables -WarningAction 'SilentlyContinue'
+                        $getMembersResult | Should Be $null
 
                         Assert-MockCalled -CommandName 'Get-GroupMembersFromDirectoryEntry' -ParameterFilter { $Group.Name -eq $script:testGroupName }
                         Assert-MockCalled -CommandName 'New-Object' -ParameterFilter { $TypeName -eq 'System.DirectoryServices.DirectoryEntry' }

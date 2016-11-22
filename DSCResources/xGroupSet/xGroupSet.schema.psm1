@@ -57,10 +57,9 @@ Configuration xGroupSet
         ResourceName = 'xGroup'
         ModuleName = 'xPSDesiredStateConfiguration'
         KeyParameterName = 'GroupName'
-        CommonParameterNames = @( 'Ensure', 'MembersToInclude', 'MembersToExclude', 'Credential' )
         Parameters = $PSBoundParameters
     }
-    
+
     $configurationScriptBlock = New-ResourceSetConfigurationScriptBlock @newResourceSetConfigurationParams
 
     # This script block must be run directly in this configuration in order to resolve variables

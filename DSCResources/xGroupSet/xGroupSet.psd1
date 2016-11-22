@@ -19,8 +19,9 @@ CompanyName = 'Microsoft Corporation'
 Copyright = '(c) 2016 Microsoft. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'Allows creation and removal of a set of xGroups.'
+Description = 'Configures multiple xGroup resources with common settings but different names.'
 
 # Minimum version of the Windows PowerShell engine required by this module
 PowerShellVersion = '4.0'
+
 }
