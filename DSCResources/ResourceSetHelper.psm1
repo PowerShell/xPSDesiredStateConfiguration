@@ -15,7 +15,7 @@ Set-StrictMode -Version 'Latest'
 
     .EXAMPLE
         $parameters = @{
-            KeyParameter = @('MyKeyParameter1', 'MyKeyParameter2')
+            KeyParameter = @( 'MyKeyParameter1', 'MyKeyParameter2' )
             CommonParameter1 = 'CommonValue1'
             CommonParameter2 = 2
         }

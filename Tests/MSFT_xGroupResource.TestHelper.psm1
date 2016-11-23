@@ -745,7 +745,7 @@ function New-UserOnNanoServer
     )
 
     $userName = $Credential.UserName
-    $securePassword = $Credential.GetNetworkCredential().SecurePassword
+    $securePassword = $Credential.GetNetworkCredential().Password
 
     New-LocalUser -Name $userName -Password $securePassword
 }

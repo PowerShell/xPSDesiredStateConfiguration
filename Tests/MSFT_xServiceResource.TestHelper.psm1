@@ -1,243 +1,140 @@
+$errorActionPreference = 'Stop'
+Set-StrictMode -Version 'Latest'
+
 <#
     .SYNOPSIS
-        Creates a service binary file.
+        Creates a service executable.
 
     .PARAMETER ServiceName
-        The name of the service to create the binary file for.
+        The name of the service to create the executable for.
 
     .PARAMETER ServiceCodePath
-        The path to the code for the service to create the binary file for.
+        The path to the code for the service to create the executable for.
 
     .PARAMETER ServiceDisplayName
-        The display name of the service to create the binary file for.
+        The display name of the service to create the executable for.
 
     .PARAMETER ServiceDescription
-        The description of the service to create the binary file for.
+        The description of the service to create the executable for.
 
     .PARAMETER ServiceDependsOn
-        Dependencies of the service to create the binary file for.
+        The names of the dependencies of the service to create the executable for.
 
-    .PARAMETER ServiceExecutablePath
-        The path to write the service executable to.
+    .PARAMETER OutputPath
+        The path to write the outputed service executable to.
 #>
-function New-ServiceBinary
+function New-ServiceExecutable
 {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [String]
         $ServiceCodePath,
 
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [String]
         $ServiceDisplayName,
 
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [String]
         $ServiceDescription,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
         [String]
-        $ServiceDependsOn,
+        $ServiceDependsOn = "''",
 
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [String]
-        $ServiceExecutablePath
+        $OutputPath
     )
 
-    if (Get-Service $ServiceName -ErrorAction Ignore)
-    {
-        Stop-Service $ServiceName -ErrorAction SilentlyContinue
-        Remove-TestService -ServiceName $ServiceName -ServiceExecutablePath $ServiceExecutablePath
-    }
-
-    $fileText = Get-Content $ServiceCodePath -Raw
+    $fileText = Get-Content -Path $ServiceCodePath -Raw
     $fileText = $fileText.Replace('TestServiceReplacementName', $ServiceName)
     $fileText = $fileText.Replace('TestServiceReplacementDisplayName', $ServiceDisplayName)
     $fileText = $fileText.Replace('TestServiceReplacementDescription', $ServiceDescription)
     $fileText = $fileText.Replace('TestServiceReplacementDependsOn', $ServiceDependsOn)
-    Add-Type $fileText `
-                -OutputAssembly $ServiceExecutablePath `
-                -OutputType WindowsApplication `
-                -ReferencedAssemblies @('System.ServiceProcess', 'System.Configuration.Install')
+
+    $addTypeParameters = @{
+        TypeDefinition = $fileText
+        OutputAssembly = $OutputPath
+        OutputType = 'WindowsApplication'
+        ReferencedAssemblies = @( 'System.ServiceProcess', 'System.Configuration.Install' )
+    }
+
+    $null = Add-Type @addTypeParameters
 }
 
 <#
     .SYNOPSIS
-        Creates a new service for testing.
+        Deletes the service with the given name and waits 5 seconds maximum for the service to be
+        deleted.
 
-    .PARAMETER ServiceName
-        The name of the service to create.
-
-    .PARAMETER ServiceCodePath
-        The path to the code for the service to create.
-
-    .PARAMETER ServiceDisplayName
-        The display name of the service to create.
-
-    .PARAMETER ServiceDescription
-        The description of the service to create.
-
-    .PARAMETER ServiceDependsOn
-        Dependencies of the service to create.
-
-    .PARAMETER ServiceExecutablePath
-        The path to write the service executable to.
+    .PARAMETER Name
+        The name of the service to delete.
 #>
-function New-TestService
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceName,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceCodePath,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceDisplayName,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceDescription,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceDependsOn,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceExecutablePath
-    )
-
-    New-ServiceBinary `
-        -ServiceName $ServiceName `
-        -ServiceCodePath $ServiceCodePath `
-        -ServiceDisplayName $ServiceDisplayName `
-        -ServiceDescription $ServiceDescription `
-        -ServiceDependsOn $ServiceDependsOn `
-        -ServiceExecutablePath $ServiceExecutablePath
-
-    if (-not (Test-Path $ServiceExecutablePath))
-    {
-        throw 'Failed to create service executable file.'
-    }
-
-    $configurationName = 'TestServiceConfig'
-    $configurationPath = Join-Path -Path (Get-Location) -ChildPath $ServiceName
-
-    Configuration $configurationName
-    {
-        Import-DscResource -ModuleName xPSDesiredStateConfiguration
-
-        xService Service1
-        {
-            Name = $ServiceName
-            Path = $ServiceExecutablePath
-            DisplayName = $ServiceDisplayName
-            Description = $ServiceDescription
-            Dependencies = $ServiceDependsOn
-            StartupType = 'Manual'
-            BuiltInAccount = 'LocalSystem'
-            State = 'Stopped'
-            Ensure = 'Present'
-        }
-    }
-
-    & $configurationName -OutputPath $configurationPath
-
-    Start-DscConfiguration -Path $configurationPath -Wait -Force -Verbose
-}
-
-<#
-    .SYNOPSIS
-    Retrieves the path to the install utility.
-#>
-function Get-InstallUtilPath
-{
-    [CmdletBinding()]
-    param ()
-
-    if ($env:Processor_Architecture -ieq 'amd64')
-    {
-        $frameworkName = 'Framework64'
-    }
-    else
-    {
-        $frameworkName = 'Framework'
-    }
-
-    return Join-Path -Path (Resolve-Path "$env:WinDir\Microsoft.Net\$frameworkName\v4*") `
-                     -ChildPath 'installUtil.exe'
-}
-
-<#
-    .SYNOPSIS
-    Removes a service.
-
-    .PARAMETER ServiceName
-    The name of the service to remove.
-
-    .PARAMETER ServiceExecutablePath
-    The path to the executable of the service to remove.
-#>
-function Remove-TestService
-{
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceName,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ServiceExecutablePath
-    )
-
-    if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)
-    {
-        $installUtility = Get-InstallUtilPath
-        & $installUtility /u $ServiceExecutablePath
-    }
-
-    Remove-Item $ServiceExecutablePath -Force -ErrorAction SilentlyContinue
-    Remove-Item *.InstallLog -Force -ErrorAction SilentlyContinue
-    Remove-Item $ServiceName -Force -Recurse -ErrorAction SilentlyContinue
-}
-
-function Get-InvalidArgumentRecord
+function Remove-ServiceWithTimeout
 {
     [CmdletBinding()]
     param
     (
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [System.String]
-        $ErrorId,
-
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [System.String]
-        $ErrorMessage
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullorEmpty()]
+        [String]
+        $Name
     )
 
-    $exception = New-Object -TypeName System.InvalidOperationException `
-                            -ArgumentList $ErrorMessage
-    $errorCategory = [System.Management.Automation.ErrorCategory]::InvalidOperation
-    $errorRecord = New-Object -TypeName System.Management.Automation.ErrorRecord `
-                              -ArgumentList $exception, $ErrorId, $errorCategory, $null
-    return $errorRecord
+    Stop-Service -Name $Name
+
+    & 'sc.exe' 'delete' $Name
+
+    $serviceDeleted = $false
+    $start = [DateTime]::Now
+
+    while (-not $serviceDeleted -and ([DateTime]::Now - $start).TotalMilliseconds -lt 5000)
+    {
+        $service = Get-Service -Name $Name -ErrorAction 'SilentlyContinue'
+
+        if ($null -eq $service)
+        {
+            $serviceDeleted = $true
+        }
+        else
+        {
+            Start-Sleep -Seconds 1
+        }
+    }
 }
 
-Export-ModuleMember -Function `
-    New-ServiceBinary, `
-    New-TestService, `
-    Remove-TestService, `
-    Get-InvalidArgumentRecord
+<#
+    .SYNOPSIS
+        Tests if the service with the specified name exists.
+
+    .PARAMETER Name
+        The name of the service.
+#>
+function Test-ServiceExists
+{
+    [OutputType([Boolean])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $Name
+    )
+
+    $service = Get-Service -Name $Name -ErrorAction 'SilentlyContinue'
+    return $null -ne $service
+}
+
+Export-ModuleMember -Function @( 'New-ServiceExecutable', 'Remove-ServiceWithTimeout', 'Test-ServiceExists' )

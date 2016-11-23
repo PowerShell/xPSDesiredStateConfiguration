@@ -1,26 +1,33 @@
-# Suppressed as per PSSA Rule Severity guidelines for unit/integration tests:
-# https://github.com/PowerShell/DscResources/blob/master/PSSARuleSeverities.md
-[System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-param ()
+<#
+    Error codes and their meanings for Invoke-CimMethod on a Win32_Service can be found here:
+    https://msdn.microsoft.com/en-us/library/aa384901(v=vs.85).aspx
+#>
 
-Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
--ChildPath 'CommonResourceHelper.psm1')
+$errorActionPreference = 'Stop'
+Set-StrictMode -Version 'Latest'
 
-# Localized messages for Write-Verbose statements in this resource
+# Import CommonResourceHelper for Test-IsNanoServer
+$script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
+$script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
+Import-Module -Name $script:commonResourceHelperFilePath
+
+# Localized messages for verbose and error statements in this resource
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xServiceResource'
 
 <#
     .SYNOPSIS
-        Get the current status of a service.
+        Retrieves the current status of the service resource with the given name.
 
     .PARAMETER Name
-        Indicates the service name to retrieve. Note that sometimes this is different from the
-        display name.
-        You can get a list of the services and their current state with the Get-Service cmdlet.
+        The name of the service to retrieve the status of.
+
+        This may be different from the service's display name.
+        To retrieve a list of all services with their names and current states, use the Get-Service
+        cmdlet.
 #>
 function Get-TargetResource
 {
-    [OutputType([System.Collections.Hashtable])]
+    [OutputType([Hashtable])]
     [CmdletBinding()]
     param
     (
@@ -30,26 +37,13 @@ function Get-TargetResource
         $Name
     )
 
-    if (Test-ServiceExists -Name $Name -ErrorAction SilentlyContinue)
+    $service = Get-Service -Name $Name -ErrorAction 'SilentlyContinue'
+
+    if ($null -ne $service)
     {
-        Write-Verbose -Message 'Service exists - getting service'
-        $service = Get-ServiceResource -Name $Name
-        $serviceWmi = Get-Win32ServiceObject -Name $Name
+        Write-Verbose -Message ($script:localizedData.ServiceExists -f $Name)
 
-        $builtInAccount = $null
-
-        if ($serviceWmi.StartName -ieq 'LocalSystem')
-        {
-            $builtInAccount ='LocalSystem'
-        }
-        elseif ($serviceWmi.StartName -ieq 'NT Authority\NetworkService')
-        {
-            $builtInAccount = 'NetworkService'
-        }
-        elseif ($serviceWmi.StartName -ieq 'NT Authority\LocalService')
-        {
-            $builtInAccount = 'LocalService'
-        }
+        $serviceCimInstance = Get-ServiceCimInstance -ServiceName $Name
 
         $dependencies = @()
 
@@ -57,80 +51,130 @@ function Get-TargetResource
         {
             $dependencies += $serviceDependedOn.Name.ToString()
         }
+
+        $startupType = ConvertTo-StartupTypeString -StartMode $serviceCimInstance.StartMode
+
+        $builtInAccount = switch ($serviceCimInstance.StartName)
+        {
+            'NT Authority\NetworkService' { 'NetworkService'; break }
+            'NT Authority\LocalService' { 'LocalService'; break }
+            default { $serviceCimInstance.StartName }
+        }
         
-        return @{
-            Name            = $service.Name
-            StartupType     = ConvertTo-StartupTypeString -StartMode $serviceWmi.StartMode
+        $serviceResource = @{
+            Name            = $Name
+            Ensure          = 'Present'
+            Path            = $serviceCimInstance.PathName
+            StartupType     = $startupType
             BuiltInAccount  = $builtInAccount
             State           = $service.Status.ToString()
-            Path            = $serviceWmi.PathName
             DisplayName     = $service.DisplayName
-            Description     = $serviceWmi.Description
-            DesktopInteract = $serviceWmi.DesktopInteract
-            Dependencies    = $dependencies
-            Ensure          = 'Present'
+            Description     = $serviceCimInstance.Description
+            DesktopInteract = $serviceCimInstance.DesktopInteract
+            Dependencies    = $dependencies 
         }
     }
     else
     {
-        Write-Verbose -Message 'Service with given name does not exist'
-        return @{
-            Name            = $service.Name
-            Ensure          = 'Absent'
+        Write-Verbose -Message ($script:localizedData.ServiceDoesNotExist -f $Name)
+        $serviceResource = @{
+            Name   = $Name
+            Ensure = 'Absent'
         }
     }
-    
-} # function Get-TargetResource
+
+    return $serviceResource
+}
 
 <#
     .SYNOPSIS
-        Creates, updates or removes a service.
+        Creates, modifies, or deletes the service with the given name.
 
     .PARAMETER Name
-        Indicates the name of the service to create, update, or remove.
-        Note that sometimes this is different from the display name.
-        You can get a list of the services and their current state with the Get-Service cmdlet.
+        The name of the service to create, modify, or delete.
+
+        This may be different from the service's display name.
+        To retrieve a list of all services with their names and current states, use the Get-Service
+        cmdlet.
 
     .PARAMETER Ensure
-        Specifies whether the service should exist or not. Optional. Defaults to Present.
+        Specifies whether the service should exist or not.
+        
+        Set this property to Present to create or modify a service.
+        Set this property to Absent to delete a service.
+
+        The default value is Present.
 
     .PARAMETER Path
-        The path to the service executable file. Optional.
+        The path to the executable the service should run.
+        Required when creating a service.
+
+        The user account specified by BuiltInAccount or Credential must have access to this path in
+        order to start the service.
 
     .PARAMETER StartupType
-        Indicates the startup type for the service. Optional.
+        The startup type the service should have.
 
     .PARAMETER BuiltInAccount
-        Indicates the sign-in account to use for the service. Optional.
+        The built-in account the service should start under.
 
-    .PARAMETER Credential
-        The credential to run the service under. Optional.
+        Cannot be specified at the same time as Credential.
+
+        The user account specified by this property must have access to the service executable path
+        defined by Path in order to start the service.
 
     .PARAMETER DesktopInteract
-        Indicates whether the service can create or communicate with a window on the desktop or not.
-        Must be false for services not running as LocalSystem. Optional. Defaults to false.
+        Indicates whether or not the service should be able to communicate with a window on the
+        desktop.
+
+        Must be false for services not running as LocalSystem.
+        The default value is false.
 
     .PARAMETER State
-        Indicates the state the service should be in. Optional. Default is Running.
+        The state the service should be in.
+        The default value is Running.
+
+        To disregard the state that the service is in, specify this property as Ignore.
 
     .PARAMETER DisplayName
-        The display name of the service. Optional.
+        The display name the service should have.
 
     .PARAMETER Description
-        The description of the service. Optional.
+        The description the service should have.
 
     .PARAMETER Dependencies
-        An array of strings indicating the names of the dependencies of the service. Optional.
+        An array of the names of the dependencies the service should have.
 
     .PARAMETER StartupTimeout
-        The time to wait for the service to start in milliseconds. Optional. Default is 3000.
+        The time to wait for the service to start in milliseconds.
+        The default value is 30000 (30 seconds).
 
     .PARAMETER TerminateTimeout
-        The time to wait for the service to stop in milliseconds. Optional. Default is 3000.
+        The time to wait for the service to stop in milliseconds.
+        The default value is 30000 (30 seconds).
+
+    .PARAMETER Credential
+        The credential of the user account the service should start under.
+
+        Cannot be specified at the same time as BuiltInAccount.
+        The user specified by this credential will automatically be granted the Log on as a Service
+        right.
+
+        The user account specified by this property must have access to the service executable path
+        defined by Path in order to start the service.
+
+    .NOTES
+        SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
+        Here are the paths through which Set-TargetResource calls Invoke-CimMethod:
+
+        Set-TargetResource --> Set-ServicePath --> Invoke-CimMethod
+                           --> Set-ServiceProperty --> Set-ServiceDependencies --> Invoke-CimMethod
+                                                   --> Set-ServieceAccountProperty --> Invoke-CimMethod
+                                                   --> Set-ServiceStartupType --> Invoke-CimMethod
 #>
 function Set-TargetResource
 {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -154,168 +198,189 @@ function Set-TargetResource
         [String]
         $BuiltInAccount,
 
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential,
-
-        [Boolean]
-        $DesktopInteract,
-
         [ValidateSet('Running', 'Stopped', 'Ignore')]
         [String]
         $State = 'Running',
+
+        [Boolean]
+        $DesktopInteract = $false,
 
         [ValidateNotNullOrEmpty()]
         [String]
         $DisplayName,
 
-        [ValidateNotNull()]
+        [ValidateNotNullOrEmpty()]
         [String]
         $Description,
 
-        [ValidateNotNullOrEmpty()]
         [String[]]
+        [AllowEmptyCollection()]
         $Dependencies,
 
-        [uint32]
+        [UInt32]
         $StartupTimeout = 30000,
 
-        [uint32]
-        $TerminateTimeout = 30000
+        [UInt32]
+        $TerminateTimeout = 30000,
+
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential
     )
 
     if ($PSBoundParameters.ContainsKey('StartupType'))
     {
-        # Throw an exception if the requested StartupType conflicts with State
-        Test-StartupType -Name $Name -StartupType $StartupType -State $State
+        Assert-NoStartupTypeStateConflict -ServiceName $Name -StartupType $StartupType -State $State
     }
 
-    $serviceExists = Test-ServiceExists -Name $Name -ErrorAction SilentlyContinue
-
-    if (($Ensure -eq 'Absent') -and $serviceExists)
+    if ($PSBoundParameters.ContainsKey('BuiltInAccount') -and $PSBoundParameters.ContainsKey('Credential'))
     {
-        # The service exists but needs to be deleted
-        Stop-ServiceResource -Name $Name -TerminateTimeout $TerminateTimeout
-        Remove-Service -Name $Name -TerminateTimeout $TerminateTimeout
-        return
+        $errorMessage = $script:localizedData.BuiltInAccountAndCredentialSpecified -f $Name
+        New-InvalidArgumentException -ArgumentName 'BuiltInAccount & Credential' -Message $errorMessage
     }
 
-    if ($PSBoundParameters.ContainsKey('Path') -and $serviceExists)
+    $service = Get-Service -Name $Name -ErrorAction 'SilentlyContinue'
+
+    if ($Ensure -eq 'Absent')
     {
-        if (-not (Compare-ServicePath -Name $Name -Path $Path))
+        if ($null -eq $service)
         {
-            # Update the path - this is not yet supported, but could be
-            Write-Verbose -Message ($script:localizedData.ServiceExecutablePathChangeNotSupported)
+            Write-Verbose -Message $script:localizedData.ServiceAlreadyAbsent
+        }
+        else
+        {
+            Write-Verbose -Message ($script:localizedData.RemovingService -f $Name)
+
+            Stop-ServiceWithTimeout -ServiceName $Name -TerminateTimeout $TerminateTimeout
+            Remove-ServiceWithTimeout -Name $Name -TerminateTimeout $TerminateTimeout
         }
     }
-    elseif ($PSBoundParameters.ContainsKey('Path') -and -not $serviceExists)
+    else
     {
-        $argumentsToNewService = @{}
-        $argumentsToNewService.Add('Name', $Name)
-        $argumentsToNewService.Add('BinaryPathName', $Path)
+        $serviceRestartNeeded = $false
 
-        try
+        # Create new service or update the service path if needed
+        if ($null -eq $service)
         {
-            New-Service @argumentsToNewService
+            if ($PSBoundParameters.ContainsKey('Path'))
+            {
+                Write-Verbose -Message ($script:localizedData.CreatingService -f $Name, $Path)
+                $null = New-Service -Name $Name -BinaryPathName $Path
+            }
+            else
+            {
+                $errorMessage = $script:localizedData.ServiceDoesNotExistPathMissingError -f $Name
+                New-InvalidArgumentException -ArgumentName 'Path' -Message $errorMessage
+            }
         }
-        catch
+        else
         {
-            Write-Verbose -Message ($script:localizedData.TestStartupTypeMismatch `
-            -f $argumentsToNewService['Name'], $_.Exception.Message)
-            throw $_
-        }
-    }
-    elseif (-not $PSBoundParameters.ContainsKey('Path') -and -not $serviceExists)
-    {
-        New-InvalidArgumentException `
-            -Message ($script:localizedData.ServiceDoesNotExistPathMissingError -f $Name) `
-            -ArgumentName 'Path'
-    }
-
-    # Update the parameters of the service
-    $writeWritePropertiesArguments = @{
-        Name = $Name
-    }
-
-    $parameterNames = @('Path', 'StartupType', 'BuiltInAccount', 'Credential', 'DesktopInteract',
-                        'DisplayName', 'Description', 'Dependencies')
-    foreach ($parameter in $parameterNames)
-    {
-        if ($PSBoundParameters.ContainsKey($parameter))
-        {
-            $writeWritePropertiesArguments[$parameter] = $PSBoundParameters[$parameter]
-        }
-    }
-
-    $requiresRestart = Write-WriteProperty @writeWritePropertiesArguments
-
-    if ($State -eq 'Stopped')
-    {
-        # Ensure service is stopped
-        Stop-ServiceResource -Name $Name -TerminateTimeout $TerminateTimeout
-    }
-    elseif ($State -eq 'Running')
-    {
-        # if the service needs to be restarted then go stop it first
-        if ($requiresRestart)
-        {
-            Write-Verbose -Message ($script:localizedData.ServiceNeedsRestartMessage -f $Name)
-            Stop-ServiceResource -Name $Name -TerminateTimeout $TerminateTimeout
+            if ($PSBoundParameters.ContainsKey('Path'))
+            {
+                $serviceRestartNeeded = Set-ServicePath -ServiceName $Name -Path $Path
+            }
         }
 
-        Start-ServiceResource -Name $Name -StartupTimeout $StartupTimeout
-    }
-} # function Set-TargetResource
+        # Update the properties of the service if needed
+        $setServicePropertyParameters = @{}
 
+        $servicePropertyParameterNames = @( 'StartupType', 'BuiltInAccount', 'Credential', 'DesktopInteract', 'DisplayName', 'Description', 'Dependencies' )
+
+        foreach ($servicePropertyParameterName in $servicePropertyParameterNames)
+        {
+            if ($PSBoundParameters.ContainsKey($servicePropertyParameterName))
+            {
+                $setServicePropertyParameters[$servicePropertyParameterName] = $PSBoundParameters[$servicePropertyParameterName]
+            }
+        }
+        
+        if ($setServicePropertyParameters.Count -gt 0)
+        {
+            Write-Verbose -Message ($script:localizedData.EditingServiceProperties -f $Name)
+            Set-ServiceProperty -ServiceName $Name @setServicePropertyParameters
+        }
+
+        # Update service state if needed
+        if ($State -eq 'Stopped')
+        {
+            Stop-ServiceWithTimeout -ServiceName $Name -TerminateTimeout $TerminateTimeout
+        }
+        elseif ($State -eq 'Running')
+        {
+            if ($serviceRestartNeeded)
+            {
+                Write-Verbose -Message ($script:localizedData.RestartingService -f $Name)
+                Stop-ServiceWithTimeout -ServiceName $Name -TerminateTimeout $TerminateTimeout
+            }
+
+            Start-ServiceWithTimeout -ServiceName $Name -StartupTimeout $StartupTimeout
+        }
+    }
+}
 
 <#
     .SYNOPSIS
-        Tests if a service is in the desired state.
+        Tests if the service with the given name has the specified property values.
 
     .PARAMETER Name
-        The name of the service to be tested.
-        Note that sometimes this is different from the display name.
-        You can get a list of the services and their current state with the Get-Service cmdlet.
+        The name of the service to test.
+        
+        This may be different from the service's display name.
+        To retrieve a list of all services with their names and current states, use the Get-Service
+        cmdlet.
 
     .PARAMETER Ensure
-        Specifies whether the service should exist or not. Optional. Defaults to Present.
-        If set to Absent, only the existence of the service will be checked.
+        Specifies whether the service should exist or not.
+        
+        Set this property to Present to test if a service exists.
+        Set this property to Absent to test if a service does not exist.
+
+        The default value is Present.
 
     .PARAMETER Path
-        Indicates what the path to the service executable file should be. Optional.
+        The path to the executable the service should be running.
 
     .PARAMETER StartupType
-        Indicates what the startup type for the service should be. Optional.
+        The startup type the service should have.
 
     .PARAMETER BuiltInAccount
-        Indicates what the sign-in account to use for the service should be. Optional.
+        The account the service should be starting under.
 
-    .PARAMETER Credential
-        Indicates the credential that the service should run under. Optional.
+        Cannot be specified at the same time as Credential.
 
     .PARAMETER DesktopInteract
-        Indicates if the service should be able to create or communicate with a window on the desktop.
-        Must be false for services not running as LocalSystem. Optional.
+        Indicates whether or not the service should be able to communicate with a window on the
+        desktop.
+
+        Should be false for services not running as LocalSystem.
+        The default value is false.
 
     .PARAMETER State
-        Indicates the state that the service should be in. Optional. Default is Running.
+        The state the service should be in.
+        The default value is Running.
+
+        To disregard the state that the service is in, specify this property as Ignore.
 
     .PARAMETER DisplayName
-        The display name that the service should have. Optional.
+        The display name the service should have.
 
     .PARAMETER Description
-        The description that the service should have. Optional.
+        The description the service should have.
 
     .PARAMETER Dependencies
-        An array of strings indicating the names of the dependencies that the service should have.
-        Optional.
+        An array of the names of the dependencies the service should have.
 
     .PARAMETER StartupTimeout
         Not used in Test-TargetResource.
 
     .PARAMETER TerminateTimeout
         Not used in Test-TargetResource.
+
+    .PARAMETER Credential
+        The credential the service should be running under.
+
+        Cannot be specified at the same time as BuiltInAccount.
 #>
 function Test-TargetResource
 {
@@ -344,247 +409,185 @@ function Test-TargetResource
         [String]
         $BuiltInAccount,
 
-        [ValidateNotNull()]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential,
-
         [Boolean]
-        $DesktopInteract,
+        $DesktopInteract = $false,
 
         [ValidateSet('Running', 'Stopped', 'Ignore')]
         [String]
         $State = 'Running',
 
-        [ValidateNotNullOrEmpty()]
+        [ValidateNotNull()]
         [String]
         $DisplayName,
 
-        [ValidateNotNull()]
         [String]
+        [AllowEmptyString()]
         $Description,
 
-        [ValidateNotNullOrEmpty()]
         [String[]]
+        [AllowEmptyCollection()]
         $Dependencies,
 
-        [uint32]
+        [UInt32]
         $StartupTimeout = 30000,
 
-        [uint32]
-        $TerminateTimeout = 30000
+        [UInt32]
+        $TerminateTimeout = 30000,
+
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential
     )
 
     if ($PSBoundParameters.ContainsKey('StartupType'))
     {
-        # Throw an exception if the StartupTypeconflicts with the state
-        Test-StartupType -Name $Name -StartupType $StartupType -State $State
+        Assert-NoStartupTypeStateConflict -ServiceName $Name -StartupType $StartupType -State $State
     }
 
-    $serviceExists = Test-ServiceExists -Name $Name -ErrorAction SilentlyContinue
-
-    if ($Ensure -eq 'Absent')
+    if ($PSBoundParameters.ContainsKey('BuiltInAccount') -and $PSBoundParameters.ContainsKey('Credential'))
     {
-        Write-Verbose -Message $script:localizedData.NotCheckingOtherValuesEnsureAbsent
-        return -not $serviceExists
+        $errorMessage = $script:localizedData.BuiltInAccountAndCredentialSpecified -f $Name
+        New-InvalidArgumentException -ArgumentName 'BuiltInAccount & Credential' -Message $errorMessage
     }
 
-    if (-not $serviceExists)
+    $serviceResource = Get-TargetResource -Name $Name
+
+    if ($serviceResource.Ensure -eq 'Absent')
     {
-        Write-Verbose -Message $script:localizedData.ServiceDoesNotExist
-        return $false
+        Write-Verbose -Message ($script:localizedData.ServiceDoesNotExist -f $Name)
+        return ($Ensure -eq 'Absent')
     }
-
-    $service = Get-ServiceResource -Name $Name
-    $serviceWmi = Get-Win32ServiceObject -Name $Name
-
-    # Check the binary path
-    if ($PSBoundParameters.ContainsKey('Path') -and `
-        (-not (Compare-ServicePath -Name $Name -Path $Path)))
+    else
     {
-        Write-Verbose -Message ($script:localizedData.TestBinaryPathMismatch `
-            -f $serviceWmi.Name, $serviceWmi.PathName, $Path)
-        return $false
-    }
+        Write-Verbose -Message ($script:localizedData.ServiceExists -f $Name)
 
-    # Check the optional parameters
-    if ($PSBoundParameters.ContainsKey('DisplayName') -and `
-        ($DisplayName -ne $serviceWmi.DisplayName))
-    {
-        Write-Verbose -Message ($script:localizedData.ParameterMismatch `
-            -f 'DisplayName', $serviceWmi.DisplayName, $DisplayName)
-        return $false
-    }
-
-    if ($PSBoundParameters.ContainsKey('Description') -and `
-        ($Description -ne $serviceWmi.Description))
-    {
-        Write-Verbose -Message ($script:localizedData.ParameterMismatch `
-            -f 'Description', $serviceWmi.Description, $Description)
-        return $false
-    }
-
-    if ($PSBoundParameters.ContainsKey('Dependencies'))
-    {
-        $mismatchedDependencies = @(Compare-Object `
-                                      -ReferenceObject $service.ServicesDependedOn `
-                                      -DifferenceObject $Dependencies `
-                                   )
-
-        if ($mismatchedDependencies.Count -gt 0)
+        if ($Ensure -eq 'Absent')
         {
-            Write-Verbose -Message ($script:localizedData.ParameterMismatch `
-                -f 'Dependencies', ($service.ServicesDependedOn -join ','), ($Dependencies -join ','))
-            return $false
-        }
-    }
-
-    if ($PSBoundParameters.ContainsKey('StartupType') -or `
-        $PSBoundParameters.ContainsKey('BuiltInAccount') -or `
-        $PSBoundParameters.ContainsKey('Credential') -or `
-        $PSBoundParameters.ContainsKey('DesktopInteract'))
-    {
-        $getUserNameAndPasswordArgs = @{}
-
-        if ($PSBoundParameters.ContainsKey('BuiltInAccount'))
-        {
-            $null = $getUserNameAndPasswordArgs.Add('BuiltInAccount', $BuiltInAccount)
-        }
-
-        if ($PSBoundParameters.ContainsKey('Credential'))
-        {
-            $null = $getUserNameAndPasswordArgs.Add('Credential', $Credential)
-        }
-
-        $userName, $password = Get-UserNameAndPassword @getUserNameAndPasswordArgs
-
-        if ($null -ne $userName  -and `
-            -not (Test-UserName -ServiceWmi $serviceWmi -Username $userName))
-        {
-            Write-Verbose -Message ($script:localizedData.TestUserNameMismatch `
-                -f $serviceWmi.Name, $serviceWmi.StartName, $userName)
             return $false
         }
 
-        if ($PSBoundParameters.ContainsKey('DesktopInteract') -and `
-            ($serviceWmi.DesktopInteract -ne $DesktopInteract))
+        # Check the service path
+        if ($PSBoundParameters.ContainsKey('Path'))
         {
-            Write-Verbose -Message ($script:localizedData.TestDesktopInteractMismatch `
-                -f $serviceWmi.Name, $serviceWmi.DesktopInteract, $DesktopInteract)
+            $pathsMatch = Test-PathsMatch -ExpectedPath $Path -ActualPath $serviceResource.Path
+
+            if (-not $pathsMatch)
+            {
+                Write-Verbose -Message ($script:localizedData.ServicePathDoesNotMatch -f $Name, $Path, $serviceResource.Path)
+                return $false
+            }
+        }
+
+        # Check the service display name
+        if ($PSBoundParameters.ContainsKey('DisplayName') -and $serviceResource.DisplayName -ine $DisplayName)
+        {
+            Write-Verbose -Message ($script:localizedData.ServicePropertyDoesNotMatch -f 'DisplayName', $Name, $DisplayName, $serviceResource.DisplayName)
             return $false
         }
 
-        if ($PSBoundParameters.ContainsKey('StartupType') -and `
-            $serviceWmi.StartMode -ine (ConvertTo-StartModeString -StartupType $StartupType))
+        # Check the service description
+        if ($PSBoundParameters.ContainsKey('Description') -and $serviceResource.Description -ine $Description)
         {
-            Write-Verbose -Message ($script:localizedData.TestStartupTypeMismatch `
-                -f $serviceWmi.Name, $serviceWmi.StartMode, $StartupType)
+            Write-Verbose -Message ($script:localizedData.ServicePropertyDoesNotMatch -f 'Description', $Name, $Description, $serviceResource.Description)
             return $false
         }
-    }
 
-    if (($State -ne $service.Status) -and ($State -ne 'Ignore'))
-    {
-        Write-Verbose -Message ($script:localizedData.TestStateMismatch `
-            -f $serviceWmi.Name, $service.Status, $State)
-        return $false
+        # Check the service dependencies
+        if ($PSBoundParameters.ContainsKey('Dependencies'))
+        {
+            $serviceDependenciesDoNotMatch = $false
+
+            if ($null -eq $serviceResource.Dependencies -xor $null -eq $Dependencies)
+            {
+                $serviceDependenciesDoNotMatch = $true
+            }
+            elseif ($null -ne $serviceResource.Dependencies -and $null -ne $Dependencies)
+            {
+                $mismatchedDependencies = Compare-Object -ReferenceObject $serviceResource.Dependencies -DifferenceObject $Dependencies
+                $serviceDependenciesDoNotMatch = $null -ne $mismatchedDependencies
+            }
+
+            if ($serviceDependenciesDoNotMatch)
+            {
+                $expectedDependenciesString = $Dependencies -join ','
+                $actualDependenciesString = $serviceResource.Dependencies -join ','
+
+                Write-Verbose -Message ($script:localizedData.ServicePropertyDoesNotMatch -f 'Dependencies', $Name, $expectedDependenciesString, $actualDependenciesString)
+                return $false
+            }
+        }
+            
+        # Check the service desktop interation setting
+        if ($PSBoundParameters.ContainsKey('DesktopInteract') -and $serviceResource.DesktopInteract -ine $DesktopInteract)
+        {
+            Write-Verbose -Message ($script:localizedData.ServicePropertyDoesNotMatch -f 'DesktopInteract', $Name, $DesktopInteract, $serviceResource.DesktopInteract)
+            return $false
+        }
+
+        # Check the service account properties
+        if ($PSBoundParameters.ContainsKey('BuiltInAccount') -and $serviceResource.BuiltInAccount -ine $BuiltInAccount)
+        {
+            Write-Verbose -Message ($script:localizedData.ServicePropertyDoesNotMatch -f 'BuiltInAccount', $Name, $BuiltInAccount, $serviceResource.BuiltInAccount)
+            return $false
+        }
+        elseif ($PSBoundParameters.ContainsKey('Credential'))
+        {
+            $expectedStartName = ConvertTo-StartName -Username $Credential.UserName
+
+            if ($serviceResource.BuiltInAccount -ine $expectedStartName)
+            {
+                Write-Verbose -Message ($script:localizedData.ServiceCredentialDoesNotMatch -f $Name, $Credential.UserName, $serviceResource.BuiltInAccount)
+                return $false
+            }
+        }
+
+        # Check the service startup type
+        if ($PSBoundParameters.ContainsKey('StartupType') -and $serviceResource.StartupType -ine $StartupType)
+        {
+            Write-Verbose -Message ($script:localizedData.ServicePropertyDoesNotMatch -f 'StartupType', $Name, $StartupType, $serviceResource.StartupType)
+            return $false
+        }
+
+        # Check the service state
+        if ($State -ne 'Ignore' -and $serviceResource.State -ine $State)
+        {
+            Write-Verbose -Message ($script:localizedData.ServicePropertyDoesNotMatch -f 'State', $Name, $State, $serviceResource.State)
+            return $false
+        }
     }
 
     return $true
-} # function Test-TargetResource
-
+}
 
 <#
     .SYNOPSIS
-        Tests if the given StartupType is valid with the State parameter of the service 
-        with the given Name.
+        Retrieves the CIM instance of the service with the given name.
 
-    .PARAMETER Name
-        The name of the service for which to check the StartupType and State
-        (For error message only)
-
-    .PARAMETER StartupType
-        The StartupType to test.
-
-    .PARAMETER State
-        The State to test against. Default state is 'Running'
+    .PARAMETER ServiceName
+        The name of the service to get the CIM instance of.
 #>
-function Test-StartupType
+function Get-ServiceCimInstance
 {
+    [OutputType([CimInstance])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Name,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
-        $StartupType,
-
-        [ValidateSet('Running', 'Stopped', 'Ignore')]
-        [String]
-        $State = 'Running'
+        [ValidateNotNullorEmpty()]
+        $ServiceName
     )
 
-    if ($State -eq 'Stopped')
-    {
-        if ($StartupType -eq 'Automatic')
-        {
-            # State = Stopped conflicts with Automatic or Delayed
-            New-InvalidArgumentException `
-                -Message ($script:localizedData.CannotStopServiceSetToStartAutomatically -f $Name) `
-                -ArgumentName 'State'
-        }
-    }
-    elseif ($State -eq 'Running')
-    {
-        if ($StartupType -eq 'Disabled')
-        {
-            # State = Running conflicts with Disabled
-            New-InvalidArgumentException `
-                -Message ($script:localizedData.CannotStartAndDisable -f $Name) `
-                -ArgumentName 'State'
-        }
-    }
-} # function Test-StartupType
+    return Get-CimInstance -ClassName 'Win32_Service' -Filter "Name='$ServiceName'"
+}
 
 <#
     .SYNOPSIS
-        Converts the StartupType String to the correct StartMode String returned
-        in the Win32 service object.
-
-    .PARAMETER StartupType
-        The StartupType to convert.
-#>
-function ConvertTo-StartModeString
-{
-    [OutputType([String])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String] $StartupType
-    )
-
-    if ($StartupType -eq 'Automatic')
-    {
-        return 'Auto'
-    }
-
-    return $StartupType
-} # function ConvertTo-StartModeString
-
-<#
-    .SYNOPSIS
-        Converts the StartMode string returned in a Win32_Service object to the format
+        Converts the StartMode value returned in a CIM instance of a service to the format
         expected by this resource.
 
     .PARAMETER StartMode
-        The StartMode string to convert.
+        The StartMode value to convert.
 #>
 function ConvertTo-StartupTypeString
 {
@@ -594,6 +597,7 @@ function ConvertTo-StartupTypeString
     (
         [Parameter(Mandatory = $true)]
         [ValidateSet('Auto', 'Manual', 'Disabled')]
+        [String]
         $StartMode
     )
 
@@ -603,780 +607,279 @@ function ConvertTo-StartupTypeString
     }
 
     return $StartMode
-} # function ConvertTo-StartupTypeString
+}
 
 <#
     .SYNOPSIS
-        Retrieves the Win32_Service object for the service with the given name.
+        Throws an invalid argument error if the given service startup type conflicts with the given
+        service state.
 
-    .PARAMETER Name
-        The name of the service for which to get the Win32_Service object
+    .PARAMETER ServiceName
+        The name of the service for the error message.
+
+    .PARAMETER StartupType
+        The service startup type to check.
+
+    .PARAMETER State
+        The service state to check.
 #>
-function Get-Win32ServiceObject
+function Assert-NoStartupTypeStateConflict 
 {
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullorEmpty()]
-        $Name
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ServiceName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
+        [String]
+        $StartupType,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Running', 'Stopped', 'Ignore')]
+        [String]
+        $State
     )
 
-    return Get-CimInstance -ClassName Win32_Service -Filter "Name='$Name'"
-} # function Get-Win32ServiceObject
+    if ($State -eq 'Stopped')
+    {
+        if ($StartupType -eq 'Automatic')
+        {
+            # Cannot stop a service and set it to start automatically at the same time
+            $errorMessage = $script:localizedData.StartupTypeStateConflict -f $ServiceName, $StartupType, $State
+            New-InvalidArgumentException -ArgumentName 'StartupType and State' -Message $errorMessage
+        }
+    }
+    elseif ($State -eq 'Running')
+    {
+        if ($StartupType -eq 'Disabled')
+        {
+            # Cannot start a service and disable it at the same time
+            $errorMessage = $script:localizedData.StartupTypeStateConflict -f $ServiceName, $StartupType, $State
+            New-InvalidArgumentException -ArgumentName 'StartupType and State' -Message $errorMessage
+        }
+    }
+}
 
 <#
     .SYNOPSIS
-        Sets the StartupType property of the given service to the given value.
+        Tests if the two given paths match.
 
-    .PARAMETER Win32ServiceObject
-        The Win32_Service object to set the StartupType to.
+    .PARAMETER ExpectedPath
+        The expected path to test against.
 
-    .PARAMETER StartupType
-        The StartupType to set
+    .PARAMETER ActualPath
+        The actual path to test.
 #>
-function Set-ServiceStartMode
+function Test-PathsMatch
 {
+    [OutputType([Boolean])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ExpectedPath,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ActualPath
+    )
+
+    return (0 -eq [String]::Compare($ExpectedPath, $ActualPath, [System.Globalization.CultureInfo]::CurrentUICulture))
+}
+
+<#
+    .SYNOPSIS
+        Converts the given username to the string version of it that would be expected in a
+        service's StartName property.
+
+    .PARAMETER Username
+        The username to convert.
+#>
+function ConvertTo-StartName
+{
+    [OutputType([String])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Username
+    )
+
+    $startName = $Username
+
+    if ($Username -ieq 'NetworkService' -or $Username -ieq 'LocalService')
+    {
+        $startName = "NT Authority\$Username"
+    }
+    elseif (-not $Username.Contains('\') -and -not $Username.Contains('@'))
+    {
+        $startName = ".\$Username"
+    }
+    elseif ($Username.StartsWith("$env:computerName\"))
+    {
+        $startName = $Username.Replace($env:computerName, '.')
+    }
+
+    return $startName
+}
+
+<#
+    .SYNOPSIS
+        Sets the executable path of the service with the given name.
+        Returns a boolean specifying whether a restart is needed or not.
+
+    .PARAMETER ServiceName
+        The name of the service to set the path of.
+
+    .PARAMETER Path
+        The path to set for the service.
+
+    .NOTES
+        SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
+        This function calls Invoke-CimMethod directly.
+#>
+function Set-ServicePath
+{
+    [OutputType([Boolean])]
     [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        $Win32ServiceObject,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
-        $StartupType
-    )
-
-    if ((ConvertTo-StartupTypeString -StartMode $Win32ServiceObject.StartMode) -ine $StartupType `
-        -and $PSCmdlet.ShouldProcess($Win32ServiceObject.Name, $script:localizedData.SetStartupTypeWhatIf))
-    {
-        $changeServiceArguments = @{ StartMode = $StartupType }
-
-        $changeResult = Invoke-CimMethod `
-            -InputObject $Win32ServiceObject `
-            -MethodName 'Change' `
-            -Arguments $changeServiceArguments
-
-        if ($changeResult.ReturnValue -ne 0)
-        {
-            $innerMessage = ($script:localizedData.MethodFailed `
-                -f 'Change', 'Win32_Service', $changeResult.ReturnValue)
-            $errorMessage = ($script:localizedData.ErrorChangingProperty `
-                -f 'StartupType', $innerMessage)
-            New-InvalidArgumentException `
-                -Message $errorMessage `
-                -ArgumentName 'StartupType'
-        }
-    }
-} # function Set-ServiceStartMode
-
-<#
-    .SYNOPSIS
-        Writes all write properties if not already correctly set.
-        Logs errors and respects WhatIf.
-
-    .PARAMETER Name
-        The name of the service to be updated.
-        Note that sometimes this is different from the display name.
-        You can get a list of the services and their current state with the Get-Service cmdlet.
-
-    .PARAMETER Path
-        The path to the service executable file. Optional.
-
-    .PARAMETER StartupType
-        Indicates the startup type for the service. Optional.
-
-    .PARAMETER BuiltInAccount
-        Indicates the sign-in account to use for the service. Optional.
-
-    .PARAMETER Credential
-        The credential to run the service under. Optional.
-
-    .PARAMETER DesktopInteract
-        The service can create or communicate with a window on the desktop.
-
-    .PARAMETER DisplayName
-        The display name of the service. Optional.
-
-    .PARAMETER Description
-        The description of the service. Optional.
-
-    .PARAMETER Dependencies
-        An array of strings indicating the names of the dependencies of the service. Optional.
-#>
-function Write-WriteProperty
-{
-    [OutputType([System.Boolean])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        $Name,
-
-        [System.String]
-        [ValidateNotNullOrEmpty()]
-        $Path,
-
-        [System.String]
-        [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        $StartupType,
-
-        [System.String]
-        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        $BuiltInAccount,
-
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        [ValidateNotNull()]
-        $Credential,
-
-        [Boolean]
-        $DesktopInteract,
-
         [ValidateNotNullOrEmpty()]
         [String]
-        $DisplayName,
+        $ServiceName,
 
-        [ValidateNotNull()]
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [String]
-        $Description,
-
-        [ValidateNotNullOrEmpty()]
-        [String[]]
-        $Dependencies
-    )
-
-    $service = Get-Service -Name $Name
-    $serviceWmi = Get-Win32ServiceObject -Name $Name
-    $requiresRestart = $false
-
-    # update binary path
-    if ($PSBoundParameters.ContainsKey('Path'))
-    {
-        $writeBinaryArguments = @{
-            ServiceWmi = $serviceWmi
-            Path = $Path
-        }
-
-        $requiresRestart = ($requiresRestart -or (Write-BinaryProperty @writeBinaryArguments))
-    }
-
-    # update misc service properties
-    $serviceprops = @{}
-
-    if ($PSBoundParameters.ContainsKey('DisplayName') -and `
-        ($DisplayName -ne $serviceWmi.DisplayName))
-    {
-        $serviceprops += @{ DisplayName = $DisplayName }
-    }
-
-    if ($PSBoundParameters.ContainsKey('Description') -and `
-        ($Description -ne $serviceWmi.Description))
-    {
-        $serviceprops += @{ Description = $Description }
-    }
-
-    if ($serviceprops.count -gt 0)
-    {
-        $null = Set-Service -Name $Name @ServiceProps
-    }
-
-    # update the service dependencies if required
-    if ($PSBoundParameters.ContainsKey('Dependencies'))
-    {
-        $mismatchedDependencies = @(Compare-Object `
-                                    -ReferenceObject $service.ServicesDependedOn `
-                                    -DifferenceObject $Dependencies)
-
-        if ($mismatchedDependencies.Count -gt 0)
-        {
-            $changeServiceArguments = @{ ServiceDependencies = $Dependencies }
-
-            $changeResult = Invoke-CimMethod `
-                -InputObject $serviceWmi `
-                -MethodName 'Change' `
-                -Arguments $changeServiceArguments
-
-            if ($changeResult.ReturnValue -ne 0)
-            {
-                $innerMessage = ($script:localizedData.MethodFailed `
-                    -f 'Change', 'Win32_Service', $changeResult.ReturnValue)
-                $errorMessage = ($script:localizedData.ErrorChangingProperty `
-                    -f 'Dependencies', $innerMessage)
-
-                New-InvalidArgumentException `
-                    -Message $errorMessage `
-                    -ArgumentName 'Dependencies'
-            }
-        }
-    }
-
-    # update credentials
-    if ($PSBoundParameters.ContainsKey('BuiltInAccount') -or `
-        $PSBoundParameters.ContainsKey('Credential') -or `
-        $PSBoundParameters.ContainsKey('DesktopInteract'))
-    {
-        $writeCredentialPropertiesArguments = @{ 'ServiceWmi' = $serviceWmi }
-
-        if ($PSBoundParameters.ContainsKey('BuiltInAccount'))
-        {
-            $null = $writeCredentialPropertiesArguments.Add('BuiltInAccount', $BuiltInAccount)
-        }
-
-        if ($PSBoundParameters.ContainsKey('Credential'))
-        {
-            $null = $writeCredentialPropertiesArguments.Add('Credential', $Credential)
-        }
-
-        if ($PSBoundParameters.ContainsKey('DesktopInteract'))
-        {
-            $null = $writeCredentialPropertiesArguments.Add('DesktopInteract', $DesktopInteract)
-        }
-
-        Write-CredentialProperty @writeCredentialPropertiesArguments
-    }
-
-    # Update startup type
-    if ($PSBoundParameters.ContainsKey('StartupType'))
-    {
-        Set-ServiceStartMode -Win32ServiceObject $serviceWmi -StartupType $StartupType
-    }
-
-    # Return restart status
-    return $requiresRestart
-
-} # function Write-WriteProperty
-
-<#
-    .SYNOPSIS
-        Writes credential properties if not already correctly set.
-        Logs errors and respects WhatIf.
-
-    .PARAMETER ServiceWmi
-        The WMI service of which to set the credentials.
-
-    .PARAMETER BuiltInAccount
-        Indicates the sign-in account to use for the service. Optional.
-
-    .PARAMETER Credential
-        The credential to update. Optional.
-
-    .PARAMETER DesktopInteract
-        Indicates whether the service can create or communicate with a window on the desktop.
-        Must be false for services not running as LocalSystem. Optional.
-#>
-function Write-CredentialProperty
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        $ServiceWmi,
-
-        [System.String]
-        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        $BuiltInAccount,
-
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential,
-
-        [Boolean]
-        $DesktopInteract
-    )
-
-    if (-not $PSBoundParameters.ContainsKey('Credential') -and `
-        -not $PSBoundParameters.ContainsKey('BuiltInAccount') -and `
-        -not $PSBoundParameters.ContainsKey('DesktopInteract'))
-    {
-        # No change parameters actually passed - nothing to change
-        return
-    }
-
-    # These are the arguments to chnage on the service
-    $changeArgs = @{}
-
-    # Get the Username and Password to change to (if applicable)
-    $getUserNameAndPasswordArgs = @{}
-
-    if ($PSBoundParameters.ContainsKey('BuiltInAccount'))
-    {
-        $null = $getUserNameAndPasswordArgs.Add('BuiltInAccount',$BuiltInAccount)
-    }
-
-    if ($PSBoundParameters.ContainsKey('Credential'))
-    {
-        $null = $getUserNameAndPasswordArgs.Add('Credential',$Credential)
-    }
-
-    if ($getUserNameAndPasswordArgs.Count -gt 1)
-    {
-        # Both Credentials and BuiltInAccount were set - throw
-        New-InvalidArgumentException `
-            -Message ($script:localizedData.OnlyOneParameterCanBeSpecified `
-                -f 'Credential', 'BuiltInAccount') `
-            -ArgumentName 'BuiltInAccount'
-    }
-
-    $userName, $password = Get-UserNameAndPassword @getUserNameAndPasswordArgs
-
-    # If the user account needs to be changed add it to the arguments
-    if (($null -ne $userName) -and `
-        -not (Test-UserName -ServiceWmi $ServiceWmi -Username $userName))
-    {
-        # A specific user account was passed so set log on as a service policy
-        if ($PSBoundParameters.ContainsKey('Credential'))
-        {
-            Set-LogOnAsServicePolicy -Username $userName
-        }
-
-        $changeArgs += @{
-            StartName = $userName
-            StartPassword = $password
-        }
-    }
-
-    # The desktop interact flag was passed to set that value
-    if ($PSBoundParameters.ContainsKey('DesktopInteract') -and `
-        ($DesktopInteract -ne $ServiceWmi.DesktopInteract))
-    {
-        $changeArgs.DesktopInteract = $DesktopInteract
-    }
-
-    if ($changeArgs.Count -gt 0)
-    {
-        $ret = Invoke-CimMethod `
-            -InputObject $ServiceWmi `
-            -MethodName 'Change' `
-            -Arguments $changeArgs
-
-        if ($ret.ReturnValue -ne 0)
-        {
-            $innerMessage = ($script:localizedData.MethodFailed `
-                -f 'Change', 'Win32_Service',$ret.ReturnValue)
-            $errorMessage = ($script:localizedData.ErrorChangingProperty `
-                -f 'Credential', $innerMessage)
-
-            New-InvalidArgumentException `
-                -Message $errorMessage `
-                -ArgumentName 'Credential'
-        }
-    }
-} # function Write-CredentialProperty
-
-<#
-    .SYNOPSIS
-        Writes binary path if not already correctly set. Logs errors.
-        returns false if the path is already set and true if it was not set.
-
-    .PARAMETER ServiceWmi
-        The WMI service of which to set the path
-
-    .PARAMETER Path
-        The Path to set for the service. Optional.
-        
-#>
-function Write-BinaryProperty
-{
-    [OutputType([System.Boolean])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        $ServiceWmi,
-
-        [System.String]
-        [ValidateNotNullOrEmpty()]
         $Path
     )
 
-    if ($ServiceWmi.PathName -eq $Path)
+    $serviceCimInstance = Get-ServiceCimInstance -ServiceName $ServiceName
+
+    $pathsMatch = Test-PathsMatch -ExpectedPath $Path -ActualPath $serviceCimInstance.PathName
+
+    if ($pathsMatch)
     {
+        Write-Verbose -Message ($script:localizedData.ServicePathMatches -f $ServiceName)
         return $false
-    }
-
-    $changeServiceArguments = @{ PathName = $Path }
-
-    $changeResult = Invoke-CimMethod `
-        -InputObject $serviceWmi `
-        -MethodName 'Change' `
-        -Arguments $changeServiceArguments
-
-    if ($changeResult.ReturnValue -ne 0)
-    {
-        $innerMessage = ($script:localizedData.MethodFailed `
-            -f 'Change', 'Win32_Service', $changeResult.ReturnValue)
-        $errorMessage = ($script:localizedData.ErrorChangingProperty `
-            -f 'Binary Path', $innerMessage)
-
-        New-InvalidArgumentException `
-            -Message $errorMessage `
-            -ArgumentName 'Path'
-    }
-
-    return $true
-} # function Write-BinaryProperty
-
-<#
-    .SYNOPSIS
-        Returns true if the service's StartName matches $UserName
-
-    .PARAMETER ServiceWmi
-        The WMI service of which to check the username.
-
-    .PARAMETER UserName
-        The username of the user to compare the one in the WMI object with.
-#>
-function Test-UserName
-{
-    [OutputType([System.Boolean])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        $ServiceWmi,
-
-        [String]
-        $UserName
-    )
-
-    return  ((Resolve-UserName -UserName $ServiceWmi.StartName) -ieq $UserName)
-} # function Test-UserName
-
-<#
-    .SYNOPSIS
-        If BuiltInAccount is provided, this will return the resolved username from BuiltInAccount.
-        If Credential is provided, this will return the resolved username and password from Credential.
-        If nothing is provided, this will return null for both username and password.
-        If both parameters are provided the username from BuiltInAccount is returned.
-
-    .PARAMETER BuiltInAccount
-        The built in account to extract the username from. Optional
-
-    .PARAMETER Credential
-        The Credential to extract the username and password from. Optional.
-
-    .OUTPUTS
-        A tuple containing: [String] Username, [String] Password.
-#>
-function Get-UserNameAndPassword
-{
-    [CmdletBinding()]
-    param
-    (
-        [System.String]
-        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        $BuiltInAccount,
-
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential
-    )
-
-    if ($PSBoundParameters.ContainsKey('BuiltInAccount'))
-    {
-        return (Resolve-UserName -UserName $BuiltInAccount.ToString()), $null
-    }
-
-    if ($PSBoundParameters.ContainsKey('Credential'))
-    {
-        return (Resolve-UserName -UserName $Credential.UserName), `
-                $Credential.GetNetworkCredential().Password
-    }
-
-    return $null, $null
-} # function Get-UserNameAndPassword
-
-<#
-    .SYNOPSIS
-        Deletes a service
-
-    .PARAMETER Name
-        The name of the service to delete.
-
-    .PARAMETER TerminateTimeout
-        The number of milliseconds to wait for the service to be removed.
-        Optional. Default value is 3000.
-#>
-function Remove-Service
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        $Name,
-
-        [ValidateNotNullOrEmpty()]
-        [Int]
-        $TerminateTimeout = 30000
-    )
-
-    # Delete the service
-    & 'sc.exe' 'delete' "$Name"
-
-    # Wait for the service to be deleted
-    $serviceDeletedSuccessfully = $false
-    $start = [DateTime]::Now
-
-    while (-not $serviceDeletedSuccessfully -and `
-          ([DateTime]::Now - $start).TotalMilliseconds -lt $TerminateTimeout)
-    {
-        if (-not (Test-ServiceExists -Name $Name))
-        {
-            $serviceDeletedSuccessfully = $true
-            break
-        }
-
-        # The service was not deleted so wait a second and try again (unless TerminateTimeout is hit)
-        Start-Sleep -Seconds 1
-        Write-Verbose -Message ($script:localizedData.TryDeleteAgain)
-    }
-
-    if ($serviceDeletedSuccessfully)
-    {
-        Write-Verbose -Message ($script:localizedData.ServiceDeletedSuccessfully -f $Name)
     }
     else
     {
-        # Service was not deleted
-        New-InvalidOperationException `
-            -Message ($script:localizedData.ErrorDeletingService -f $Name)
+        Write-Verbose -Message ($script:localizedData.ServicePathDoesNotMatch -f $ServiceName)
+
+        $changeServiceArguments = @{
+            PathName = $Path
+        }
+
+        $changeServiceResult = Invoke-CimMethod `
+            -InputObject $serviceCimInstance `
+            -MethodName 'Change' `
+            -Arguments $changeServiceArguments
+
+        if ($changeServiceResult.ReturnValue -ne 0)
+        {
+            $serviceChangePropertyString = $changeServiceArguments.Keys -join ', '
+            $errorMessage = $script:localizedData.InvokeCimMethodFailed -f 'Change', $ServiceName, $serviceChangePropertyString, $changeServiceResult.ReturnValue
+            New-InvalidArgumentException -ArgumentName 'Path' -Message $errorMessage   
+        }
+
+        return $true
     }
-} # function Remove-Service
+}
 
 <#
     .SYNOPSIS
-        Starts a service if it is not already running.
+        Sets the dependencies of the service with the given name.
 
-    .PARAMETER Name
-        The name of the service to start.
+    .PARAMETER ServiceName
+        The name of the service to set the dependencies of.
 
-    .PARAMETER StartupTimeout
-        The amount of time to wait for the service to start.
+    .PARAMETER Dependencies
+        The names of the dependencies to set for the service.
+
+    .NOTES
+        SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
+        This function calls Invoke-CimMethod directly.
 #>
-function Start-ServiceResource
+function Set-ServiceDependencies
 {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullorEmpty()]
-        [String]
-        $Name,
-
-        [Parameter(Mandatory = $true)]
-        [uint32]
-        $StartupTimeout
-    )
-
-    $service = Get-ServiceResource -Name $Name
-
-    if ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running)
-    {
-        Write-Verbose -Message ($script:localizedData.ServiceAlreadyStarted -f $service.Name)
-        return
-    }
-
-    if ($PSCmdlet.ShouldProcess($Name, $script:localizedData.StartServiceWhatIf))
-    {
-        try
-        {
-            $service.Start()
-            $waitTimeSpan = New-Object `
-                -TypeName TimeSpan `
-                -ArgumentList ($StartupTimeout * 10000)
-            $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Running, `
-                                    $waitTimeSpan)
-        }
-        catch
-        {
-            $servicePath = (Get-CimInstance -Class win32_service |
-                Where-Object { $_.Name -eq $Name }).PathName
-            $errorMessage = ($script:localizedData.ErrorStartingService `
-                -f $service.Name, $servicePath, $_.Exception.Message)
-            New-InvalidOperationException -Message $errorMessage
-        }
-
-        Write-Verbose -Message ($script:localizedData.ServiceStarted -f $service.Name)
-    }
-} # function Start-ServiceResource
-
-<#
-    .SYNOPSIS
-        Stops a service if it is not already stopped.
-
-    .PARAMETER Name
-        The name of the service to stop.
-
-    .PARAMETER TerminateTimeout
-        The amount of time to wait for the service to stop.
-#>
-function Stop-ServiceResource
-{
-    [CmdletBinding(SupportsShouldProcess = $true)]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullorEmpty()]
-        [String]
-        $Name,
-
-        [Parameter(Mandatory = $true)]
-        [uint32]
-        $TerminateTimeout
-    )
-
-    $service = Get-ServiceResource -Name $Name
-
-    if ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped)
-    {
-        Write-Verbose -Message ($script:localizedData.ServiceAlreadyStopped -f $service.Name)
-        return
-    }
-
-    if ($PSCmdlet.ShouldProcess($Name, $script:localizedData.StopServiceWhatIf))
-    {
-        try
-        {
-            $service.Stop()
-            $waitTimeSpan = New-Object `
-                -TypeName TimeSpan `
-                -ArgumentList ($TerminateTimeout * 10000)
-            $service.WaitForStatus([System.ServiceProcess.ServiceControllerStatus]::Stopped, `
-                                    $waitTimeSpan)
-        }
-        catch
-        {
-            Write-Verbose -Message ($script:localizedData.ErrorStoppingService `
-                -f $service.Name, $_.Exception.Message)
-            throw $_
-        }
-
-        Write-Verbose -Message ($script:localizedData.ServiceStopped -f $service.Name)
-    }
-} # function Stop-ServiceResource
-
-<#
-    .SYNOPSIS
-        Converts the username returned from a Win32_service object to the format
-        expected by this resource.
-
-    .PARAMETER UserName
-        The Username to convert.
-#>
-
-function Resolve-UserName
-{
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullorEmpty()]
-        [String]
-        $UserName
-    )
-
-    switch ($Username)
-    {
-        'NetworkService'
-        {
-            return 'NT Authority\NetworkService'
-        }
-        'LocalService'
-        {
-            return 'NT Authority\LocalService'
-        }
-        'LocalSystem'
-        {
-            return '.\LocalSystem'
-        }
-        default
-        {
-            if ($UserName.IndexOf('\') -eq -1)
-            {
-                return '.\' + $UserName
-            }
-        }
-    }
-
-    return $UserName
-} # function Resolve-UserName
-
-<#
-    .SYNOPSIS
-        Tests if a service with the given name exists
-
-    .PARAMETER Name
-        The name of the service to test for.
-#>
-function Test-ServiceExists
-{
-    [OutputType([Boolean])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Name
+        $ServiceName,
+
+        [Parameter(Mandatory = $true)]
+        [String[]]
+        [AllowEmptyCollection()]
+        $Dependencies
     )
 
-    $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
-    return ($null -ne $service)
+    $service = Get-Service -Name $ServiceName -ErrorAction 'SilentlyContinue'
 
-} # function Test-ServiceExists
+    $serviceDependenciesMatch = $true
+
+    $noActualServiceDependencies = $null -eq $service.ServicesDependedOn -or 0 -eq $service.ServicesDependedOn.Count
+    $noExpectedServiceDependencies = $null -eq $Dependencies -or 0 -eq $Dependencies.Count
+
+    if ($noActualServiceDependencies -xor $noExpectedServiceDependencies)
+    {
+        $serviceDependenciesMatch = $false
+    }
+    elseif (-not $noActualServiceDependencies -and -not $noExpectedServiceDependencies)
+    {
+        $mismatchedDependencies = Compare-Object -ReferenceObject $service.ServicesDependedOn.Name -DifferenceObject $Dependencies
+        $serviceDependenciesMatch = $null -eq $mismatchedDependencies
+    }
+
+    if ($serviceDependenciesMatch)
+    {
+        Write-Verbose -Message ($script:localizedData.ServiceDepdenciesMatch -f $ServiceName)
+    }
+    else
+    {
+        Write-Verbose -Message ($script:localizedData.ServiceDepdenciesDoNotMatch -f $ServiceName)
+
+        $serviceCimInstance = Get-ServiceCimInstance -ServiceName $ServiceName
+
+        $changeServiceArguments = @{
+            ServiceDependencies = $Dependencies
+        }
+
+        $changeServiceResult = Invoke-CimMethod `
+            -InputObject $serviceCimInstance `
+            -MethodName 'Change' `
+            -Arguments $changeServiceArguments
+
+        if ($changeServiceResult.ReturnValue -ne 0)
+        {
+            $serviceChangePropertyString = $changeServiceArguments.Keys -join ', '
+            $errorMessage = $script:localizedData.InvokeCimMethodFailed -f 'Change', $ServiceName, $serviceChangePropertyString, $changeServiceResult.ReturnValue
+            New-InvalidArgumentException -Message $errorMessage -ArgumentName 'Dependencies'
+        }
+    }
+}
 
 <#
     .SYNOPSIS
-        Compares a path to the existing service path.
-        Returns true when the given path is the same as the existing service path, false otherwise.
+        Grants the 'Log on as a service' right to the user with the given username.
 
-    .PARAMETER Name
-        The name of the existing service for which to check the path.
-
-    .PARAMETER Path
-        The path to check against.
+    .PARAMETER Username
+        The username of the user to grant 'Log on as a service' right to
 #>
-function Compare-ServicePath
-{
-    [OutputType([Boolean])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Name,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Path
-    )
-
-    $existingServicePath = (Get-CimInstance -Class win32_service |
-        Where-Object { $_.Name -eq $Name }).PathName
-    $stringCompareResult = [String]::Compare($Path, $existingServicePath, `
-                            [System.Globalization.CultureInfo]::CurrentUICulture)
-
-    return ($stringCompareResult -eq 0)
-} # function Compare-ServicePath
-
-<#
-    .SYNOPSIS
-        Retrieves the service with the given name.
-
-    .PARAMETER Name
-        The name of the service to retrieve
-#>
-function Get-ServiceResource
+function Grant-LogOnAsServiceRight
 {
     [CmdletBinding()]
     param
@@ -1384,37 +887,7 @@ function Get-ServiceResource
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Name
-    )
-
-    $service = Get-Service -Name $Name -ErrorAction Ignore
-    if ($null -eq $service)
-    {
-        New-InvalidArgumentException `
-            -Message ($script:localizedData.ServiceNotFound -f $Name) `
-            -ArgumentName 'Name'
-    }
-
-    return $service
-
-} # function Get-ServiceResource
-
-<#
-    .SYNOPSIS
-        Grants log on as service right to the given user
-
-    .PARAMETER UserName
-        The name of the user to grant log on as a service right to
-#>
-function Set-LogOnAsServicePolicy
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $UserName
+        $Username
     )
 
     $logOnAsServiceText = @"
@@ -1782,24 +1255,508 @@ function Set-LogOnAsServicePolicy
             $script:localizedData.CannotGetAccountAccessErrorMessage)
         $logOnAsServiceText = $logOnAsServiceText.Replace('CannotSetAccountAccessErrorMessage', `
             $script:localizedData.CannotSetAccountAccessErrorMessage)
-        $null = Add-Type $logOnAsServiceText -PassThru -Debug:$false
+        $null = Add-Type $logOnAsServiceText -PassThru
     }
 
-    if ($UserName.StartsWith('.\'))
+    if ($Username.StartsWith('.\'))
     {
-        $UserName = $UserName.Substring(2)
+        $Username = $Username.Substring(2)
     }
 
     try
     {
-        [LogOnAsServiceHelper.NativeMethods]::SetLogOnAsServicePolicy($UserName)
+        [LogOnAsServiceHelper.NativeMethods]::SetLogOnAsServicePolicy($Username)
+
+        # Trigger group policy to update now
+        # & gpupdate /force /target:computer /wait:0
     }
     catch
     {
-        $message = ($script:localizedData.ErrorSettingLogOnAsServiceRightsForUser `
-            -f $UserName, $_.Exception.Message)
-        New-InvalidOperationException -Message $message
+        $errorMessage = $script:localizedData.ErrorSettingLogOnAsServiceRightsForUser -f $Username, $_.Exception.Message
+        New-InvalidOperationException -Message $errorMessage
     }
-} # function Set-LogOnAsServicePolicy
+}
 
-Export-ModuleMember -Function *-TargetResource
+<#
+    .SYNOPSIS
+        Sets the service properties involving the account the service is running under.
+        (StartName, StartPassword, DesktopInteract)
+
+    .PARAMETER ServiceName
+        The name of the service to change the start name of.
+
+    .PARAMETER BuiltInAccount
+        The name of the built-in account to run the service under.
+        This value will overwrite the Credential value if Credential is also declared.
+
+    .PARAMETER Credential
+        The user credential to run the service under.
+        BuiltInAccount will overwrite this value if BuiltInAccount is also declared.
+
+    .PARAMETER DesktopInteract
+        Indicates whether or not the service should be able to communicate with a window on the
+        desktop.
+
+        Must be false for services not running as LocalSystem.
+
+    .NOTES
+        DesktopInteract is included here because it can only be enabled when the service startup
+        account name is LocalSystem. In order not to run into a conflict where one property has
+        been updated before the other, both are updated here at the same time.
+
+        SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
+        This function calls Invoke-CimMethod directly.
+#>
+function Set-ServiceAccountProperty
+{
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ServiceName,
+
+        [Parameter()]
+        [String]
+        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
+        $BuiltInAccount,
+
+        [Parameter()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential,
+
+        [Parameter()]
+        [Boolean]
+        $DesktopInteract
+    )
+
+    $serviceCimInstance = Get-ServiceCimInstance -ServiceName $ServiceName
+
+    $changeServiceArguments = @{}
+
+    if ($PSBoundParameters.ContainsKey('BuiltInAccount'))
+    {
+        $startName = ConvertTo-StartName -Username $BuiltInAccount
+
+        if ($serviceCimInstance.StartName -ine $startName)
+        {
+            $changeServiceArguments['StartName'] = $startName
+            $changeServiceArguments['StartPassword'] = ''
+        }
+    }
+    elseif ($PSBoundParameters.ContainsKey('Credential'))
+    {
+        $startName = ConvertTo-StartName -Username $Credential.UserName
+
+        if ($serviceCimInstance.StartName -ine $startName)
+        {
+            Grant-LogOnAsServiceRight -Username $startName
+
+            $changeServiceArguments['StartName'] = $startName
+            $changeServiceArguments['StartPassword'] = $Credential.GetNetworkCredential().Password
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey('DesktopInteract'))
+    {
+        if ($serviceCimInstance.DesktopInteract -ne $DesktopInteract)
+        {
+            $changeServiceArguments['DesktopInteract'] = $DesktopInteract
+        }
+    }
+
+    if ($changeServiceArguments.Count -gt 0)
+    {
+        $changeServiceResult = Invoke-CimMethod -InputObject $ServiceCimInstance -MethodName 'Change' -Arguments $changeServiceArguments
+
+        if ($changeServiceResult.ReturnValue -ne 0)
+        {
+            $serviceChangePropertyString = $changeServiceArguments.Keys -join ', '
+            $errorMessage = $script:localizedData.InvokeCimMethodFailed -f 'Change', $ServiceName, $serviceChangePropertyString, $changeServiceResult.ReturnValue
+            New-InvalidArgumentException -ArgumentName 'BuiltInAccount, Credential, or DesktopInteract' -Message $errorMessage
+        }
+    }
+}
+
+<#
+    .SYNOPSIS
+        Sets the startup type of the service with the given name.
+
+    .PARAMETER ServiceName
+        The name of the service to set the startup type of.
+
+    .PARAMETER StartupType
+        The startup type value to set for the service.
+
+    .NOTES
+        SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
+        This function calls Invoke-CimMethod directly.
+#>
+function Set-ServiceStartupType
+{
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ServiceName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
+        [String]
+        $StartupType
+    )
+
+    $serviceCimInstance = Get-ServiceCimInstance -ServiceName $ServiceName
+    $serviceStartupType = ConvertTo-StartupTypeString -StartMode $serviceCimInstance.StartMode
+
+    if ($serviceStartupType -ieq $StartupType)
+    {
+        Write-Verbose -Message ($script:localizedData.ServiceStartupTypeMatches -f $ServiceName)
+    }
+    else
+    {
+        Write-Verbose -Message ($script:localizedData.ServiceStartupTypeDoesNotMatch -f $ServiceName)
+
+        $changeServiceArguments = @{
+            StartMode = $StartupType
+        }
+
+        $changeResult = Invoke-CimMethod `
+            -InputObject $serviceCimInstance `
+            -MethodName 'Change' `
+            -Arguments $changeServiceArguments
+
+        if ($changeResult.ReturnValue -ne 0)
+        {
+            $serviceChangePropertyString = $changeServiceArguments.Keys -join ', '
+            $errorMessage = $script:localizedData.InvokeCimMethodFailed -f 'Change', $ServiceName, $serviceChangePropertyString, $changeResult.ReturnValue
+            New-InvalidArgumentException -ArgumentName 'StartupType' -Message $errorMessage
+        }
+    }
+}
+
+<#
+    .SYNOPSIS
+        Sets the service with the given name to have the specified properties.
+
+    .PARAMETER Name
+        The name of the service to set the properties of.
+
+    .PARAMETER DisplayName
+        The display name the service should have.
+
+    .PARAMETER Description
+        The description the service should have.
+
+    .PARAMETER Dependencies
+        The names of the dependencies the service should have.
+
+    .PARAMETER BuiltInAccount
+        The built-in account the service should start under.
+
+        Cannot be specified at the same time as Credential.
+
+    .PARAMETER Credential
+        The credential of the user account the service should start under.
+
+        Cannot be specified at the same time as BuiltInAccount.
+        The user specified by this credential will automatically be granted the Log on as a Service
+        right.
+
+    .PARAMETER DesktopInteract
+        Indicates whether or not the service should be able to communicate with a window on the desktop.
+
+    .PARAMETER StartupType
+        The startup type the service should have.
+
+    .NOTES
+        SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
+        Here are the paths through which Set-ServiceProperty calls Invoke-CimMethod:
+
+        Set-ServiceProperty --> Set-ServiceDependencies --> Invoke-CimMethod
+                            --> Set-ServieceAccountProperty --> Invoke-CimMethod
+                            --> Set-ServiceStartupType --> Invoke-CimMethod
+#>
+function Set-ServiceProperty
+{
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ServiceName,
+
+        [Parameter()]
+        [ValidateSet('Automatic', 'Manual', 'Disabled')]
+        [String]
+        $StartupType,
+
+        [Parameter()]
+        [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
+        [String]
+        $BuiltInAccount,
+
+        [Parameter()]
+        [Boolean]
+        $DesktopInteract,
+
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $DisplayName,
+
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Description,
+
+        [Parameter()]
+        [String[]]
+        [AllowEmptyCollection()]
+        $Dependencies,
+
+        [Parameter()]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential
+    )
+
+    # Update display name and/or description if needed
+    $serviceCimInstance = Get-ServiceCimInstance -ServiceName $ServiceName
+    
+    $setServiceParameters = @{}
+
+    if ($PSBoundParameters.ContainsKey('DisplayName') -and $serviceCimInstance.DisplayName -ine $DisplayName)
+    {
+        $setServiceParameters['DisplayName'] = $DisplayName
+    }
+
+    if ($PSBoundParameters.ContainsKey('Description')  -and $serviceCimInstance.Description -ine $Description)
+    {
+        $setServiceParameters['Description'] = $Description
+    }
+
+    if ($setServiceParameters.Count -gt 0)
+    {
+        $null = Set-Service -Name $ServiceName @setServiceParameters
+    }
+
+    # Update service dependencies if needed
+    if ($PSBoundParameters.ContainsKey('Dependencies'))
+    {
+        Set-ServiceDependencies -ServiceName $ServiceName -Dependencies $Dependencies
+    }
+
+    # Update service account properties if needed
+    $setServiceAccountPropertyParameters = @{}
+
+    if ($PSBoundParameters.ContainsKey('BuiltInAccount'))
+    {
+        $setServiceAccountPropertyParameters['BuiltInAccount'] = $BuiltInAccount
+    }
+    elseif ($PSBoundParameters.ContainsKey('Credential'))
+    {
+        $setServiceAccountPropertyParameters['Credential'] = $Credential
+    }
+
+    if ($PSBoundParameters.ContainsKey('DesktopInteract'))
+    {
+        $setServiceAccountPropertyParameters['DesktopInteract'] = $DesktopInteract
+    }
+
+    if ($setServiceAccountPropertyParameters.Count -gt 0)
+    {
+        Set-ServiceAccountProperty -ServiceName $ServiceName @setServiceAccountPropertyParameters
+    }
+
+    # Update startup type
+    if ($PSBoundParameters.ContainsKey('StartupType'))
+    {
+        Set-ServiceStartupType -ServiceName $ServiceName -StartupType $StartupType
+    }
+}
+
+<#
+    .SYNOPSIS
+        Deletes the service with the given name.
+
+        This is a wrapper function for unit testing.
+
+    .PARAMETER Name
+        The name of the service to delete.
+#>
+function Remove-Service
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullorEmpty()]
+        [String]
+        $Name
+    )
+
+    & 'sc.exe' 'delete' $Name
+}
+
+<#
+    .SYNOPSIS
+        Deletes the service with the given name and waits for the service to be deleted.
+
+    .PARAMETER Name
+        The name of the service to delete.
+
+    .PARAMETER TerminateTimeout
+        The time to wait for the service to be deleted in milliseconds.
+#>
+function Remove-ServiceWithTimeout
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullorEmpty()]
+        [String]
+        $Name,
+
+        [Parameter(Mandatory = $true)]
+        [UInt32]
+        $TerminateTimeout
+    )
+
+    Remove-Service -Name $Name
+
+    $serviceDeleted = $false
+    $start = [DateTime]::Now
+
+    while (-not $serviceDeleted -and ([DateTime]::Now - $start).TotalMilliseconds -lt $TerminateTimeout)
+    {
+        $service = Get-Service -Name $Name -ErrorAction 'SilentlyContinue'
+
+        if ($null -eq $service)
+        {
+            $serviceDeleted = $true
+        }
+        else
+        {
+            Write-Verbose -Message ($script:localizedData.WaitingForServiceDeletion -f $Name)
+            Start-Sleep -Seconds 1
+        }
+    }
+
+    if ($serviceDeleted)
+    {
+        Write-Verbose -Message ($script:localizedData.ServiceDeletionSucceeded -f $Name)
+    }
+    else
+    {
+        New-InvalidOperationException -Message ($script:localizedData.ServiceDeletionFailed -f $Name)
+    }
+}
+
+<#
+    .SYNOPSIS
+        Waits for the service with the given name to reach the given state within the given time
+        span.
+        
+        This is a wrapper function for unit testing.
+
+    .PARAMETER ServiceName
+        The name of the service that should be in the given state.
+
+    .PARAMETER State
+        The state the service should be in.
+
+    .PARAMETER WaitTimeSpan
+        A time span of how long to wait for the service to reach the desired state.
+#>
+function Wait-ServiceStateWithTimeout
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ServiceName,
+
+        [Parameter(Mandatory = $true)]
+        [System.ServiceProcess.ServiceControllerStatus]
+        $State,
+
+        [Parameter(Mandatory = $true)]
+        [TimeSpan]
+        $WaitTimeSpan
+    )
+
+    $service = Get-Service -Name $ServiceName -ErrorAction 'SilentlyContinue'
+    $Service.WaitForStatus($State, $WaitTimeSpan)
+}
+
+<#
+    .SYNOPSIS
+        Starts the service with the given name, if it is not already running, and waits for the
+        service to be running.
+
+    .PARAMETER ServiceName
+        The name of the service to start.
+
+    .PARAMETER StartupTimeout
+        The time to wait for the service to be running in milliseconds.
+#>
+function Start-ServiceWithTimeout
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ServiceName,
+
+        [Parameter(Mandatory = $true)]
+        [UInt32]
+        $StartupTimeout
+    )
+
+    Start-Service -Name $ServiceName
+    $waitTimeSpan = New-Object -TypeName 'TimeSpan' -ArgumentList (0, 0, 0, 0, $StartupTimeout)
+    Wait-ServiceStateWithTimeout -ServiceName $ServiceName -State 'Running' -WaitTimeSpan $waitTimeSpan
+}
+
+<#
+    .SYNOPSIS
+        Stops the service with the given name, if it is not already stopped, and waits for the
+        service to be stopped.
+
+    .PARAMETER ServiceName
+        The name of the service to stop.
+
+    .PARAMETER TerminateTimeout
+        The time to wait for the service to be stopped in milliseconds.
+#>
+function Stop-ServiceWithTimeout
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $ServiceName,
+
+        [Parameter(Mandatory = $true)]
+        [UInt32]
+        $TerminateTimeout
+    )
+
+    Stop-Service -Name $ServiceName
+    $waitTimeSpan = New-Object -TypeName 'TimeSpan' -ArgumentList (0, 0, 0, 0, $TerminateTimeout)
+    Wait-ServiceStateWithTimeout -ServiceName $ServiceName -State 'Stopped' -WaitTimeSpan $waitTimeSpan
+}

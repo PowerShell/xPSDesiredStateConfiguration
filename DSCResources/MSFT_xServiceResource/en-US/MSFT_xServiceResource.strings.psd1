@@ -1,31 +1,33 @@
-# Localized resources for MSFT_xServiceResource
+<#
+    Localized resources for MSFT_xServiceResource
+    Strings underneath the blank line are for Grant-LogOnAsServiceRight.
+#>
 
 ConvertFrom-StringData @'
-    ServiceNotFound = Service '{0}' not found.
-    CannotStartAndDisable = Cannot start and disable a service.
-    CannotStopServiceSetToStartAutomatically = Cannot stop a service and set it to start automatically.
-    ServiceAlreadyStarted = Service '{0}' already started, no action required.
-    ServiceStarted = Service '{0}' started.
-    ServiceStopped = Service '{0}' stopped.
-    ErrorStartingService = Failure starting service '{0}'. Please check the path '{1}' provided for the service. Message: '{2}'
-    OnlyOneParameterCanBeSpecified = Only one of the following parameters can be specified: '{0}', '{1}'.
-    StartServiceWhatIf = Start Service
-    StopServiceWhatIf = Stop Service
-    ServiceAlreadyStopped = Service '{0}' already stopped, no action required.
-    ErrorStoppingService = Failure stopping service '{0}'. Message: '{1}'
-    ErrorRetrievingServiceInformation = Failure retrieving information for service '{0}'. Message: '{1}'
-    ErrorSettingServiceCredential = Failure setting credentials for service '{0}'. Message: '{1}'
-    SetCredentialWhatIf = Set Credential
-    SetStartupTypeWhatIf = Set Start Type
-    ErrorSettingServiceStartupType = Failure setting start type for service '{0}'. Message: '{1}'
-    TestBinaryPathMismatch = Binary path for service '{0}' is '{1}'. It does not match '{2}'.
-    TestUserNameMismatch = User name for service '{0}' is '{1}'. It does not match '{2}'.
-    TestStartupTypeMismatch = Startup type for service '{0}' is '{1}'. It does not match '{2}'.
-    TestDesktopInteractMismatch = Desktop interact for service '{0}' is '{1}'. It does not match '{2}'.
-    TestStateMismatch = State of service '{0}' is '{1}'. It does not match '{2}'.
-    MethodFailed = The '{0}' method of '{1}' failed with error code: '{2}'.
-    ErrorChangingProperty = Failed to change '{0}' property. Message: '{1}'
-    ErrorSettingLogOnAsServiceRightsForUser = Error granting '{0}' the right to log on as a service. Message: '{1}'.
+    ServiceExists = Service {0} exists.
+    ServiceDoesNotExist = Service {0} does not exist.
+    BuiltInAccountAndCredentialSpecified = Both BuiltInAccount and Credential cannot be specified. Please remove one for service {0}.
+    ServiceAlreadyAbsent = Service {0} is already absent. No change required.
+    ServiceDoesNotExistPathMissingError = The service '{0}' does not exist, but Path was not specified. Please specify the path to the executable the service should run to create a new service.
+    CreatingService = Creating new service {0}...
+    EditingServiceProperties = Editing the properties of service {0}...
+    RemovingService = Removing the service {0}...
+    RestartingService = Restarting the service {0}...
+    ServicePathMatches = The path of service {0} matches the expected path.
+    ServicePathDoesNotMatch = The path of service {0} does not match the expected path.
+    ServiceDepdenciesMatch = The dependencies of service {0} match the expected dependencies.
+    ServiceDepdenciesDoNotMatch = The dependencies of service {0} do not match the expected dependencies.
+    ServiceStartupTypeMatches = The start mode of service {0} matches the expected start mode.
+    ServiceStartupTypeDoesNotMatch = The start mode of service {0} does not match the expected start mode.
+    ServicePropertyDoesNotMatch = The service property {0} of service {1} does not match the expected value. The expected value is {2}. The actual value is {3}.
+    ServiceCredentialDoesNotMatch = The start name of service {0} does not match the expected username from the given credential. The expected value is {1}. The actual value is {2}.
+    ServiceDeletionSucceeded = The service {0} has been successfully deleted.
+    ServiceDeletionFailed = Failed to delete service {0}.
+    WaitingForServiceDeletion = Waiting for service {0} to be deleted.
+    ErrorSettingLogOnAsServiceRightsForUser = Error granting user {0} the right to log on as a service. Error message: '{1}'
+    StartupTypeStateConflict = Service {0} cannot have a startup type of {1} and a state of {2} at the same time.
+    InvokeCimMethodFailed = The CIM method {0} failed on service {1} while attempting to update the {2} property(s) with the error code {3}.
+
     CannotOpenPolicyErrorMessage = Cannot open policy manager.
     UserNameTooLongErrorMessage = User name is too long.
     CannotLookupNamesErrorMessage = Failed to lookup user name.
@@ -33,17 +35,4 @@ ConvertFrom-StringData @'
     CannotCreateAccountAccessErrorMessage = Failed to create policy for user.
     CannotGetAccountAccessErrorMessage = Failed to get user policy rights.
     CannotSetAccountAccessErrorMessage = Failed to set user policy rights.
-    BinaryPathNotSpecified = Specify the path to the executable when trying to create a new service.
-    ServiceAlreadyExists = The service '{0}' to create already exists.
-    ServiceExistsSamePath = The service '{0}' to create already exists with path '{1}'.
-    ServiceDoesNotExistPathMissingError = The service '{0}' does not exist. Specify the path to the executable to create a new service.
-    ErrorDeletingService = Error in deleting service '{0}'.
-    ServiceDeletedSuccessfully = Service '{0}' Deleted Successfully.
-    TryDeleteAgain = Wait for 2 milliseconds for a service to get deleted.
-    WritePropertiesIgnored = Service '{0}' already exists. Write properties such as Status, DisplayName, Description, Dependencies will be ignored for existing services.
-    ErrorCreatingService = Error creating service '{0}'; Exception Message: '{1}'
-    ServiceNeedsRestartMessage = Service '{0}' needs to be restarted.
-    ServiceExecutablePathChangeNotSupported = Changing the path to an existing service executable is not yet supported.
-    NotCheckingOtherValuesEnsureAbsent = Not checking other values since Ensure is set to Absent.
-    ServiceDoesNotExist = Service does not exist.
 '@
