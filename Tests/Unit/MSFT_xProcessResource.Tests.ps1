@@ -266,6 +266,28 @@ try
                     Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
                 }
+
+                It 'Should throw when Ensure set to Present, processes not running and credential and WorkingDirectory passed' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
+                    Mock -CommandName Start-ProcessAsLocalSystemUser -MockWith {}
+                    Mock -CommandName Assert-PathArgumentRooted -MockWith {}
+                    Mock -CommandName Assert-PathArgumentValid -MockWith {}
+
+                    { Set-TargetResource -Path $script:invalidPath `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Credential $script:testCredential `
+                                         -WorkingDirectory 'test working directory' `
+                                         -Ensure 'Present'
+                    } | Should Not Throw
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Test-IsRunFromLocalSystemUser -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Assert-PathArgumentRooted -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Assert-PathArgumentValid -Exactly 1 -Scope It
+                }
             }
             <#
             Context 'Test-TargetResource' {

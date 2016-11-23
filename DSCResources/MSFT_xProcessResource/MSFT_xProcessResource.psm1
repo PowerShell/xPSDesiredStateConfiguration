@@ -319,11 +319,14 @@ function Set-TargetResource
                     # Throw an exception if any of the below parameters are included with Credential passed
                     foreach ($key in @('StandardOutputPath','StandardInputPath','WorkingDirectory'))
                     {
-                        $newInvalidArgumentExceptionParams = @{
-                            ArgumentName = $key
-                            Message = $script:localizedData.ErrorParametersNotSupportedWithCredential
+                        if ($PSBoundParameters.Keys -contains $key)
+                        {
+                            $newInvalidArgumentExceptionParams = @{
+                                ArgumentName = $key
+                                Message = $script:localizedData.ErrorParametersNotSupportedWithCredential
+                            }
+                            New-InvalidArgumentException @newInvalidArgumentExceptionParams
                         }
-                        New-InvalidArgumentException @newInvalidArgumentExceptionParams
                     }
                     try
                     {
