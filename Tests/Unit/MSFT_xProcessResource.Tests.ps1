@@ -1,7 +1,8 @@
-[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingConvertToSecureStringWithPlainText', '')]
 param ()
 
-Import-Module -Name "$PSScriptRoot\..\CommonTestHelper.psm1" -Force
+Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
+                               -ChildPath 'CommonTestHelper.psm1')
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
@@ -10,360 +11,263 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
 
 try
 {
+
+    Import-Module -Name (Join-Path -Path  $PSScriptRoot `
+                                   -ChildPath 'MSFT_xProcessResource.TestHelper.psm1')
+
     InModuleScope 'MSFT_xProcessResource' {
         Describe 'MSFT_xProcessResource Unit Tests' {
             BeforeAll {
-                Import-Module -Name "$PSScriptRoot\MSFT_xProcessResource.TestHelper.psm1" -Force
+                # Mock objects
+                $script:validPath1 = 'ValidPath1'
+                $script:validPath2 = 'ValidPath2'
+                $script:validPath3 = 'ValidPath3'
+                $script:invalidPath = 'InvalidPath'
+                $testUserName = 'TestUserName12345'
+                $testPassword = 'StrongOne7.'
+                $testSecurePassword = ConvertTo-SecureString -String $testPassword -AsPlainText -Force
+                $script:testCredential = New-Object PSCredential ($testUserName, $testSecurePassword)
 
-                $script:cmdProcessShortName = 'ProcessTest'
-                $script:cmdProcessFullName = 'ProcessTest.exe'
-                $script:cmdProcessFullPath = "$env:winDir\system32\ProcessTest.exe"
-                Copy-Item -Path "$env:winDir\system32\cmd.exe" -Destination $script:cmdProcessFullPath -ErrorAction 'SilentlyContinue' -Force
-
-                $script:processTestFolder = Join-Path -Path (Get-Location) -ChildPath 'ProcessTestFolder'
-
-                if (Test-Path -Path $script:processTestFolder)
-                {
-                    Remove-Item -Path $script:processTestFolder -Recurse -Force
+                $script:mockProcess1 = @{
+                    Path = $script:validPath1
+                    CommandLine = 'c:\temp\test.exe argument1 argument2 argument3'
+                    Arguments = 'argument1 argument2 argument3'
+                    ProcessId = 12345
+                    PagedMemorySize64 = 1048
+                    NonpagedSystemMemorySize64 = 16
+                    VirtualMemorySize64 = 256
+                    HandleCount = 50
                 }
 
-                New-Item -Path $script:processTestFolder -ItemType 'Directory' | Out-Null
+                $script:mockProcess2 = @{
+                    Path = $script:validPath2
+                    CommandLine = ''
+                    Arguments = ''
+                    ProcessId = 54321
+                    PagedMemorySize64 = 2096
+                    NonpagedSystemMemorySize64 = 8
+                    VirtualMemorySize64 = 512
+                    HandleCount = 5
+                }
 
-                Push-Location -Path $script:processTestFolder
+                $script:mockProcess3 = @{
+                    Path = $script:validPath1
+                    CommandLine = 'c:\test.exe arg6'
+                    Arguments = 'arg6'
+                    ProcessId = 1111101
+                    PagedMemorySize64 = 512
+                    NonpagedSystemMemorySize64 = 32
+                    VirtualMemorySize64 = 64
+                    HandleCount = 0
+                }
+
+                $script:errorProcess = @{
+                    Path = $script:validPath3
+                    CommandLine = ''
+                    Arguments = ''
+                    ProcessId = 77777
+                    PagedMemorySize64 = 0
+                    NonpagedSystemMemorySize64 = 0
+                    VirtualMemorySize64 = 0
+                    HandleCount = 0
+                }
+
+                # Mock methods
+                Mock -CommandName Expand-Path -MockWith { return $script:validPath1 } `
+                                              -ParameterFilter { $Path -eq $script:validPath1 }
+                Mock -CommandName Expand-Path -MockWith { return $script:validPath2 } `
+                                              -ParameterFilter { $Path -eq $script:validPath2 }
+                Mock -CommandName Expand-Path -MockWith { return $script:invalidPath } `
+                                              -ParameterFilter { $Path -eq $script:invalidPath }
+                Mock -CommandName Expand-Path -MockWith { return $script:validPath3 } `
+                                              -ParameterFilter { $Path -eq $script:validPath3 }
+                Mock -CommandName Get-Win32Process -MockWith { return @() } `
+                                                   -ParameterFilter { $Path -eq $script:invalidPath }
+                Mock -CommandName Get-Win32Process -MockWith { return @($script:mockProcess1, $script:mockProcess3) } `
+                                                   -ParameterFilter { $Path -eq $script:validPath1 }
+                Mock -CommandName Get-Win32Process -MockWith { return @($script:mockProcess2) } `
+                                                   -ParameterFilter { $Path -eq $script:validPath2 }
+                Mock -CommandName Get-Win32Process -MockWith { return @($script:errorProcess) } `
+                                                   -ParameterFilter { $Path -eq $script:validPath3 }
             }
 
             AfterAll {
-                Stop-ProcessByName -ProcessName $script:cmdProcessShortName
-
-                if (Test-Path -Path $script:cmdProcessFullPath)
-                {
-                    Remove-Item -Path $script:cmdProcessFullPath -ErrorAction 'SilentlyContinue' -Force
-                }
-
-                Pop-Location
-
-                if (Test-Path -Path $script:processTestFolder)
-                {
-                    Remove-Item -Path $script:processTestFolder -Recurse -Force
-                }
+                
             }
 
             BeforeEach {
-                Stop-ProcessByName -ProcessName $script:cmdProcessShortName
+                
             }
 
             Context 'Get-TargetResource' {
-                It 'Should return the correct properties for a process that is absent with Arguments' {
+                Mock -CommandName Get-Process -MockWith { return $script:mockProcess1 } `
+                                              -ParameterFilter { $ID -eq $script:mockProcess1.ProcessId }
+                Mock -CommandName Get-Process -MockWith { return $script:mockProcess2 } `
+                                              -ParameterFilter { $ID -eq $script:mockProcess2.ProcessId }
+                Mock -CommandName Get-Process -MockWith { return $script:mockProcess3 } `
+                                              -ParameterFilter { $ID -eq $script:mockProcess3.ProcessId }
+
+                It 'Should return the correct properties for a process that is Absent' {
                     $processArguments = 'TestGetProperties'
 
-                    $getTargetResourceResult = Get-TargetResource -Path $script:cmdProcessFullPath -Arguments $processArguments
-                    $getTargetResourceProperties = @( 'Arguments', 'Ensure', 'Path' )
-
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargetResourceProperties
+                    $getTargetResourceResult = Get-TargetResource -Path $invalidPath `
+                                                                  -Arguments $processArguments
 
                     $getTargetResourceResult.Arguments | Should Be $processArguments
                     $getTargetResourceResult.Ensure | Should Be 'Absent'
-                    $getTargetResourceResult.Path -icontains $script:cmdProcessFullPath | Should Be $true
-                    $getTargetResourceResult.Count | Should Be 3
-                } 
+                    $getTargetResourceResult.Path  | Should Be $invalidPath
 
-                It 'Should return the correct properties for a process that is absent without Arguments' {
-                    $processArguments = ''
-
-                    $getTargetResourceResult = Get-TargetResource -Path $script:cmdProcessFullPath -Arguments $processArguments
-                    $getTargetResourceProperties = @( 'Arguments', 'Ensure', 'Path' )
-
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargetResourceProperties
-
-                    $getTargetResourceResult.Arguments | Should Be $processArguments
-                    $getTargetResourceResult.Ensure | Should Be 'Absent'
-                    $getTargetResourceResult.Path -icontains $script:cmdProcessFullPath | Should Be $true
-                    $getTargetResourceResult.Count | Should Be 3
-                } 
-
-                It 'Should return the correct properties for a process that is present with Arguments' {
-                    $processArguments = 'TestGetProperties'
-
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments $processArguments
-
-                    $getTargetResourceResult = Get-TargetResource -Path $script:cmdProcessFullPath -Arguments $processArguments
-                    $getTargetResourceProperties = @( 'VirtualMemorySize', 'Arguments', 'Ensure', 'PagedMemorySize', 'Path', 'NonPagedMemorySize', 'HandleCount', 'ProcessId' )
-
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargetResourceProperties
-
-                    $getTargetResourceResult.VirtualMemorySize -le 0 | Should Be $false
-                    $getTargetResourceResult.Arguments | Should Be $processArguments
-                    $getTargetResourceResult.Ensure | Should Be 'Present'
-                    $getTargetResourceResult.PagedMemorySize -le 0 | Should Be $false
-                    $getTargetResourceResult.Path.IndexOf("ProcessTest.exe",[Stringcomparison]::OrdinalIgnoreCase) -le 0 | Should Be $false
-                    $getTargetResourceResult.NonPagedMemorySize -le 0 | Should Be $false
-                    $getTargetResourceResult.HandleCount -le 0 | Should Be $false
-                    $getTargetResourceResult.ProcessId -le 0 | Should Be $false
-                    $getTargetResourceResult.Count | Should Be 8
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
                 }
 
-                It 'Should return the correct properties for a process that is present without Arguments' {
-                    $processArguments = ''
+                It 'Should return the correct properties for one process with a credential' {
 
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments $processArguments
-
-                    $getTargetResourceResult = Get-TargetResource -Path $script:cmdProcessFullPath -Arguments $processArguments
-                    $getTargetResourceProperties = @( 'VirtualMemorySize', 'Arguments', 'Ensure', 'PagedMemorySize', 'Path', 'NonPagedMemorySize', 'HandleCount', 'ProcessId' )
-
-                    Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargetResourceProperties
-
-                    $getTargetResourceResult.VirtualMemorySize -le 0 | Should Be $false
-                    $getTargetResourceResult.Arguments | Should Be $processArguments
+                    $getTargetResourceResult = Get-TargetResource -Path $script:validPath2 `
+                                                                  -Arguments $script:mockProcess2.Arguments `
+                                                                  -Credential $script:testCredential
+                    
+                    $getTargetResourceResult.VirtualMemorySize | Should Be $script:mockProcess2.VirtualMemorySize64
+                    $getTargetResourceResult.Arguments | Should Be $script:mockProcess2.Arguments
                     $getTargetResourceResult.Ensure | Should Be 'Present'
-                    $getTargetResourceResult.PagedMemorySize -le 0 | Should Be $false
-                    $getTargetResourceResult.Path.IndexOf("ProcessTest.exe",[Stringcomparison]::OrdinalIgnoreCase) -le 0 | Should Be $false
-                    $getTargetResourceResult.NonPagedMemorySize -le 0 | Should Be $false
-                    $getTargetResourceResult.HandleCount -le 0 | Should Be $false
-                    $getTargetResourceResult.ProcessId -le 0 | Should Be $false
-                    $getTargetResourceResult.Count | Should Be 8
+                    $getTargetResourceResult.PagedMemorySize | Should Be $script:mockProcess2.PagedMemorySize64
+                    $getTargetResourceResult.Path | Should Be $script:mockProcess2.Path
+                    $getTargetResourceResult.NonPagedMemorySize | Should Be $script:mockProcess2.NonpagedSystemMemorySize64
+                    $getTargetResourceResult.HandleCount | Should Be $script:mockProcess2.HandleCount
+                    $getTargetResourceResult.ProcessId | Should Be $script:mockProcess2.ProcessId
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
                 }
+             
+                It 'Should return the correct properties when there are multiple processes' {
 
-                It 'Should return correct Ensure value based on Arguments parameter with multiple processes' {
-                    $actualArguments = 'TestProcessResourceWithArguments'
+                    $getTargetResourceResult = Get-TargetResource -Path $script:validPath1 `
+                                                                  -Arguments $script:mockProcess1.Arguments
+                    
+                    $getTargetResourceResult.Count | Should Be 2
+                    $getTargetResourceResult[0].VirtualMemorySize | Should Be $script:mockProcess1.VirtualMemorySize64
+                    $getTargetResourceResult[0].Arguments | Should Be $script:mockProcess1.Arguments
+                    $getTargetResourceResult[0].Ensure | Should Be 'Present'
+                    $getTargetResourceResult[0].PagedMemorySize | Should Be $script:mockProcess1.PagedMemorySize64
+                    $getTargetResourceResult[0].Path | Should Be $script:mockProcess1.Path
+                    $getTargetResourceResult[0].NonPagedMemorySize | Should Be $script:mockProcess1.NonpagedSystemMemorySize64
+                    $getTargetResourceResult[0].HandleCount | Should Be $script:mockProcess1.HandleCount
+                    $getTargetResourceResult[0].ProcessId | Should Be $script:mockProcess1.ProcessId
+                    $getTargetResourceResult[1].VirtualMemorySize | Should Be $script:mockProcess3.VirtualMemorySize64
+                    $getTargetResourceResult[1].Arguments | Should Be $script:mockProcess3.Arguments
+                    $getTargetResourceResult[1].Ensure | Should Be 'Present'
+                    $getTargetResourceResult[1].PagedMemorySize | Should Be $script:mockProcess3.PagedMemorySize64
+                    $getTargetResourceResult[1].Path | Should Be $script:mockProcess3.Path
+                    $getTargetResourceResult[1].NonPagedMemorySize | Should Be $script:mockProcess3.NonpagedSystemMemorySize64
+                    $getTargetResourceResult[1].HandleCount | Should Be $script:mockProcess3.HandleCount
+                    $getTargetResourceResult[1].ProcessId | Should Be $script:mockProcess3.ProcessId
 
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments $actualArguments
-
-                    $processes = @( Get-TargetResource -Path $script:cmdProcessFullPath -Arguments '')
- 
-                    $processes.Count | Should Be 1
-                    $processes[0].Ensure | Should Be 'Absent'
-
-                    $processes = @( Get-TargetResource -Path $script:cmdProcessFullPath -Arguments $actualArguments)
- 
-                    $processes.Count | Should Be 1
-                    $processes[0].Ensure | Should Be 'Present'
-
-                    $processes = @( Get-TargetResource -Path $script:cmdProcessFullPath -Arguments 'NotOrginalArguments')
- 
-                    $processes.Count | Should Be 1
-                    $processes[0].Ensure | Should Be 'Absent'
-
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments ''
- 
-                    $processes = @( Get-TargetResource -Path $script:cmdProcessFullPath -Arguments '')
- 
-                    $processes.Count | Should Be 1
-                    $processes[0].Ensure | Should Be 'Present'
-                    $processes[0].Arguments.Length | Should Be 0
- 
-                    $processes = @( Get-TargetResource -Path $script:cmdProcessFullPath -Arguments $actualArguments)
- 
-                    $processes.Count | Should Be 1
-                    $processes[0].Ensure | Should Be 'Present'
-                    $processes[0].Arguments | Should Be $actualArguments
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Process -Exactly 2 -Scope It
                 }
             }
 
             Context 'Set-TargetResource' {
-                It 'Should start and stop a process with no arguments' {
-                    Test-TargetResource -Path $script:cmdProcessFullPath -Arguments '' | Should Be $false
- 
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments ''
- 
-                    Test-TargetResource -Path $script:cmdProcessFullPath -Arguments '' | Should Be $true
- 
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Ensure 'Absent' -Arguments ''
- 
-                    Test-TargetResource -Path $script:cmdProcessFullPath -Arguments '' | Should Be $false
+                Mock -CommandName Stop-Process -MockWith { return $null } `
+                                               -ParameterFilter { ($Id -contains $script:mockProcess1.ProcessId) -or `
+                                                                  ($Id -contains $script:mockProcess2.ProcessId) -or `
+                                                                  ($Id -contains $script:mockProcess3.ProcessId) }
+                Mock -CommandName Stop-Process -MockWith { return 'error' } `
+                                               -ParameterFilter { $Id -contains $script:errorProcess.ProcessId}
+                Mock -CommandName Start-Process -MockWith { return $null } `
+                                                -ParameterFilter { ($FilePath -eq $script:validPath1) -or `
+                                                                   ($FilePath -eq $script:validPath2) -or `
+                                                                   ($FilePath -eq $script:invalidPath) }
+                Mock -CommandName Start-Process -MockWith { return 'error' } `
+                                                -ParameterFilter { $FilePath -eq $script:validPath3 }
+                Mock -CommandName Test-IsRunFromLocalSystemUser -MockWith { return $true }
+
+                It 'Should not throw when Ensure set to Absent and processes are running' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
+
+                    { Set-TargetResource -Path $script:validPath1 `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Credential $script:testCredential `
+                                         -Ensure 'Absent'
+                    } | Should Not Throw
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Stop-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
                 }
 
-                It 'Should have correct output for absent process with WhatIf specified and default Ensure' {
-                    $setTargetResourceParameters = @{
-                        Path = $script:cmdProcessFullPath
-                        Arguments = ''
-                    }
+                It 'Should not throw when Ensure set to Absent and processes are not running' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
 
-                    $expectedWhatIfOutput = @( $LocalizedData.StartingProcessWhatif, $script:cmdProcessFullPath )
+                    { Set-TargetResource -Path $script:invalidPath `
+                                         -Arguments '' `
+                                         -Ensure 'Absent'
+                    } | Should Not Throw
 
-                    Test-SetTargetResourceWithWhatIf -Parameters $setTargetResourceParameters -ExpectedOutput $expectedWhatIfOutput
-
-                    if ($setTargetResourceParameters.ContainsKey('WhatIf'))
-                    {
-                        $setTargetResourceParameters.Remove('WhatIf')
-                    }
-
-                    $testTargetResourceResult = Test-TargetResource @setTargetResourceParameters
-                    $testTargetResourceResult | Should Be $false
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Stop-Process -Exactly 0 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                 }
 
-                It 'Should have no output for absent process with WhatIf specified and Ensure Absent' {
-                    $setTargetResourceParameters = @{
-                        Ensure = 'Absent'
-                        Path = $script:cmdProcessFullPath
-                        Arguments = ''
-                    }
+                It 'Should throw an invalid operation exception when Stop-Process throws an error' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
 
-                    Test-SetTargetResourceWithWhatIf -Parameters $setTargetResourceParameters -ExpectedOutput ''
+                    $exceptionMessage = 'Test Invalid Operation Exception'
+                    Mock -CommandName New-InvalidOperationException -MockWith { Throw $exceptionMessage }
+
+                    { Set-TargetResource -Path $script:errorProcess.Path `
+                                         -Arguments '' `
+                                         -Ensure 'Absent'
+                    } | Should Throw $exceptionMessage
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Stop-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName New-InvalidOperationException -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                 }
 
-                It 'Should have correct output for existing process with WhatIf specified and Ensure Absent' {
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments ''
+                It 'Should throw an invalid operation exception when there is a problem waiting for the processes' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $false }
 
-                    $setTargetResourceParameters = @{
-                        Ensure = 'Absent'
-                        Path = $script:cmdProcessFullPath
-                        Arguments = ''
-                    }
+                    $exceptionMessage = 'Test Invalid Operation Exception'
+                    Mock -CommandName New-InvalidOperationException -MockWith { Throw $exceptionMessage }
 
-                    $expectedWhatIfOutput = @( $LocalizedData.StoppingProcessWhatif, $script:cmdProcessFullPath )
+                    { Set-TargetResource -Path $script:validPath1 `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Ensure 'Absent'
+                    } | Should Throw $exceptionMessage
 
-                    Test-SetTargetResourceWithWhatIf -Parameters $setTargetResourceParameters -ExpectedOutput $expectedWhatIfOutput
-
-                    if ($setTargetResourceParameters.ContainsKey('WhatIf'))
-                    {
-                        $setTargetResourceParameters.Remove('WhatIf')
-                    }
-
-                    $testTargetResourceResult = Test-TargetResource @setTargetResourceParameters
-                    $testTargetResourceResult | Should Be $false
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Stop-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName New-InvalidOperationException -Exactly 1 -Scope It
                 }
 
-                It 'Should have no output for existing process with WhatIf specified and default Ensure' {
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments ''
+                It 'Should not throw when Ensure set to Present and processes are not running and credential passed in' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
+                    Mock -CommandName Start-ProcessAsLocalSystemUser -MockWith {}
 
-                    $setTargetResourceParameters = @{
-                        Path = $script:cmdProcessFullPath
-                        Arguments = ''
-                    }
+                    { Set-TargetResource -Path $script:invalidPath `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Credential $script:testCredential `
+                                         -Ensure 'Present'
+                    } | Should Not Throw
 
-                    Test-SetTargetResourceWithWhatIf -Parameters $setTargetResourceParameters -ExpectedOutput ''
-                }
-
-                It 'Should provide correct error output to the specified error and output streams when using invalid input from the specified input stream' {
-                    $errorPath = Join-Path -Path (Get-Location) -ChildPath 'TestStreamsError.txt'
-                    $outputPath = Join-Path -Path (Get-Location) -ChildPath 'TestStreamsOutput.txt'
-                    $inputPath = Join-Path -Path (Get-Location) -ChildPath 'TestStreamsInput.txt'
-
-                    $workingDirectoryPath = Join-Path -Path (Get-Location) -ChildPath 'TestWorkingDirectory'
-
-                    foreach ($path in @( $errorPath, $outputPath, $inputPath, $workingDirectoryPath ))
-                    {
-                        if (Test-Path -Path $path)
-                        {
-                            Remove-Item -Path $path -Recurse -Force
-                        }
-                    }
-
-                    New-Item -Path $workingDirectoryPath -ItemType 'Directory' | Out-Null
-
-                    $inputFileText = "ECHO Testing ProcessTest.exe `
-                        dir volumeSyntaxError:\ ` 
-                        set /p waitforinput=Press [y/n]?: "
- 
-                    Out-File -FilePath $inputPath -InputObject $inputFileText -Encoding 'ASCII'
- 
-                    Set-TargetResource -Path $script:cmdProcessFullPath -WorkingDirectory $workingDirectoryPath -StandardOutputPath $outputPath -StandardErrorPath $errorPath -StandardInputPath $inputPath -Arguments ''
- 
-                    Wait-ScriptBlockReturnTrue -ScriptBlock { (Get-TargetResource -Path $script:cmdProcessFullPath -Arguments '').Ensure -ieq 'Absent' } -TimeoutSeconds 10
-
-                    Wait-ScriptBlockReturnTrue -ScriptBlock { Test-IsFileLocked -Path $errorPath } -TimeoutSeconds 2
-
-                    $errorFileContent = Get-Content -Path $errorPath -Raw
-                    $errorFileContent | Should Not Be $null
-
-                    Wait-ScriptBlockReturnTrue -ScriptBlock { Test-IsFileLocked -Path $outputPath } -TimeoutSeconds 2
-
-                    $outputFileContent = Get-Content -Path $outputPath -Raw
-                    $outputFileContent | Should Not Be $null
-
-                    if ((Get-Culture).Name -ieq 'en-us')
-                    {
-                        $errorFileContent.Contains('The filename, directory name, or volume label syntax is incorrect.') | Should Be $true
-                        $outputFileContent.Contains('Press [y/n]?:') | Should Be $true
-                        $outputFileContent.ToLower().Contains($workingDirectoryPath.ToLower()) | Should Be $true
-                    }
-                    else
-                    {
-                        $errorFileContent.Length -gt 0 | Should Be $true
-                        $outputFileContent.Length -gt 0 | Should Be $true
-                    }
-                }
-
-                It 'Should throw when trying to specify streams or working directory with Ensure Absent' {
-                    $invalidPropertiesWithAbsent = @( 'StandardOutputPath', 'StandardErrorPath', 'StandardInputPath', 'WorkingDirectory' )
-
-                    foreach ($invalidPropertyWithAbsent in $invalidPropertiesWithAbsent)
-                    {
-                        $setTargetResourceArguments = @{
-                            Path = $script:cmdProcessFullPath
-                            Ensure = 'Absent'
-                            Arguments = ''
-                            $invalidPropertyWithAbsent = 'Something'
-                        }
-
-                        { Set-TargetResource @setTargetResourceArguments } | Should Throw ($LocalizedData.ParameterShouldNotBeSpecified -f $invalidPropertyWithAbsent)
-                    }
-                }
-
-                It 'Should throw when passing a relative path to stream or working directory parameters' {
-                    $invalidRelativePath = '..\RelativePath'
-                    $pathParameters = @( 'StandardOutputPath', 'StandardErrorPath', 'StandardInputPath', 'WorkingDirectory' )
-
-                    foreach($pathParameter in $pathParameters)
-                    {
-                        $setTargetResourceParameters = @{
-                            Path = $script:cmdProcessFullPath
-                            Ensure = 'Present'
-                            Arguments = ''
-                            $pathParameter = $invalidRelativePath
-                        }
-                            
-                        { Set-TargetResource @setTargetResourceParameters } | Should Throw $LocalizedData.PathShouldBeAbsolute
-                    }
-                }
-
-                It 'Should throw when providing a nonexistent path for StandardInputPath or WorkingDirectory' {
-                    $invalidNonexistentPath = Join-Path -Path (Get-Location) -ChildPath 'NonexistentPath'
-
-                    if (Test-Path -Path $invalidNonexistentPath)
-                    {
-                        Remove-Item -Path $invalidNonexistentPath -Recurse -Force
-                    }
-
-                    $pathMustExistParameters = @( 'StandardInputPath', 'WorkingDirectory' )
-
-                    foreach ($pathMustExistParameter in $pathMustExistParameters)
-                    {
-                        $setTargetResourceParameters = @{
-                            Path = $script:cmdProcessFullPath
-                            Ensure = 'Present'
-                            Arguments = ''
-                            $pathMustExistParameter = $invalidNonexistentPath
-                        }
-
-                        { Set-TargetResource @setTargetResourceParameters } | Should Throw $LocalizedData.PathShouldExist
-                    }
-                }
-
-                It 'Should not throw when providing a nonexistent path for StandardOutputPath or StandardErrorPath' {
-                    $invalidNonexistentPath = Join-Path -Path (Get-Location) -ChildPath 'NonexistentPath'
-
-                    if (Test-Path -Path $invalidNonexistentPath)
-                    {
-                        Remove-Item -Path $invalidNonexistentPath -Recurse -Force
-                    }
-
-                    $pathNotNeedExistParameters = @( 'StandardOutputPath', 'StandardErrorPath' )
-
-                    foreach ($pathNotNeedExistParameter in $pathNotNeedExistParameters)
-                    {
-                        $setTargetResourceParameters = @{
-                            Path = $script:cmdProcessFullPath
-                            Ensure = 'Present'
-                            Arguments = ''
-                            $pathNotNeedExistParameter = $invalidNonexistentPath
-                        }
-
-                        { Set-TargetResource @setTargetResourceParameters } | Should Not Throw
-                    }
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Test-IsRunFromLocalSystemUser -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
                 }
             }
-
+            <#
             Context 'Test-TargetResource' {
                 It 'Should return correct value based on Arguments' {
                     $actualArguments = 'TestProcessResourceWithArguments'
@@ -407,20 +311,20 @@ try
             Context 'Get-ArgumentsFromCommandLineInput' {
                 It 'Should retrieve expected arguments from command line input' {
                     $testCases = @( @{
-                            CommandLineInput = "c    a   "
-                            ExpectedArguments = "a"
+                            CommandLineInput = 'c    a   '
+                            ExpectedArguments = 'a'
                         },
                         @{
                             CommandLineInput = '"c b d" e  '
-                            ExpectedArguments = "e"
+                            ExpectedArguments = 'e'
                         },
                         @{
-                            CommandLineInput = "    a b"
-                            ExpectedArguments = "b"
+                            CommandLineInput = '    a b'
+                            ExpectedArguments = 'b'
                         },
                         @{
-                            CommandLineInput = " abc "
-                            ExpectedArguments = ""
+                            CommandLineInput = ' abc '
+                            ExpectedArguments = ''
                         }
                     )
 
@@ -483,7 +387,7 @@ try
                     
                     { $splitCredentialResult = Split-Credential -Credential $testCredential } | Should Throw
                 }
-            }
+            }#>
         }
     }
 }

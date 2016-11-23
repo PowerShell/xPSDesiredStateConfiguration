@@ -4,7 +4,8 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xProcessResource'
 
 <#
     .SYNOPSIS
-        Gets the state of the managed process.
+        Returns a hashtable of results about the managed process. If more than one process is
+        
 
     .PARAMETER Path
         The path to the process executable. If this is the file name of the executable
@@ -22,7 +23,7 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xProcessResource'
 #>
 function Get-TargetResource
 {
-    [OutputType([Hashtable])]
+    [OutputType([Hashtable[]])]
     [CmdletBinding()]
     param
     (
@@ -67,11 +68,13 @@ function Get-TargetResource
         }
     }
 
+    $processesToReturn = @()
+
     foreach ($win32Process in $win32Processes)
     {
         $getProcessResult = Get-Process -ID $win32Process.ProcessId -ErrorAction 'Ignore'
 
-        return @{
+        $processesToReturn += @{
             Path = $win32Process.Path
             Arguments = (Get-ArgumentsFromCommandLineInput -CommandLineInput $win32Process.CommandLine)
             PagedMemorySize = $getProcessResult.PagedMemorySize64
@@ -84,6 +87,7 @@ function Get-TargetResource
     }
 
     Write-Verbose ($script:localizedData.GetTargetResourceEndMessage -f $Path)
+    return $processesToReturn
 }
 
 <#
@@ -198,9 +202,10 @@ function Set-TargetResource
         $whatIfShouldProcess = $PSCmdlet.ShouldProcess($Path, $script:localizedData.StoppingProcessWhatif)
         if ($win32Processes.Count -gt 0 -and $whatIfShouldProcess)
         {
+            # If there are multiple process Ids, all will be included to be stopped
             $processIds = $win32Processes.ProcessId
 
-            # Redirecting error output to standard output while we try to stop the process
+            # Redirecting error output to standard output while we try to stop the processes
             $stopProcessError = Stop-Process -Id $processIds -Force 2>&1
 
             if ($null -eq $stopProcessError)
@@ -214,11 +219,12 @@ function Set-TargetResource
                            ($processIds -join ','),
                            ($stopProcessError | Out-String))
 
-                throw $stopProcessError
+                New-InvalidOperationException -Message $message
            }
-
-           # Before returning from Set-TargetResource we have to ensure a subsequent
-           # Test-TargetResource is going to work
+           <#
+               Before returning from Set-TargetResource we have to ensure a subsequent
+               Test-TargetResource is going to work
+           #>
            if (-not (Wait-ProcessCount -ProcessSettings $getWin32ProcessArguments -ProcessCount 0))
            {
                 $message = $script:localizedData.ErrorStopping -f $Path, ($processIds -join ','),
@@ -232,6 +238,7 @@ function Set-TargetResource
             Write-Verbose -Message ($script:localizedData.ProcessAlreadyStopped -f $Path)
         }
     }
+    # Ensure = 'Present'
     else
     {
         $shouldBeRootedPathArguments = @( 'StandardInputPath',
@@ -309,6 +316,7 @@ function Set-TargetResource
                 #>
                 if ($PSBoundParameters.ContainsKey('Credential') -and (Test-IsRunFromLocalSystemUser))
                 {
+                    # Throw an exception if any of the below parameters are included with Credential passed
                     foreach ($key in @('StandardOutputPath','StandardInputPath','WorkingDirectory'))
                     {
                         $newInvalidArgumentExceptionParams = @{
@@ -317,24 +325,9 @@ function Set-TargetResource
                         }
                         New-InvalidArgumentException @newInvalidArgumentExceptionParams
                     }
-
-                    $splitCredentialResult = Split-Credential -Credential $Credential
                     try
                     {
-                        <#
-                            Internally we use win32 api LogonUser() with
-                            dwLogonType == LOGON32_LOGON_NETWORK_CLEARTEXT.
-
-                            It grants process ability for second-hop.
-                        #>
-                        Import-DscNativeMethods
-
-                        [PSDesiredStateConfiguration.NativeMethods]::CreateProcessAsUser( "$Path $Arguments",
-                                                                                          $splitCredentialResult.Domain,
-                                                                                          $splitCredentialResult.UserName,
-                                                                                          $Credential.Password,
-                                                                                          $false,
-                                                                                          [Ref]$null )
+                        Start-ProcessAsLocalSystemUser -Path $Path -Arguments $Arguments -Credential $Credential
                     }
                     catch
                     {
@@ -940,6 +933,55 @@ function Test-IsRunFromLocalSystemUser
     $principal = New-Object -TypeName Security.Principal.WindowsPrincipal -ArgumentList $identity
 
     return $principal.Identity.IsSystem
+}
+
+<#
+    .SYNOPSIS
+        Starts the process with the given credential when the user is a local system user.
+
+    .PARAMETER Path
+        The path to the process executable.
+
+    .PARAMETER Arguments
+        Indicates a string of arguments to pass to the process as-is.
+
+    .PARAMETER Credential
+        Indicates the credential for starting the process.
+#>
+function Start-ProcessAsLocalSystemUser
+{
+    [CmdletBinding()]
+    param 
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Path,
+
+        [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
+        [String]
+        $Arguments,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential
+    )
+
+    $splitCredentialResult = Split-Credential -Credential $Credential
+    <#
+        Internally we use win32 api LogonUser() with
+        dwLogonType == LOGON32_LOGON_NETWORK_CLEARTEXT.
+
+        It grants the process ability for second-hop.
+    #>
+    Import-DscNativeMethods
+
+    [PSDesiredStateConfiguration.NativeMethods]::CreateProcessAsUser( "$Path $Arguments", $splitCredentialResult.Domain,
+                                                                      $splitCredentialResult.UserName, $Credential.Password,
+                                                                      $false, [Ref]$null )
 }
 
 <#
