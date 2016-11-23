@@ -27,6 +27,7 @@ try
                 $testPassword = 'StrongOne7.'
                 $testSecurePassword = ConvertTo-SecureString -String $testPassword -AsPlainText -Force
                 $script:testCredential = New-Object PSCredential ($testUserName, $testSecurePassword)
+                $script:exceptionMessage = 'Test Invalid Operation Exception'
 
                 $script:mockProcess1 = @{
                     Path = $script:validPath1
@@ -89,6 +90,8 @@ try
                                                    -ParameterFilter { $Path -eq $script:validPath2 }
                 Mock -CommandName Get-Win32Process -MockWith { return @($script:errorProcess) } `
                                                    -ParameterFilter { $Path -eq $script:validPath3 }
+                Mock -CommandName New-InvalidOperationException -MockWith { Throw $script:exceptionMessage }
+                Mock -CommandName New-InvalidArgumentException -MockWith { Throw $script:exceptionMessage }
             }
 
             AfterAll {
@@ -217,13 +220,10 @@ try
                 It 'Should throw an invalid operation exception when Stop-Process throws an error' {
                     Mock -CommandName Wait-ProcessCount -MockWith { return $true }
 
-                    $exceptionMessage = 'Test Invalid Operation Exception'
-                    Mock -CommandName New-InvalidOperationException -MockWith { Throw $exceptionMessage }
-
                     { Set-TargetResource -Path $script:errorProcess.Path `
                                          -Arguments '' `
                                          -Ensure 'Absent'
-                    } | Should Throw $exceptionMessage
+                    } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
@@ -235,13 +235,10 @@ try
                 It 'Should throw an invalid operation exception when there is a problem waiting for the processes' {
                     Mock -CommandName Wait-ProcessCount -MockWith { return $false }
 
-                    $exceptionMessage = 'Test Invalid Operation Exception'
-                    Mock -CommandName New-InvalidOperationException -MockWith { Throw $exceptionMessage }
-
                     { Set-TargetResource -Path $script:validPath1 `
                                          -Arguments $script:mockProcess1.Arguments `
                                          -Ensure 'Absent'
-                    } | Should Throw $exceptionMessage
+                    } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
@@ -278,15 +275,16 @@ try
                                          -Credential $script:testCredential `
                                          -WorkingDirectory 'test working directory' `
                                          -Ensure 'Present'
-                    } | Should Not Throw
+                    } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Test-IsRunFromLocalSystemUser -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 0 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                     Assert-MockCalled -CommandName Assert-PathArgumentRooted -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Assert-PathArgumentValid -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
                 }
             }
             <#
