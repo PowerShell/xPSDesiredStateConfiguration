@@ -1,6 +1,7 @@
 ﻿$errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
+# Import ResourceSetHelper for New-ResourceSetConfigurationScriptBlock
 $script:dscResourcesFolderFilePath = Split-Path -Path $PSScriptRoot -Parent
 $script:resourceSetHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'ResourceSetHelper.psm1'
 Import-Module -Name $script:resourceSetHelperFilePath
