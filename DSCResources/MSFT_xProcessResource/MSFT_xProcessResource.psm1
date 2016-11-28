@@ -314,7 +314,7 @@ function Set-TargetResource
 
                     In this case we call another api.
                 #>
-                if ($PSBoundParameters.ContainsKey('Credential') -and (Test-IsRunFromLocalSystemUser))
+                if (($PSBoundParameters.ContainsKey('Credential')) -and (Test-IsRunFromLocalSystemUser))
                 {
                     # Throw an exception if any of the below parameters are included with Credential passed
                     foreach ($key in @('StandardOutputPath','StandardInputPath','WorkingDirectory'))
@@ -338,21 +338,22 @@ function Set-TargetResource
                                           -ArgumentList @( $_.Exception, 'Win32Exception', 'OperationStopped', $null ))
                     }
                 }
+                # Credential not passed in
                 else
                 {
-                    $startProcessError = Start-Process @startProcessArguments 2>&1
+                    try
+                    {
+                        Start-Process @startProcessArguments
+                    }
+                    catch [System.Exception]
+                    {
+                        $message = $script:localizedData.ErrorStarting -f $Path, $_.Message
+                        
+                        New-InvalidOperationException -Message $message
+                    }
                 }
 
-                if ($null -eq $startProcessError)
-                {
-                    Write-Verbose -Message ($script:localizedData.ProcessStarted -f $Path)
-                }
-                else
-                {
-                    Write-Verbose -Message ($script:localizedData.ErrorStarting -f $Path,
-                                            ($startProcessError | Out-String))
-                    throw $startProcessError
-                }
+                Write-Verbose -Message ($script:localizedData.ProcessStarted -f $Path)
 
                 # Before returning from Set-TargetResource we have to ensure a subsequent Test-TargetResource is going to work
                 if (-not (Wait-ProcessCount -ProcessSettings $getWin32ProcessArguments -ProcessCount 1))

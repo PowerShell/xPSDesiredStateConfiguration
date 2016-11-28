@@ -180,12 +180,6 @@ try
                                                                   ($Id -contains $script:mockProcess3.ProcessId) }
                 Mock -CommandName Stop-Process -MockWith { return 'error' } `
                                                -ParameterFilter { $Id -contains $script:errorProcess.ProcessId}
-                Mock -CommandName Start-Process -MockWith { return $null } `
-                                                -ParameterFilter { ($FilePath -eq $script:validPath1) -or `
-                                                                   ($FilePath -eq $script:validPath2) -or `
-                                                                   ($FilePath -eq $script:invalidPath) }
-                Mock -CommandName Start-Process -MockWith { return 'error' } `
-                                                -ParameterFilter { $FilePath -eq $script:validPath3 }
                 Mock -CommandName Test-IsRunFromLocalSystemUser -MockWith { return $true }
 
                 It 'Should not throw when Ensure set to Absent and processes are running' {
@@ -285,6 +279,85 @@ try
                     Assert-MockCalled -CommandName Assert-PathArgumentRooted -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Assert-PathArgumentValid -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
+                }
+
+                It 'Should throw when Ensure set to Present and Start-processAsLocalSystemUser fails' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
+                    $testErrorRecord = 'test Start-ProcessAsLocalSystemUser error record'
+                    Mock -CommandName Start-ProcessAsLocalSystemUser -MockWith { Throw $testErrorRecord }
+
+                    { Set-TargetResource -Path $script:invalidPath `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Credential $script:testCredential `
+                                         -Ensure 'Present'
+                    } | Should Throw $testErrorRecord
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Test-IsRunFromLocalSystemUser -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
+                }
+
+                It 'Should not throw when Ensure set to Present and processes are not running and no credential passed' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
+                    Mock -CommandName Start-Process -MockWith {}
+
+                    { Set-TargetResource -Path $script:invalidPath `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Ensure 'Present'
+                    } | Should Not Throw
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
+                }
+
+                It 'Should throw when Ensure set to Present and Start-Process fails' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
+                    Mock -CommandName Start-Process -MockWith { Throw 'test' }
+
+                    { Set-TargetResource -Path $script:invalidPath `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Ensure 'Present'
+                    } | Should Throw $script:exceptionMessage
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
+                    Assert-MockCalled -CommandName New-InvalidOperationException -Exactly 1 -Scope It
+                }
+
+                It 'Should throw when there is a failure waiting for the process to start' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $false }
+                    Mock -CommandName Start-Process -MockWith {}
+
+                    { Set-TargetResource -Path $script:invalidPath `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Ensure 'Present'
+                    } | Should Throw $script:exceptionMessage
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
+                }
+
+                It 'Should not throw when Ensure set to Present and processes are already running' {
+                    Mock -CommandName Wait-ProcessCount -MockWith { return $true }
+                    Mock -CommandName Start-Process -MockWith {}
+
+                    { Set-TargetResource -Path $script:validPath1 `
+                                         -Arguments $script:mockProcess1.Arguments `
+                                         -Ensure 'Present'
+                    } | Should Not Throw
+
+                    Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Start-Process -Exactly 0 -Scope It
+                    Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                 }
             }
             <#
