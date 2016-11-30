@@ -489,10 +489,28 @@ try
                 }
 
                 It 'Should return only processes that match Credential' {
-                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess3, $script:mockProcess4) }
-                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess3, $script:mockProcess4) }
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess3, $script:mockProcess3, $script:mockProcess4, $script:mockProcess2) }
+                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess3, $script:mockProcess3, $script:mockProcess4, $script:mockProcess2) }
                     Mock -CommandName Get-ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
                                                        -ParameterFilter { ($Process -eq $script:mockProcess3) }
+                    Mock -CommandName Get-ProcessOwner -MockWith { return ('wrongDomain' + '\' + $script:testUsername) } `
+                                                       -ParameterFilter { ($Process -eq $script:mockProcess4) -or ($Process -eq $script:mockProcess2) }
+
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess3.Path `
+                                                            -Credential $script:testCredential `
+                                                            -Arguments $script:mockProcess3.Arguments `
+                                                            -UseGetCimInstanceThreshold 1
+                    $resultProcess | Should Be @($script:mockProcess3, $script:mockProcess3)
+
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
+                }
+
+                It 'Should return only processes that match Credential and Arguments' {
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess3, $script:mockProcess3, $script:mockProcess4, $script:mockProcess2) }
+                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess3, $script:mockProcess3, $script:mockProcess4, $script:mockProcess2) }
+                    Mock -CommandName Get-ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
+                                                       -ParameterFilter { ($Process -eq $script:mockProcess3) -or ($Process -eq $script:mockProcess2) }
                     Mock -CommandName Get-ProcessOwner -MockWith { return ('wrongDomain' + '\' + $script:testUsername) } `
                                                        -ParameterFilter { ($Process -eq $script:mockProcess4) }
 
@@ -500,10 +518,53 @@ try
                                                             -Credential $script:testCredential `
                                                             -Arguments $script:mockProcess3.Arguments `
                                                             -UseGetCimInstanceThreshold 1
-                    $resultProcess | Should Be @($script:mockProcess3)
+                    $resultProcess | Should Be @($script:mockProcess3, $script:mockProcess3)
 
                     Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
+                }
+            
+            }
+            
+            Context 'ConvertTo-EscapedStringForWqlFilter' {
+            
+                It 'Should return the same string when there are no escaped characters' {
+                    $inputString = 'testString%$.@123'
+                    $convertedString = ConvertTo-EscapedStringForWqlFilter -FilterString $inputString
+                    $convertedString | Should Be $inputString
+                }
+
+                It 'Should return a string with escaped characters: ("\)' {
+                    $inputString = '\test"string"\123'
+                    $expectedString = '\\test\"string\"\\123'
+                    $convertedString = ConvertTo-EscapedStringForWqlFilter -FilterString $inputString
+                    $convertedString | Should Be $expectedString
+                }
+
+                It "Should return a string with escaped characters: ('\)" {
+                    $inputString = "\test'string'\123"
+                    $expectedString = "\\test\'string\'\\123"
+                    $convertedString = ConvertTo-EscapedStringForWqlFilter -FilterString $inputString
+                    $convertedString | Should Be $expectedString
+                }
+            }
+
+            Context 'Get-ProcessOwner' {
+                $mockOwner = @{
+                    Domain = 'Mock Domain'
+                    User = 'Mock User'
+                }
+                Mock -CommandName Get-ProcessOwnerCimInstance -MockWith { return $mockOwner }
+
+                It 'Should return the correct string with domain\user' {
+                    $owner = Get-ProcessOwner -Process $script:mockProcess1
+                    $owner | Should Be ($mockOwner.Domain + '\' + $mockOwner.User)
+                }
+
+                It 'Should return the correct string with default-domain\user when domain is not there' {
+                    $mockOwner.Domain = $null
+                    $owner = Get-ProcessOwner -Process $script:mockProcess1
+                    $owner | Should Be ($env:computerName + '\' + $mockOwner.User)
                 }
             
             }
@@ -512,18 +573,7 @@ try
 
 
             <#
-            Context 'Get-ProcessCimInstance' {
-                It 'Should only return one process when arguments were changed for that process' {
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments ''
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments 'abc'
-
-                    $processes = @( Get-ProcessCimInstance -Path $script:cmdProcessFullPath -UseGetCimInstanceThreshold 0 )
-                    $processes.Count | Should Be 1
-
-                    $processes = @( Get-ProcessCimInstance -Path $script:cmdProcessFullPath -UseGetCimInstanceThreshold 5 )
-                    $processes.Count | Should Be 1
-                }
-            }
+            
 
             Context 'Get-ArgumentsFromCommandLineInput' {
                 It 'Should retrieve expected arguments from command line input' {

@@ -47,17 +47,17 @@ function Get-TargetResource
 
     $Path = Expand-Path -Path $Path
 
-    $getWin32ProcessArguments = @{
+    $getProcessCimInstanceArguments = @{
         Path = $Path
         Arguments = $Arguments
     }
 
     if ($null -ne $Credential)
     {
-        $getWin32ProcessArguments['Credential'] = $Credential
+        $getProcessCimInstanceArguments['Credential'] = $Credential
     }
 
-    $processCimInstance = @( Get-ProcessCimInstance @getWin32ProcessArguments )
+    $processCimInstance = @( Get-ProcessCimInstance @getProcessCimInstanceArguments )
 
     if ($processCimInstance.Count -eq 0)
     {
@@ -172,17 +172,17 @@ function Set-TargetResource
 
     $Path = Expand-Path -Path $Path
 
-    $getWin32ProcessArguments = @{
+    $getProcessCimInstanceArguments = @{
         Path = $Path
         Arguments = $Arguments
     }
 
     if ($null -ne $Credential)
     {
-        $getWin32ProcessArguments['Credential'] = $Credential
+        $getProcessCimInstanceArguments['Credential'] = $Credential
     }
 
-    $processCimInstance = @( Get-ProcessCimInstance @getWin32ProcessArguments )
+    $processCimInstance = @( Get-ProcessCimInstance @getProcessCimInstanceArguments )
 
     if ($Ensure -eq 'Absent')
     {
@@ -221,7 +221,7 @@ function Set-TargetResource
                Before returning from Set-TargetResource we have to ensure a subsequent
                Test-TargetResource is going to work
            #>
-           if (-not (Wait-ProcessCount -ProcessSettings $getWin32ProcessArguments -ProcessCount 0))
+           if (-not (Wait-ProcessCount -ProcessSettings $getProcessCimInstanceArguments -ProcessCount 0))
            {
                 $message = $script:localizedData.ErrorStopping -f $Path, ($processIds -join ','),
                            $script:localizedData.FailureWaitingForProcessesToStop
@@ -352,7 +352,7 @@ function Set-TargetResource
                 Write-Verbose -Message ($script:localizedData.ProcessStarted -f $Path)
 
                 # Before returning from Set-TargetResource we have to ensure a subsequent Test-TargetResource is going to work
-                if (-not (Wait-ProcessCount -ProcessSettings $getWin32ProcessArguments -ProcessCount 1))
+                if (-not (Wait-ProcessCount -ProcessSettings $getProcessCimInstanceArguments -ProcessCount 1))
                 {
                     $message = $script:localizedData.ErrorStarting -f $Path,
                                $script:localizedData.FailureWaitingForProcessesToStart
@@ -457,17 +457,17 @@ function Test-TargetResource
 
     $Path = Expand-Path -Path $Path
 
-    $getWin32ProcessArguments = @{
+    $getProcessArguments = @{
         Path = $Path
         Arguments = $Arguments
     }
 
     if ($null -ne $Credential)
     {
-        $getWin32ProcessArguments['Credential'] = $Credential
+        $getProcessArguments['Credential'] = $Credential
     }
 
-    $processCimInstances = @( Get-ProcessCimInstance @getWin32ProcessArguments )
+    $processCimInstances = @( Get-ProcessCimInstance @getProcessArguments )
 
     Write-Verbose ($script:localizedData.TestTargetResourceEndMessage -f $Path)
 
@@ -530,7 +530,7 @@ function Expand-Path
 
 <#
     .SYNOPSIS
-        Retrieves any Win32_Process objects that match the given path, arguments, and credential.
+        Retrieves any process cim instance objects that match the given path, arguments, and credential.
 
     .PARAMETER Path
         The path that should match the retrieved process.
@@ -544,8 +544,8 @@ function Expand-Path
     .PARAMETER UseGetCimInstanceThreshold
         If the number of processes returned by the Get-Process method is greater than or equal to
         this value, this function will retrieve all processes at the executable path. This will
-        help the function execute faster. Otherwise, this function will retrieve each Win32_Process
-        object with the product IDs returned from Get-Process.
+        help the function execute faster. Otherwise, this function will retrieve each Process cim
+        instance object with the product IDs returned from Get-Process.
 #>
 function Get-ProcessCimInstance
 {
@@ -593,7 +593,7 @@ function Get-ProcessCimInstance
             {
                 Write-Verbose -Message ($script:localizedData.VerboseInProcessHandle -f $process.Id)
                 $getCimInstanceParams = @{
-                    ClassName = 'Win32_Process'
+                    ClassName = '_Process'
                     Filter = "ProcessId = $($process.Id)"
                     ErrorAction = 'SilentlyContinue'
                 }
@@ -662,10 +662,10 @@ function ConvertTo-EscapedStringForWqlFilter
 
 <#
     .SYNOPSIS
-        Retrieves the owner of a Win32_Process.
+        Retrieves the owner of a Process.
 
     .PARAMETER Process
-        The Win32_Process to retrieve the owner of.
+        The Process to retrieve the owner of.
 
     .NOTES
         If the process was killed by the time this function is called, this function will throw a
@@ -683,7 +683,7 @@ function Get-ProcessOwner
         $Process
     )
 
-    $owner = Invoke-CimMethod -InputObject $Process -MethodName 'GetOwner' -ErrorAction 'SilentlyContinue'
+    $owner = Get-ProcessOwnerCimInstance -Process $Process
 
     if ($null -ne $owner.Domain)
     {
@@ -694,6 +694,32 @@ function Get-ProcessOwner
         # return the default domain
         return ($env:computerName + '\' + $owner.User)
     }
+}
+
+<#
+    .SYNOPSIS
+        Wrapper function to retrieve the cim instance of the owner of a process
+
+    .PARAMETER Process
+        The process to retrieve the cim instance of the owner of.
+
+    .NOTES
+        If the process was killed by the time this function is called, this function will throw a
+        WMIMethodException with the message "Not found".
+#>
+function Get-ProcessOwnerCimInstance
+{
+    [OutputType([Object])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [Object]
+        $Process
+    )
+
+    return Invoke-CimMethod -InputObject $Process -MethodName 'GetOwner' -ErrorAction 'SilentlyContinue'
 }
 
 <#
