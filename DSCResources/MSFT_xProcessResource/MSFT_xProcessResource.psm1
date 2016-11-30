@@ -5,7 +5,7 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xProcessResource'
 <#
     .SYNOPSIS
         Returns a hashtable of results about the managed process. If more than one process is
-        
+        found, only the first will be returned
 
     .PARAMETER Path
         The path to the process executable. If this is the file name of the executable
@@ -23,7 +23,7 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xProcessResource'
 #>
 function Get-TargetResource
 {
-    [OutputType([Hashtable[]])]
+    [OutputType([Hashtable])]
     [CmdletBinding()]
     param
     (
@@ -68,26 +68,22 @@ function Get-TargetResource
         }
     }
 
-    $processesToReturn = @()
+    $getProcessResult = Get-Process -ID $win32Processes[0].ProcessId -ErrorAction 'Ignore'
 
-    foreach ($win32Process in $win32Processes)
-    {
-        $getProcessResult = Get-Process -ID $win32Process.ProcessId -ErrorAction 'Ignore'
-
-        $processesToReturn += @{
-            Path = $win32Process.Path
-            Arguments = (Get-ArgumentsFromCommandLineInput -CommandLineInput $win32Process.CommandLine)
-            PagedMemorySize = $getProcessResult.PagedMemorySize64
-            NonPagedMemorySize = $getProcessResult.NonpagedSystemMemorySize64
-            VirtualMemorySize = $getProcessResult.VirtualMemorySize64
-            HandleCount = $getProcessResult.HandleCount
-            Ensure = 'Present'
-            ProcessId = $win32Process.ProcessId
-        }
+    $processToReturn = @{
+        Path = $win32Processes[0].Path
+        Arguments = (Get-ArgumentsFromCommandLineInput -CommandLineInput $win32Processes[0].CommandLine)
+        PagedMemorySize = $getProcessResult.PagedMemorySize64
+        NonPagedMemorySize = $getProcessResult.NonpagedSystemMemorySize64
+        VirtualMemorySize = $getProcessResult.VirtualMemorySize64
+        HandleCount = $getProcessResult.HandleCount
+        Ensure = 'Present'
+        ProcessId = $win32Processes[0].ProcessId
+        Count = $win32Processes.Count
     }
 
     Write-Verbose ($script:localizedData.GetTargetResourceEndMessage -f $Path)
-    return $processesToReturn
+    return $processToReturn
 }
 
 <#
@@ -455,6 +451,7 @@ function Test-TargetResource
             ArgumentName = 'PsDscRunAsCredential'
             Message = ($script:localizedData.ErrorRunAsCredentialParameterNotSupported -f $PsDscContext.RunAsUser)
         }
+
         New-InvalidArgumentException @newInvalidArgumentExceptionParams
     }
 
@@ -486,10 +483,11 @@ function Test-TargetResource
 
 <#
     .SYNOPSIS
-        Expands a shortened path into a full, rooted path.
+        Expands a relative leaf path into a full, rooted path. Throws an invalid argument exception
+        if any there are any issues with the path.
 
     .PARAMETER Path
-        The shortened path to expand.
+        The relative leaf path to expand.
 #>
 function Expand-Path
 {
@@ -508,6 +506,7 @@ function Expand-Path
     $fileNotFoundMessage = $script:localizedData.InvalidArgumentAndMessage -f ($script:localizedData.InvalidArgument -f 'Path', $Path), 
                                                                                $script:localizedData.FileNotFound
 
+    # Check to see if the path is rooted. If so, return it as is.
     if ([IO.Path]::IsPathRooted($Path))
     {
         if (-not (Test-Path -Path $Path -PathType 'Leaf'))
@@ -517,57 +516,15 @@ function Expand-Path
 
         return $Path
     }
-    else
+
+    # Check to see if the path to the file exists in the current location. If so, return the full rooted path.
+    $rootedPath = [System.IO.Path]::GetFullPath($Path)
+    if ([System.IO.File]::Exists($rootedPath))
     {
-        New-InvalidArgumentException -ArgumentName 'Path' `
-                                     -Message $script:localizedData.InvalidArgument -f 'Path', $Path
+        return $rootedPath
     }
-
-    if ([String]::IsNullOrEmpty($env:Path))
-    {
-        New-InvalidArgumentException -ArgumentName 'Path' -Message $fileNotFoundMessage
-    }
-
-    <#
-        This will block relative paths. The statement is only true when $Path contains a plain file name.
-        Checking a relative path against segments of $env:Path does not make sense.
-    #>
-    if ((Split-Path -Path $Path -Leaf) -ne $Path)
-    {
-        $message = $script:localizedData.InvalidArgumentAndMessage -f ($script:localizedData.InvalidArgument -f 'Path', $Path),
-                                                                      $script:localizedData.AbsolutePathOrFileName
-        New-InvalidArgumentException -ArgumentName 'Path' -Message $message
-    }
-
-    foreach ($rawEnvPathSegment in $env:Path.Split(';'))
-    {
-        $envPathSegment = [Environment]::ExpandEnvironmentVariables($rawEnvPathSegment)
-
-        <#
-            If the whole path passed through [IO.Path]::IsPathRooted with no exceptions, it does not have
-            invalid characters, so the segment has no invalid characters and will not throw as well.
-        #>
-        try
-        {
-            $envPathSegmentRooted = [IO.Path]::IsPathRooted($envPathSegment)
-        }
-        catch
-        {
-            # If an exception causes $envPathSegmentRooted not to be set, we will consider it $false
-            $envPathSegmentRooted = $false
-        }
-
-        if ($envPathSegmentRooted)
-        {
-            $fullPathCandidate = Join-Path -Path $envPathSegment -ChildPath $Path
-
-            if (Test-Path -Path $fullPathCandidate -PathType 'Leaf')
-            {
-                return $fullPathCandidate
-            }
-        }
-    }
-
+    
+    # If the path is not found, throw an exception
     New-InvalidArgumentException -ArgumentName 'Path' -Message $fileNotFoundMessage
 }
 
@@ -647,13 +604,12 @@ function Get-Win32Process
 
     if ($PSBoundParameters.ContainsKey('Credential'))
     {
-        $splitCredentialResult = Split-Credenital -Credential $Credential
+        $splitCredentialResult = Split-Credential -Credential $Credential
+        $domain =  $splitCredentialResult.Domain
+        $userName = $splitCredentialResult.UserName
 
         $whereFilterScript = {
-            $domain =  $splitCredentialResult.Domain
-            $userName = $splitCredentialResult.UserName
-
-            (Get-Win32ProcessOwner -Process $_) -eq "${domain}\${userName}"
+            (Get-Win32ProcessOwner -Process $_) -eq "$domain\$userName"
         }
         $processes = Where-Object -InputObject $processes -FilterScript $whereFilterScript
     }
@@ -726,11 +682,12 @@ function Get-Win32ProcessOwner
 
     if ($null -ne $owner.Domain)
     {
-        return $owner.Domain + '\' + $owner.User
+        return ($owner.Domain + '\' + $owner.User)
     }
     else
     {
-        return $owner.User
+        # return the default domain
+        return ($env:computerName + '\' + $owner.User)
     }
 }
 

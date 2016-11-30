@@ -16,17 +16,15 @@ try
                                    -ChildPath 'MSFT_xProcessResource.TestHelper.psm1')
 
     InModuleScope 'MSFT_xProcessResource' {
-        Describe 'MSFT_xProcessResource Unit Tests' {
-            BeforeAll {
-                # Mock objects
+        # Mock objects
                 $script:validPath1 = 'ValidPath1'
                 $script:validPath2 = 'ValidPath2'
                 $script:validPath3 = 'ValidPath3'
                 $script:invalidPath = 'InvalidPath'
-                $testUserName = 'TestUserName12345'
+                $script:testUserName = 'TestUserName12345'
                 $testPassword = 'StrongOne7.'
                 $testSecurePassword = ConvertTo-SecureString -String $testPassword -AsPlainText -Force
-                $script:testCredential = New-Object PSCredential ($testUserName, $testSecurePassword)
+                $script:testCredential = New-Object PSCredential ($script:testUserName, $testSecurePassword)
                 $script:exceptionMessage = 'Test Invalid Operation Exception'
 
                 $script:mockProcess1 = @{
@@ -72,6 +70,9 @@ try
                     VirtualMemorySize64 = 0
                     HandleCount = 0
                 }
+        Describe 'Exported Methods Tests' {
+            BeforeAll {
+                
 
                 # Mock methods
                 Mock -CommandName Expand-Path -MockWith { return $script:validPath1 } `
@@ -92,14 +93,6 @@ try
                                                    -ParameterFilter { $Path -eq $script:validPath3 }
                 Mock -CommandName New-InvalidOperationException -MockWith { Throw $script:exceptionMessage }
                 Mock -CommandName New-InvalidArgumentException -MockWith { Throw $script:exceptionMessage }
-            }
-
-            AfterAll {
-                
-            }
-
-            BeforeEach {
-                
             }
 
             Context 'Get-TargetResource' {
@@ -149,27 +142,18 @@ try
                     $getTargetResourceResult = Get-TargetResource -Path $script:validPath1 `
                                                                   -Arguments $script:mockProcess1.Arguments
                     
-                    $getTargetResourceResult.Count | Should Be 2
-                    $getTargetResourceResult[0].VirtualMemorySize | Should Be $script:mockProcess1.VirtualMemorySize64
-                    $getTargetResourceResult[0].Arguments | Should Be $script:mockProcess1.Arguments
-                    $getTargetResourceResult[0].Ensure | Should Be 'Present'
-                    $getTargetResourceResult[0].PagedMemorySize | Should Be $script:mockProcess1.PagedMemorySize64
-                    $getTargetResourceResult[0].Path | Should Be $script:mockProcess1.Path
-                    $getTargetResourceResult[0].NonPagedMemorySize | Should Be $script:mockProcess1.NonpagedSystemMemorySize64
-                    $getTargetResourceResult[0].HandleCount | Should Be $script:mockProcess1.HandleCount
-                    $getTargetResourceResult[0].ProcessId | Should Be $script:mockProcess1.ProcessId
-                    $getTargetResourceResult[1].VirtualMemorySize | Should Be $script:mockProcess3.VirtualMemorySize64
-                    $getTargetResourceResult[1].Arguments | Should Be $script:mockProcess3.Arguments
-                    $getTargetResourceResult[1].Ensure | Should Be 'Present'
-                    $getTargetResourceResult[1].PagedMemorySize | Should Be $script:mockProcess3.PagedMemorySize64
-                    $getTargetResourceResult[1].Path | Should Be $script:mockProcess3.Path
-                    $getTargetResourceResult[1].NonPagedMemorySize | Should Be $script:mockProcess3.NonpagedSystemMemorySize64
-                    $getTargetResourceResult[1].HandleCount | Should Be $script:mockProcess3.HandleCount
-                    $getTargetResourceResult[1].ProcessId | Should Be $script:mockProcess3.ProcessId
-
+                    $getTargetResourceResult.VirtualMemorySize | Should Be $script:mockProcess1.VirtualMemorySize64
+                    $getTargetResourceResult.Arguments | Should Be $script:mockProcess1.Arguments
+                    $getTargetResourceResult.Ensure | Should Be 'Present'
+                    $getTargetResourceResult.PagedMemorySize | Should Be $script:mockProcess1.PagedMemorySize64
+                    $getTargetResourceResult.Path | Should Be $script:mockProcess1.Path
+                    $getTargetResourceResult.NonPagedMemorySize | Should Be $script:mockProcess1.NonpagedSystemMemorySize64
+                    $getTargetResourceResult.HandleCount | Should Be $script:mockProcess1.HandleCount
+                    $getTargetResourceResult.ProcessId | Should Be $script:mockProcess1.ProcessId
+                    
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Process -Exactly 2 -Scope It
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
                 }
             }
 
@@ -360,34 +344,162 @@ try
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                 }
             }
-            <#
+
             Context 'Test-TargetResource' {
-                It 'Should return correct value based on Arguments' {
-                    $actualArguments = 'TestProcessResourceWithArguments'
-
-                    Set-TargetResource -Path $script:cmdProcessFullPath -Arguments $actualArguments
- 
-                    Test-TargetResource -Path $script:cmdProcessFullPath -Arguments '' | Should Be $false
- 
-                    Test-TargetResource -Path $script:cmdProcessFullPath -Arguments 'NotTheOriginalArguments' | Should Be $false
-
-                    Test-TargetResource -Path $script:cmdProcessFullPath -Arguments $actualArguments | Should Be $true
+                It 'Should return true when Ensure set to Present and process is running' {
+                    $testTargetResourceResult = Test-TargetResource -Path $script:validPath1 `
+                                                                    -Arguments $script:mockProcess1.Arguments `
+                                                                    -Ensure 'Present'
+                    $testTargetResourceResult | Should Be $true
                 }
 
-                It 'Should return false for absent process with directory arguments' {
-                    $testTargetResourceResult = Test-TargetResource `
-                        -Path $script:cmdProcessFullPath `
-                        -WorkingDirectory 'something' `
-                        -StandardOutputPath 'something' `
-                        -StandardErrorPath 'something' `
-                        -StandardInputPath 'something' `
-                        -Arguments ''
-                        
+                It 'Should return false when Ensure set to Present and process is not running' {
+                    $testTargetResourceResult = Test-TargetResource -Path $script:invalidPath `
+                                                                    -Arguments $script:mockProcess1.Arguments `
+                                                                    -Ensure 'Present'
+                    $testTargetResourceResult | Should Be $false
+                }
+
+                It 'Should return true when Ensure set to Absent and process is not running and Credential passed' {
+                    $testTargetResourceResult = Test-TargetResource -Path $script:invalidPath `
+                                                                    -Arguments $script:mockProcess1.Arguments `
+                                                                    -Credential $script:testCredential `
+                                                                    -Ensure 'Absent'
+                    $testTargetResourceResult | Should Be $true
+                }
+
+                It 'Should return false when Ensure set to Absent and process is running' {
+                    $testTargetResourceResult = Test-TargetResource -Path $script:validPath1 `
+                                                                    -Arguments $script:mockProcess1.Arguments `
+                                                                    -Ensure 'Absent'
                     $testTargetResourceResult | Should Be $false
                 }
 
             }
+        }
 
+        Describe 'Private Methods Tests' {
+            BeforeAll {
+                Mock -CommandName New-InvalidOperationException -MockWith { Throw $script:exceptionMessage }
+                Mock -CommandName New-InvalidArgumentException -MockWith { Throw $script:exceptionMessage }
+            }
+            
+            Context 'Expand-Path' {
+                
+                It 'Should return the original path when path is rooted' {
+                    $rootedPath = 'C:\testProcess.exe'
+                    Mock -CommandName Test-Path -MockWith { return $true }
+
+                    $expandPathResult = Expand-Path -Path $rootedPath
+                    $expandPathResult | Should Be $rootedPath
+                }
+
+                It 'Should throw an invalid argument exception when Path is rooted and does not exist' {
+                    $rootedPath = 'C:\invalidProcess.exe'
+                    Mock -CommandName Test-Path -MockWith { return $false }
+
+                    { Expand-Path -Path $rootedPath} | Should Throw $script:exceptionMessage
+
+                    Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
+                }
+
+                It 'Should throw an invalid argument exception when Path is unrooted and does not exist' {
+                     $unrootedPath = 'invalidfile.txt'
+                     Mock -CommandName Test-Path -MockWith { return $false }
+
+                     { Expand-Path -Path $unrootedPath} | Should Throw $script:exceptionMessage
+
+                     Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
+                }
+            }
+
+            Context 'Get-Win32Process' {
+                It 'Should return the correct process when it exists and no arguments passed' {
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2) }
+                    Mock -CommandName Get-CimInstance -MockWith { return $script:mockProcess2 }
+
+                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path
+                    $resultProcess | Should Be @($script:mockProcess2)
+
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
+                }
+
+                It 'Should return the correct process when it exists and arguments are passed' {
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess1) }
+                    Mock -CommandName Get-CimInstance -MockWith { return $script:mockProcess1 }
+
+                    $resultProcess = Get-Win32Process -Path $script:mockProcess1.Path `
+                                                      -Arguments $script:mockProcess1.Arguments
+                    $resultProcess | Should Be @($script:mockProcess1)
+
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
+                }
+
+                It 'Should return the correct processes when multiple exist' {
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess1, $script:mockProcess1, $script:mockProcess1) }
+                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess1, $script:mockProcess1, $script:mockProcess1) }
+
+                    $resultProcess = Get-Win32Process -Path $script:mockProcess1.Path `
+                                                      -Arguments $script:mockProcess1.Arguments
+                    $resultProcess | Should Be @($script:mockProcess1, $script:mockProcess1, $script:mockProcess1)
+
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-CimInstance -Exactly 3 -Scope It
+                }
+
+                It 'Should return the correct processes when they exists and cim instance threshold is lower than number of processes found' {
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2, $script:mockProcess2) }
+                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess2, $script:mockProcess2) }
+
+                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path `
+                                                      -Arguments $script:mockProcess2.Arguments `
+                                                      -UseGetCimInstanceThreshold 1
+                    $resultProcess | Should Be @($script:mockProcess2, $script:mockProcess2)
+
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
+                }
+
+                It 'Should return the correct process when it exists and Credential is passed in' {
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2) }
+                    Mock -CommandName Get-CimInstance -MockWith { return $script:mockProcess2 }
+                    Mock -CommandName Get-Win32ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
+                                                            -ParameterFilter { ($Process -eq $script:mockProcess2) }
+
+                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path `
+                                                      -Credential $script:testCredential
+                    $resultProcess | Should Be @($script:mockProcess2)
+
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-Win32ProcessOwner -Exactly 1 -Scope It
+                }
+
+                It 'Should return only processes that match Credential' {
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2, $script:mockProcess1) }
+                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess2, $script:mockProcess1) }
+                    Mock -CommandName Get-Win32ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
+                                                            -ParameterFilter { ($Process -eq $script:mockProcess2) }
+                    Mock -CommandName Get-Win32ProcessOwner -MockWith { return ('wrongDomain' + '\' + $script:testUsername) } `
+                                                            -ParameterFilter { ($Process -eq $script:mockProcess1) }
+
+                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path `
+                                                      -Credential $script:testCredential `
+                                                      -UseGetCimInstanceThreshold 1
+                    $resultProcess | Should Be @($script:mockProcess2)
+
+                    Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
+                }
+            
+            }
+        }
+
+
+
+            <#
             Context 'Get-Win32Process' {
                 It 'Should only return one process when arguments were changed for that process' {
                     Set-TargetResource -Path $script:cmdProcessFullPath -Arguments ''
@@ -481,7 +593,6 @@ try
                     { $splitCredentialResult = Split-Credential -Credential $testCredential } | Should Throw
                 }
             }#>
-        }
     }
 }
 finally
