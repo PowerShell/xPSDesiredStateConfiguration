@@ -83,13 +83,13 @@ try
                                               -ParameterFilter { $Path -eq $script:invalidPath }
                 Mock -CommandName Expand-Path -MockWith { return $script:validPath3 } `
                                               -ParameterFilter { $Path -eq $script:validPath3 }
-                Mock -CommandName Get-Win32Process -MockWith { return @() } `
+                Mock -CommandName Get-ProcessCimInstance -MockWith { return @() } `
                                                    -ParameterFilter { $Path -eq $script:invalidPath }
-                Mock -CommandName Get-Win32Process -MockWith { return @($script:mockProcess1, $script:mockProcess3) } `
+                Mock -CommandName Get-ProcessCimInstance -MockWith { return @($script:mockProcess1, $script:mockProcess3) } `
                                                    -ParameterFilter { $Path -eq $script:validPath1 }
-                Mock -CommandName Get-Win32Process -MockWith { return @($script:mockProcess2) } `
+                Mock -CommandName Get-ProcessCimInstance -MockWith { return @($script:mockProcess2) } `
                                                    -ParameterFilter { $Path -eq $script:validPath2 }
-                Mock -CommandName Get-Win32Process -MockWith { return @($script:errorProcess) } `
+                Mock -CommandName Get-ProcessCimInstance -MockWith { return @($script:errorProcess) } `
                                                    -ParameterFilter { $Path -eq $script:validPath3 }
                 Mock -CommandName New-InvalidOperationException -MockWith { Throw $script:exceptionMessage }
                 Mock -CommandName New-InvalidArgumentException -MockWith { Throw $script:exceptionMessage }
@@ -114,7 +114,7 @@ try
                     $getTargetResourceResult.Path  | Should Be $invalidPath
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                 }
 
                 It 'Should return the correct properties for one process with a credential' {
@@ -133,7 +133,7 @@ try
                     $getTargetResourceResult.ProcessId | Should Be $script:mockProcess2.ProcessId
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
                 }
              
@@ -152,7 +152,7 @@ try
                     $getTargetResourceResult.ProcessId | Should Be $script:mockProcess1.ProcessId
                     
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
                 }
             }
@@ -176,7 +176,7 @@ try
                     } | Should Not Throw
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Stop-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
                 }
@@ -190,7 +190,7 @@ try
                     } | Should Not Throw
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Stop-Process -Exactly 0 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                 }
@@ -204,7 +204,7 @@ try
                     } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Stop-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName New-InvalidOperationException -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
@@ -219,7 +219,7 @@ try
                     } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Stop-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName New-InvalidOperationException -Exactly 1 -Scope It
@@ -236,7 +236,7 @@ try
                     } | Should Not Throw
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Test-IsRunFromLocalSystemUser -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
@@ -256,7 +256,7 @@ try
                     } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Test-IsRunFromLocalSystemUser -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 0 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
@@ -277,7 +277,7 @@ try
                     } | Should Throw $testErrorRecord
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Test-IsRunFromLocalSystemUser -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Start-ProcessAsLocalSystemUser -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
@@ -293,7 +293,7 @@ try
                     } | Should Not Throw
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Start-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
                 }
@@ -308,7 +308,7 @@ try
                     } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Start-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                     Assert-MockCalled -CommandName New-InvalidOperationException -Exactly 1 -Scope It
@@ -324,7 +324,7 @@ try
                     } | Should Throw $script:exceptionMessage
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Start-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 1 -Scope It
                 }
@@ -339,7 +339,7 @@ try
                     } | Should Not Throw
 
                     Assert-MockCalled -CommandName Expand-Path -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32Process -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessCimInstance -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Start-Process -Exactly 0 -Scope It
                     Assert-MockCalled -CommandName Wait-ProcessCount -Exactly 0 -Scope It
                 }
@@ -413,12 +413,12 @@ try
                 }
             }
 
-            Context 'Get-Win32Process' {
+            Context 'Get-ProcessCimInstance' {
                 It 'Should return the correct process when it exists and no arguments passed' {
                     Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2) }
                     Mock -CommandName Get-CimInstance -MockWith { return $script:mockProcess2 }
 
-                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess2.Path
                     $resultProcess | Should Be @($script:mockProcess2)
 
                     Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
@@ -429,7 +429,7 @@ try
                     Mock -CommandName Get-Process -MockWith { return @($script:mockProcess1) }
                     Mock -CommandName Get-CimInstance -MockWith { return $script:mockProcess1 }
 
-                    $resultProcess = Get-Win32Process -Path $script:mockProcess1.Path `
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess1.Path `
                                                       -Arguments $script:mockProcess1.Arguments
                     $resultProcess | Should Be @($script:mockProcess1)
 
@@ -441,7 +441,7 @@ try
                     Mock -CommandName Get-Process -MockWith { return @($script:mockProcess1, $script:mockProcess1, $script:mockProcess1) }
                     Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess1, $script:mockProcess1, $script:mockProcess1) }
 
-                    $resultProcess = Get-Win32Process -Path $script:mockProcess1.Path `
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess1.Path `
                                                       -Arguments $script:mockProcess1.Arguments
                     $resultProcess | Should Be @($script:mockProcess1, $script:mockProcess1, $script:mockProcess1)
 
@@ -453,7 +453,7 @@ try
                     Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2, $script:mockProcess2) }
                     Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess2, $script:mockProcess2) }
 
-                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path `
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess2.Path `
                                                       -Arguments $script:mockProcess2.Arguments `
                                                       -UseGetCimInstanceThreshold 1
                     $resultProcess | Should Be @($script:mockProcess2, $script:mockProcess2)
@@ -465,27 +465,27 @@ try
                 It 'Should return the correct process when it exists and Credential is passed in' {
                     Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2) }
                     Mock -CommandName Get-CimInstance -MockWith { return $script:mockProcess2 }
-                    Mock -CommandName Get-Win32ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
+                    Mock -CommandName Get-ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
                                                             -ParameterFilter { ($Process -eq $script:mockProcess2) }
 
-                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path `
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess2.Path `
                                                       -Credential $script:testCredential
                     $resultProcess | Should Be @($script:mockProcess2)
 
                     Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It
-                    Assert-MockCalled -CommandName Get-Win32ProcessOwner -Exactly 1 -Scope It
+                    Assert-MockCalled -CommandName Get-ProcessOwner -Exactly 1 -Scope It
                 }
 
                 It 'Should return only processes that match Credential' {
                     Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2, $script:mockProcess1) }
                     Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess2, $script:mockProcess1) }
-                    Mock -CommandName Get-Win32ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
+                    Mock -CommandName Get-ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
                                                             -ParameterFilter { ($Process -eq $script:mockProcess2) }
-                    Mock -CommandName Get-Win32ProcessOwner -MockWith { return ('wrongDomain' + '\' + $script:testUsername) } `
+                    Mock -CommandName Get-ProcessOwner -MockWith { return ('wrongDomain' + '\' + $script:testUsername) } `
                                                             -ParameterFilter { ($Process -eq $script:mockProcess1) }
 
-                    $resultProcess = Get-Win32Process -Path $script:mockProcess2.Path `
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess2.Path `
                                                       -Credential $script:testCredential `
                                                       -UseGetCimInstanceThreshold 1
                     $resultProcess | Should Be @($script:mockProcess2)
@@ -500,15 +500,15 @@ try
 
 
             <#
-            Context 'Get-Win32Process' {
+            Context 'Get-ProcessCimInstance' {
                 It 'Should only return one process when arguments were changed for that process' {
                     Set-TargetResource -Path $script:cmdProcessFullPath -Arguments ''
                     Set-TargetResource -Path $script:cmdProcessFullPath -Arguments 'abc'
 
-                    $processes = @( Get-Win32Process -Path $script:cmdProcessFullPath -UseGetCimInstanceThreshold 0 )
+                    $processes = @( Get-ProcessCimInstance -Path $script:cmdProcessFullPath -UseGetCimInstanceThreshold 0 )
                     $processes.Count | Should Be 1
 
-                    $processes = @( Get-Win32Process -Path $script:cmdProcessFullPath -UseGetCimInstanceThreshold 5 )
+                    $processes = @( Get-ProcessCimInstance -Path $script:cmdProcessFullPath -UseGetCimInstanceThreshold 5 )
                     $processes.Count | Should Be 1
                 }
             }

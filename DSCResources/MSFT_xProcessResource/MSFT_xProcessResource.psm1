@@ -57,9 +57,9 @@ function Get-TargetResource
         $getWin32ProcessArguments['Credential'] = $Credential
     }
 
-    $win32Processes = @( Get-Win32Process @getWin32ProcessArguments )
+    $processCimInstance = @( Get-ProcessCimInstance @getWin32ProcessArguments )
 
-    if ($win32Processes.Count -eq 0)
+    if ($processCimInstance.Count -eq 0)
     {
         return @{
             Path = $Path
@@ -68,18 +68,18 @@ function Get-TargetResource
         }
     }
 
-    $getProcessResult = Get-Process -ID $win32Processes[0].ProcessId -ErrorAction 'Ignore'
+    $getProcessResult = Get-Process -ID $processCimInstance[0].ProcessId -ErrorAction 'Ignore'
 
     $processToReturn = @{
-        Path = $win32Processes[0].Path
-        Arguments = (Get-ArgumentsFromCommandLineInput -CommandLineInput $win32Processes[0].CommandLine)
+        Path = $processCimInstance[0].Path
+        Arguments = (Get-ArgumentsFromCommandLineInput -CommandLineInput $processCimInstance[0].CommandLine)
         PagedMemorySize = $getProcessResult.PagedMemorySize64
         NonPagedMemorySize = $getProcessResult.NonpagedSystemMemorySize64
         VirtualMemorySize = $getProcessResult.VirtualMemorySize64
         HandleCount = $getProcessResult.HandleCount
         Ensure = 'Present'
-        ProcessId = $win32Processes[0].ProcessId
-        Count = $win32Processes.Count
+        ProcessId = $processCimInstance[0].ProcessId
+        Count = $processCimInstance.Count
     }
 
     Write-Verbose ($script:localizedData.GetTargetResourceEndMessage -f $Path)
@@ -182,7 +182,7 @@ function Set-TargetResource
         $getWin32ProcessArguments['Credential'] = $Credential
     }
 
-    $win32Processes = @( Get-Win32Process @getWin32ProcessArguments )
+    $processCimInstance = @( Get-ProcessCimInstance @getWin32ProcessArguments )
 
     if ($Ensure -eq 'Absent')
     {
@@ -196,10 +196,10 @@ function Set-TargetResource
         Assert-HashtableDoesNotContainKey @assertHashtableParams
 
         $whatIfShouldProcess = $PSCmdlet.ShouldProcess($Path, $script:localizedData.StoppingProcessWhatif)
-        if ($win32Processes.Count -gt 0 -and $whatIfShouldProcess)
+        if ($processCimInstance.Count -gt 0 -and $whatIfShouldProcess)
         {
             # If there are multiple process Ids, all will be included to be stopped
-            $processIds = $win32Processes.ProcessId
+            $processIds = $processCimInstance.ProcessId
 
             # Redirecting error output to standard output while we try to stop the processes
             $stopProcessError = Stop-Process -Id $processIds -Force 2>&1
@@ -268,7 +268,7 @@ function Set-TargetResource
             }
         }
 
-        if ($win32Processes.Count -eq 0)
+        if ($processCimInstance.Count -eq 0)
         {
             $startProcessArguments = @{
                 FilePath = $Path
@@ -467,17 +467,17 @@ function Test-TargetResource
         $getWin32ProcessArguments['Credential'] = $Credential
     }
 
-    $win32Processes = @( Get-Win32Process @getWin32ProcessArguments )
+    $processCimInstances = @( Get-ProcessCimInstance @getWin32ProcessArguments )
 
     Write-Verbose ($script:localizedData.TestTargetResourceEndMessage -f $Path)
 
     if ($Ensure -eq 'Absent')
     {
-        return ($win32Processes.Count -eq 0)
+        return ($processCimInstances.Count -eq 0)
     }
     else
     {
-        return ($win32Processes.Count -gt 0)
+        return ($processCimInstances.Count -gt 0)
     }
 }
 
@@ -547,7 +547,7 @@ function Expand-Path
         help the function execute faster. Otherwise, this function will retrieve each Win32_Process
         object with the product IDs returned from Get-Process.
 #>
-function Get-Win32Process
+function Get-ProcessCimInstance
 {
     [OutputType([Object[]])]
     [CmdletBinding()]
@@ -609,7 +609,7 @@ function Get-Win32Process
         $userName = $splitCredentialResult.UserName
 
         $whereFilterScript = {
-            (Get-Win32ProcessOwner -Process $_) -eq "$domain\$userName"
+            (Get-ProcessOwner -Process $_) -eq "$domain\$userName"
         }
         $processes = Where-Object -InputObject $processes -FilterScript $whereFilterScript
     }
@@ -666,7 +666,7 @@ function ConvertTo-EscapedStringForWqlFilter
         If the process was killed by the time this function is called, this function will throw a
         WMIMethodException with the message "Not found".
 #>
-function Get-Win32ProcessOwner
+function Get-ProcessOwner
 {
     [OutputType([String])]
     [CmdletBinding()]
@@ -802,7 +802,7 @@ function Wait-ProcessCount
 
     do
     {
-        $actualProcessCount = @( Get-Win32Process @ProcessSettings ).Count
+        $actualProcessCount = @( Get-ProcessCimInstance @ProcessSettings ).Count
     } while ($actualProcessCount -ne $ProcessCount -and ([DateTime]::Now - $startTime).TotalMilliseconds -lt 2000)
 
     return $actualProcessCount -eq $ProcessCount
