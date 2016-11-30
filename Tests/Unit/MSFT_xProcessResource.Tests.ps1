@@ -60,6 +60,17 @@ try
                     HandleCount = 0
                 }
 
+                $script:mockProcess4 = @{
+                    Path = $script:validPath1
+                    CommandLine = 'c:\test.exe arg6'
+                    Arguments = 'arg6'
+                    ProcessId = 1111101
+                    PagedMemorySize64 = 510
+                    NonpagedSystemMemorySize64 = 16
+                    VirtualMemorySize64 = 8
+                    HandleCount = 8
+                }
+
                 $script:errorProcess = @{
                     Path = $script:validPath3
                     CommandLine = ''
@@ -466,7 +477,7 @@ try
                     Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2) }
                     Mock -CommandName Get-CimInstance -MockWith { return $script:mockProcess2 }
                     Mock -CommandName Get-ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
-                                                            -ParameterFilter { ($Process -eq $script:mockProcess2) }
+                                                       -ParameterFilter { ($Process -eq $script:mockProcess2) }
 
                     $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess2.Path `
                                                       -Credential $script:testCredential
@@ -478,17 +489,18 @@ try
                 }
 
                 It 'Should return only processes that match Credential' {
-                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess2, $script:mockProcess1) }
-                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess2, $script:mockProcess1) }
+                    Mock -CommandName Get-Process -MockWith { return @($script:mockProcess3, $script:mockProcess4) }
+                    Mock -CommandName Get-CimInstance -MockWith { return @($script:mockProcess3, $script:mockProcess4) }
                     Mock -CommandName Get-ProcessOwner -MockWith { return ($env:computerName + '\' + $script:testUsername) } `
-                                                            -ParameterFilter { ($Process -eq $script:mockProcess2) }
+                                                       -ParameterFilter { ($Process -eq $script:mockProcess3) }
                     Mock -CommandName Get-ProcessOwner -MockWith { return ('wrongDomain' + '\' + $script:testUsername) } `
-                                                            -ParameterFilter { ($Process -eq $script:mockProcess1) }
+                                                       -ParameterFilter { ($Process -eq $script:mockProcess4) }
 
-                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess2.Path `
-                                                      -Credential $script:testCredential `
-                                                      -UseGetCimInstanceThreshold 1
-                    $resultProcess | Should Be @($script:mockProcess2)
+                    $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess3.Path `
+                                                            -Credential $script:testCredential `
+                                                            -Arguments $script:mockProcess3.Arguments `
+                                                            -UseGetCimInstanceThreshold 1
+                    $resultProcess | Should Be @($script:mockProcess3)
 
                     Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
                     Assert-MockCalled -CommandName Get-CimInstance -Exactly 1 -Scope It

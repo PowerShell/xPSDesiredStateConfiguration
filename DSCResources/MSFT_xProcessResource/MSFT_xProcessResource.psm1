@@ -607,11 +607,16 @@ function Get-ProcessCimInstance
         $splitCredentialResult = Split-Credential -Credential $Credential
         $domain =  $splitCredentialResult.Domain
         $userName = $splitCredentialResult.UserName
+        $processesWithCredential = @()
 
-        $whereFilterScript = {
-            (Get-ProcessOwner -Process $_) -eq "$domain\$userName"
+        foreach ($process in $processes)
+        {
+            if ((Get-ProcessOwner -Process $process) -eq "$domain\$userName")
+            {
+                $processesWithCredential += $process
+            }
         }
-        $processes = Where-Object -InputObject $processes -FilterScript $whereFilterScript
+        $processes = $processesWithCredential
     }
 
     if ($null -eq $Arguments)
