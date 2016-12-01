@@ -576,7 +576,7 @@ try
                 }
 
                 It 'Should return the correct arguments when double quotes are used' {
-                    $inputString = '"test.txt"   a b c'
+                    $inputString = '"test file   test"   a b c'
                     $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
                     $argumentsReturned | Should Be 'a b c'
                 }
@@ -615,41 +615,62 @@ try
                     Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
                 }
             }
-        }
 
+            Context 'Wait-ProcessCount' {
+                Mock -CommandName Get-ProcessCimInstance -MockWith { return @($script:mockProcess1, $script:mockProcess3) }
+                $mockProcessSettings = @{ Path = 'mockPath' 
+                                          Arguments = 'mockArguments'}
 
+                It 'Should return true when all processes are returned' {
+                    $processCountResult = Wait-ProcessCount -ProcessSettings $mockProcessSettings -ProcessCount 2
+                    $processCountResult | Should Be $true
+                }
 
-            <#
+                It 'Should return false when not all processes are returned' {
+                    $processCountResult = Wait-ProcessCount -ProcessSettings $mockProcessSettings `
+                                                            -ProcessCount 3 `
+                                                            -WaitTime 10
+                    $processCountResult | Should Be $false
+                }
             
+            }
 
-            Context 'Get-ArgumentsFromCommandLineInput' {
-                It 'Should retrieve expected arguments from command line input' {
-                    $testCases = @( @{
-                            CommandLineInput = 'c    a   '
-                            ExpectedArguments = 'a'
-                        },
-                        @{
-                            CommandLineInput = '"c b d" e  '
-                            ExpectedArguments = 'e'
-                        },
-                        @{
-                            CommandLineInput = '    a b'
-                            ExpectedArguments = 'b'
-                        },
-                        @{
-                            CommandLineInput = ' abc '
-                            ExpectedArguments = ''
-                        }
-                    )
+            Context 'Assert-PathArgumentRooted' {
+                
+                It 'Should not throw when path is rooted' {
+                    $rootedPath = 'C:\testProcess.exe'
 
-                    foreach ($testCase in $testCases)
-                    {
-                        $commandLineInput = $testCase.CommandLineInput
-                        $expectedArguments = $testCase.ExpectedArguments
-                        $actualArguments = Get-ArgumentsFromCommandLineInput -CommandLineInput $commandLineInput
+                    { Assert-PathArgumentRooted -PathArgumentName 'mock test name' `
+                                                -PathArgument $rootedPath } | Should Not Throw
+                }
 
-                        $actualArguments | Should Be $expectedArguments
-                    }
+                It 'Should throw an invalid argument exception when Path is unrooted' {
+                     $unrootedPath = 'invalidfile.txt'
+
+
+                     { Assert-PathArgumentRooted -PathArgumentName 'mock test name' `
+                                                 -PathArgument $unrootedPath } | Should Throw $script:exceptionMessage
+
+                     Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
+                }
+            }
+
+            Context 'Assert-PathArgumentValid' {
+                
+                It 'Should not throw when path is valid' {
+                    Mock -CommandName Test-Path -MockWith { return $true }
+
+                    { Assert-PathArgumentValid -PathArgumentName 'test name' `
+                                               -PathArgument 'validPath' } | Should Not Throw
+                }
+
+                It 'Should throw an invalid argument exception when Path is not valid' {
+                    Mock -CommandName Test-Path -MockWith { return $false }
+
+                    { Assert-PathArgumentValid -PathArgumentName 'test name' `
+                                               -PathArgument 'invalidPath' } | Should Throw $script:exceptionMessage
+
+                    Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
                 }
             }
 
@@ -683,25 +704,32 @@ try
 
                     $splitCredentialResult = Split-Credential -Credential $testCredential
 
+                    $splitCredentialResult.Domain | Should Be $env:computerName
                     $splitCredentialResult.Username | Should Be 'localuser'
                 }
     
-                It 'Should throw when more than one \ in username' {
+                It 'Should throw an invalid argument exception when more than one \ in username' {
                     $testUsername = 'user\domain\foo'
                     $testPassword = ConvertTo-SecureString -String 'dummy' -AsPlainText -Force
                     $testCredential = New-Object -TypeName 'PSCredential' -ArgumentList @($testUsername, $testPassword)
                     
-                    { $splitCredentialResult = Split-Credential -Credential $testCredential } | Should Throw
+                    { $splitCredentialResult = Split-Credential -Credential $testCredential } | Should Throw $script:exceptionMessage
+
+                    Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
                 }
     
-                It 'Should throw when more than one @ in username' {
+                It 'Should throw an invalid argument exception when more than one @ in username' {
                     $testUsername = 'user@domain@foo'
                     $testPassword = ConvertTo-SecureString -String 'dummy' -AsPlainText -Force
                     $testCredential = New-Object -TypeName 'PSCredential' -ArgumentList @($testUsername, $testPassword)
                     
-                    { $splitCredentialResult = Split-Credential -Credential $testCredential } | Should Throw
+                    { $splitCredentialResult = Split-Credential -Credential $testCredential } | Should Throw $script:exceptionMessage
+
+                    Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
                 }
-            }#>
+            }
+        }
+
     }
 }
 finally

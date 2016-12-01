@@ -349,7 +349,7 @@ function Set-TargetResource
                     }
                 }
 
-                Write-Verbose -Message ($script:localizedData.ProcessStarted -f $Path)
+                Write-Verbose -Message ($script:localizedData.ProcessesStarted -f $Path)
 
                 # Before returning from Set-TargetResource we have to ensure a subsequent Test-TargetResource is going to work
                 if (-not (Wait-ProcessCount -ProcessSettings $getProcessCimInstanceArguments -ProcessCount 1))
@@ -804,13 +804,19 @@ function Assert-HashtableDoesNotContainKey
 
 <#
     .SYNOPSIS
-        Waits for the given number of processes with the given settings to be running.
+        Waits for the given amount of time for the given number of processes with the given settings
+        to be running. If not all processes are running by 'WaitTime', the function returns
+        false, otherwise it returns true.
 
     .PARAMETER ProcessSettings
-        The settings of the running process(es) to get the count of.
+        The settings for the running process(es) that we're getting the count of.
 
     .PARAMETER ProcessCount
         The number of processes running to wait for.
+
+    .PARAMETER WaitTime
+        The amount of milliseconds to wait for all processes to be running.
+        Default is 2000.
 #>
 function Wait-ProcessCount
 {
@@ -826,7 +832,10 @@ function Wait-ProcessCount
         [Parameter(Mandatory = $true)]
         [ValidateRange(0, [Int]::MaxValue)]
         [Int]
-        $ProcessCount
+        $ProcessCount,
+
+        [Int]
+        $WaitTime = 2000
     )
 
     $startTime = [DateTime]::Now
@@ -834,7 +843,7 @@ function Wait-ProcessCount
     do
     {
         $actualProcessCount = @( Get-ProcessCimInstance @ProcessSettings ).Count
-    } while ($actualProcessCount -ne $ProcessCount -and ([DateTime]::Now - $startTime).TotalMilliseconds -lt 2000)
+    } while ($actualProcessCount -ne $ProcessCount -and ([DateTime]::Now - $startTime).TotalMilliseconds -lt $WaitTime)
 
     return $actualProcessCount -eq $ProcessCount
 }
