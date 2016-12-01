@@ -17,75 +17,74 @@ try
 
     InModuleScope 'MSFT_xProcessResource' {
         # Mock objects
-                $script:validPath1 = 'ValidPath1'
-                $script:validPath2 = 'ValidPath2'
-                $script:validPath3 = 'ValidPath3'
-                $script:invalidPath = 'InvalidPath'
-                $script:testUserName = 'TestUserName12345'
-                $testPassword = 'StrongOne7.'
-                $testSecurePassword = ConvertTo-SecureString -String $testPassword -AsPlainText -Force
-                $script:testCredential = New-Object PSCredential ($script:testUserName, $testSecurePassword)
-                $script:exceptionMessage = 'Test Invalid Operation Exception'
+        $script:validPath1 = 'ValidPath1'
+        $script:validPath2 = 'ValidPath2'
+        $script:validPath3 = 'ValidPath3'
+        $script:invalidPath = 'InvalidPath'
+        $script:testUserName = 'TestUserName12345'
+        $testPassword = 'StrongOne7.'
+        $testSecurePassword = ConvertTo-SecureString -String $testPassword -AsPlainText -Force
+        $script:testCredential = New-Object PSCredential ($script:testUserName, $testSecurePassword)
+        $script:exceptionMessage = 'Test Invalid Operation Exception'
 
-                $script:mockProcess1 = @{
-                    Path = $script:validPath1
-                    CommandLine = 'c:\temp\test.exe argument1 argument2 argument3'
-                    Arguments = 'argument1 argument2 argument3'
-                    ProcessId = 12345
-                    PagedMemorySize64 = 1048
-                    NonpagedSystemMemorySize64 = 16
-                    VirtualMemorySize64 = 256
-                    HandleCount = 50
-                }
+        $script:mockProcess1 = @{
+            Path = $script:validPath1
+            CommandLine = 'c:\temp\test.exe argument1 argument2 argument3'
+            Arguments = 'argument1 argument2 argument3'
+            ProcessId = 12345
+            PagedMemorySize64 = 1048
+            NonpagedSystemMemorySize64 = 16
+            VirtualMemorySize64 = 256
+            HandleCount = 50
+        }
 
-                $script:mockProcess2 = @{
-                    Path = $script:validPath2
-                    CommandLine = ''
-                    Arguments = ''
-                    ProcessId = 54321
-                    PagedMemorySize64 = 2096
-                    NonpagedSystemMemorySize64 = 8
-                    VirtualMemorySize64 = 512
-                    HandleCount = 5
-                }
+        $script:mockProcess2 = @{
+            Path = $script:validPath2
+            CommandLine = ''
+            Arguments = ''
+            ProcessId = 54321
+            PagedMemorySize64 = 2096
+            NonpagedSystemMemorySize64 = 8
+            VirtualMemorySize64 = 512
+            HandleCount = 5
+        }
 
-                $script:mockProcess3 = @{
-                    Path = $script:validPath1
-                    CommandLine = 'c:\test.exe arg6'
-                    Arguments = 'arg6'
-                    ProcessId = 1111101
-                    PagedMemorySize64 = 512
-                    NonpagedSystemMemorySize64 = 32
-                    VirtualMemorySize64 = 64
-                    HandleCount = 0
-                }
+        $script:mockProcess3 = @{
+            Path = $script:validPath1
+            CommandLine = 'c:\test.exe arg6'
+            Arguments = 'arg6'
+            ProcessId = 1111101
+            PagedMemorySize64 = 512
+            NonpagedSystemMemorySize64 = 32
+            VirtualMemorySize64 = 64
+            HandleCount = 0
+        }
 
-                $script:mockProcess4 = @{
-                    Path = $script:validPath1
-                    CommandLine = 'c:\test.exe arg6'
-                    Arguments = 'arg6'
-                    ProcessId = 1111101
-                    PagedMemorySize64 = 510
-                    NonpagedSystemMemorySize64 = 16
-                    VirtualMemorySize64 = 8
-                    HandleCount = 8
-                }
+        $script:mockProcess4 = @{
+            Path = $script:validPath1
+            CommandLine = 'c:\test.exe arg6'
+            Arguments = 'arg6'
+            ProcessId = 1111101
+            PagedMemorySize64 = 510
+            NonpagedSystemMemorySize64 = 16
+            VirtualMemorySize64 = 8
+            HandleCount = 8
+        }
 
-                $script:errorProcess = @{
-                    Path = $script:validPath3
-                    CommandLine = ''
-                    Arguments = ''
-                    ProcessId = 77777
-                    PagedMemorySize64 = 0
-                    NonpagedSystemMemorySize64 = 0
-                    VirtualMemorySize64 = 0
-                    HandleCount = 0
-                }
+        $script:errorProcess = @{
+            Path = $script:validPath3
+            CommandLine = ''
+            Arguments = ''
+            ProcessId = 77777
+            PagedMemorySize64 = 0
+            NonpagedSystemMemorySize64 = 0
+            VirtualMemorySize64 = 0
+            HandleCount = 0
+        }
+
         Describe 'Exported Methods Tests' {
             BeforeAll {
-                
-
-                # Mock methods
+                # Mocked methods
                 Mock -CommandName Expand-Path -MockWith { return $script:validPath1 } `
                                               -ParameterFilter { $Path -eq $script:validPath1 }
                 Mock -CommandName Expand-Path -MockWith { return $script:validPath2 } `
@@ -567,6 +566,54 @@ try
                     $owner | Should Be ($env:computerName + '\' + $mockOwner.User)
                 }
             
+            }
+
+            Context 'Get-ArgumentsFromCommandLineInput' {
+                It 'Should return the correct arguments when single quotes are used' {
+                    $inputString = 'test.txt a b c'
+                    $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
+                    $argumentsReturned | Should Be 'a b c'
+                }
+
+                It 'Should return the correct arguments when double quotes are used' {
+                    $inputString = '"test.txt"   a b c'
+                    $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
+                    $argumentsReturned | Should Be 'a b c'
+                }
+
+                It 'Should return an empty string when an empty string is passed in' {
+                    $inputString = $null
+                    $resultString = [String]::Empty
+                    $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
+                    $argumentsReturned | Should Be $resultString
+                }
+
+                It 'Should return an empty string when there are no arguments' {
+                    $inputString = 'test.txt'
+                    $resultString = [String]::Empty
+                    $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
+                    $argumentsReturned | Should Be $resultString
+                }
+            }
+
+            Context 'Assert-HashtableDoesNotContainKey' {
+                $mockHashtable = @{
+                    Key1 = 'test key1'
+                    Key2 = 'test key2'
+                    Key3 = 'test key3'
+                }
+
+                It 'Should not throw an exception if the hashtable does not contain a key' {
+                    $mockKey = @('k1', 'k2', 'k3', 'k4', 'k5')
+                    { Assert-HashTableDoesNotContainKey -Hashtable $mockHashtable -Key $mockKey } | Should Not Throw
+                }
+
+                It 'Should throw an exception if the hashtable contains a key' {
+                    $mockKey = @('k1', 'k2', 'Key3', 'k4', 'k5')
+                    { Assert-HashTableDoesNotContainKey -Hashtable $mockHashtable -Key $mockKey } | Should Throw $script:exceptionMessage
+
+                    Assert-MockCalled -CommandName New-InvalidArgumentException -Exactly 1 -Scope It
+                }
             }
         }
 
