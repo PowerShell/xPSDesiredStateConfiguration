@@ -1,20 +1,58 @@
-﻿Configuration xScriptExample {
-    Import-DscResource -ModuleName xPSDesiredStateConfiguration
+﻿<#
+    .SYNOPSIS
+        Creates a file at the given file path with the specified content through the xScript resource.
+
+    .PARAMETER FilePath
+        The path at which to create the file.
+
+    .PARAMETER FileContent
+        The content to set for the new file.
+#>
+Configuration xScriptExample {
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $FilePath,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $FileContent
+    )
+
+    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
 
     xScript ScriptExample
     {
         SetScript = {
-            $sw = New-Object System.IO.StreamWriter("C:\TempFolder\TestFile.txt")
-            $sw.WriteLine("Some sample string")
-            $sw.Close()
+            $streamWriter = New-Object -TypeName 'System.IO.StreamWriter' -ArgumentList @( $using:FilePath )
+            $streamWriter.WriteLine($using:FileContent)
+            $streamWriter.Close()
         }
+        TestScript = {
+            if (Test-Path -Path $using:FilePath)
+            {
+                $fileContent = Get-Content -Path $using:filePath -Raw
+                return $fileContent -eq $using:FileContent
+            }
+            else
+            {
+                return $false
+            }
+        }
+        GetScript = {
+            $fileContent = $null
 
-        TestScript = { Test-Path "C:\TempFolder\TestFile.txt" }
+            if (Test-Path -Path $using:FilePath)
+            {
+                $fileContent = Get-Content -Path $using:filePath -Raw
+            }
 
-        GetScript = { <# This must return a hash table #>
-            @{
-                Path = "C:\TempFolder\TestFile.txt"
-                LineToWrite = "Some sample string"
+            return @{
+                Result = Get-Content -Path $fileContent
             }
         }
     }
