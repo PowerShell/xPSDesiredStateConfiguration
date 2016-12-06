@@ -1,14 +1,12 @@
-﻿<#
-    .SYNOPSIS
-        Creates a file at the given file path with the specified content through the xScript resource.
+﻿param
+(
+    [Parameter(Mandatory = $true)]
+    [String]
+    $ConfigurationName
+)
 
-    .PARAMETER FilePath
-        The path at which to create the file.
-
-    .PARAMETER FileContent
-        The content to set for the new file.
-#>
-Configuration xScriptExample {
+Configuration $ConfigurationName
+{
     [CmdletBinding()]
     param
     (

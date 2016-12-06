@@ -762,6 +762,50 @@ function Exit-DscResourceTestEnvironment
     Restore-TestEnvironment -TestEnvironment $TestEnvironment
 }
 
+$script:appVeyorAdministratorCredential = $null
+
+<#
+    .SYNOPSIS
+        Retrieves the administrator credential on an AppVeyor machine.
+        The password will be reset so that we know what the password is.
+
+    .NOTES
+        The AppVeyor credential will be cached after the first call to this function so that the
+        password is not reset if this function is called again.
+#>
+function Get-AppVeyorAdministratorCredential
+{
+    [OutputType([System.Management.Automation.PSCredential])]
+    [CmdletBinding()]
+    param ()
+
+    if ($null -eq $script:appVeyorAdministratorCredential)
+    {
+        $randomGenerator = New-Object -TypeName 'System.Random'
+
+        $passwordLength = Get-Random -Minimum 15 -Maximum 126
+
+        while ($password.Length -lt $passwordLength)
+        {
+            $password = $password + [Char]$randomGenerator.Next(45, 126)
+        }
+
+        # Change password
+        $appVeyorAdministratorUsername = 'appveyor'
+
+        $appVeyorAdministratorUser = [ADSI]("WinNT://$($env:computerName)/$appVeyorAdministratorUsername")
+
+        $null = $appVeyorAdministratorUser.SetPassword($password)
+        [Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon', 'DefaultPassword', $password)
+
+        $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
+
+        $script:appVeyorAdministratorCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @( "$($env:computerName)\$appVeyorAdministratorUsername", $securePassword )
+    }
+
+    return $script:appVeyorAdministratorCredential
+}
+
 Export-ModuleMember -Function `
     Test-GetTargetResourceResult, `
     New-User, `
@@ -771,4 +815,5 @@ Export-ModuleMember -Function `
     Test-IsFileLocked, `
     Test-SetTargetResourceWithWhatIf, `
     Enter-DscResourceTestEnvironment, `
-    Exit-DscResourceTestEnvironment
+    Exit-DscResourceTestEnvironment, `
+    Get-AppVeyorAdministratorCredential

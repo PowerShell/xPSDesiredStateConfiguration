@@ -1,278 +1,283 @@
-data LocalizedData
-{
-    # culture="en-US"
-    ConvertFrom-StringData @'
-SetScriptWhatIfMessage=Executing the SetScript with the user supplied credential
-InValidResultFromGetScriptError=Failure to get the results from the script in a hash table format.
-InValidResultFromTestScriptError=Failure to get a valid result from the execution of TestScript. The Test script should return True or False.
-ScriptBlockProviderScriptExecutionFailureError=Failure to successfully execute the script.
-GetTargetResourceStartVerboseMessage=Begin executing Get Script.
-GetTargetResourceEndVerboseMessage=End executing Get Script.
-SetTargetResourceStartVerboseMessage=Begin executing Set Script.
-SetTargetResourceEndVerboseMessage=End executing Set Script.
-TestTargetResourceStartVerboseMessage=Begin executing Test Script.
-TestTargetResourceEndVerboseMessage=End executing Test Script.
-ExecutingScriptMessage=Executing Script: {0}
+$errorActionPreference = 'Stop'
+Set-StrictMode -Version 'Latest'
 
-'@
-}
+# Import CommonResourceHelper for Get-LocalizedData
+$script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
+$script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
+Import-Module -Name $script:commonResourceHelperFilePath
 
-# Commented-out until more languages are supported
-# Import-LocalizedData  LocalizedData -filename MSFT_xScriptResource.strings.psd1
+# Localized messages for verbose and error statements in this resource
+$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xScriptResource'
 
-# The Get-TargetResource cmdlet is used to fetch the desired state of the DSC managed node through a powershell script.
-# This cmdlet executes the user supplied script (i.e., the script is responsible for validating the desired state of the 
-# DSC managed node). The result of the script execution is in the form of a hashtable containing all the inormation 
-# gathered from the GetScript execution.
+<#
+    .SYNOPSIS
+        Runs the given get script.
+        Should return a hashtable.
+
+    .PARAMETER GetScript
+        The script to retrieve the current state of the resource.
+
+    .PARAMETER SetScript
+        Not used in Get-TargetResource.
+
+    .PARAMETER TestScript
+        Not used in Get-TargetResource.
+
+    .PARAMETER Credential
+        The Credential to run the get script under if needed.
+#>
 function Get-TargetResource 
 {
     [OutputType([Hashtable])]
     [CmdletBinding()]
-     param 
-     (         
-       [parameter(Mandatory = $true)]
-       [ValidateNotNullOrEmpty()]
-       [string]
-       $GetScript,
-  
-       [parameter(Mandatory = $true)]
-       [ValidateNotNullOrEmpty()]
-       [string]$SetScript,
+    param 
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $GetScript,
+      
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $SetScript,
 
-       [parameter(Mandatory = $true)]
-       [ValidateNotNullOrEmpty()]
-       [string]
-       $TestScript,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $TestScript,
 
-       [Parameter(Mandatory=$false)]
-       [System.Management.Automation.PSCredential] 
-       $Credential
-     )
+        [Parameter()]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential
+    )
 
-    $getTargetResourceResult = $null;
-
-    $getTargetResourceStartVerboseMessage = $($LocalizedData.GetTargetResourceStartVerboseMessage);
-    Write-Debug -Message $getTargetResourceStartVerboseMessage;
+    Write-Verbose -Message $script:localizedData.GetTargetResourceStartVerboseMessage
  
-    $script = [ScriptBlock]::Create($GetScript);
-    $parameters = $psboundparameters.Remove("GetScript");
-    $psboundparameters.Add("ScriptBlock", $script);
-
-    $parameters = $psboundparameters.Remove("SetScript");
-    $parameters = $psboundparameters.Remove("TestScript");
-
-    $scriptResult = ScriptExecutionHelper @psboundparameters;
-  
-    $scriptResultAsErrorRescord = $scriptResult -as [System.Management.Automation.ErrorRecord]
-    if($null -ne $scriptResultAsErrorRescord)
-    {
-        $PSCmdlet.ThrowTerminatingError($scriptResultAsErrorRescord);
+    $invokeScriptParameters = @{
+        ScriptBlock = [ScriptBlock]::Create($GetScript)
     }
 
-    $scriptResultAsHasTable = $scriptResult -as [hashtable]
-
-    if($null -ne $scriptResultAsHasTable)
+    if ($PSBoundParameters.ContainsKey('Credential'))
     {
-        $getTargetResourceResult = $scriptResultAsHasTable ;
-    }
-    else
-    {
-        # Error message indicating failure to get valid hashtable as the result of the Get script execution.
-        $errorId = "InValidResultFromGetScript"; 
-        $errorCategory = [System.Management.Automation.ErrorCategory]::InvalidResult;
-        $exception = New-Object System.InvalidOperationException $($LocalizedData.InValidResultFromGetScriptError); 
-        $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, $errorId, $errorCategory, $null
-
-        $PSCmdlet.ThrowTerminatingError($errorRecord);
+        $invokeScriptParameters['Credential'] = $Credential
     }
 
-    $getTargetResourceEndVerboseMessage = $($LocalizedData.GetTargetResourceEndVerboseMessage);
-    Write-Debug -Message $getTargetResourceEndVerboseMessage;
+    $invokeScriptResult = Invoke-Script @invokeScriptParameters
 
-    $getTargetResourceResult;
+    if ($invokeScriptResult -is [System.Management.Automation.ErrorRecord])
+    {
+        New-InvalidOperationException -Message $script:localizedData.GetScriptThrewError -ErrorRecord $invokeScriptResult
+    }
+
+    $invokeScriptResultAsHashTable = $invokeScriptResult -as [Hashtable]
+
+    if ($null -eq $invokeScriptResultAsHashTable)
+    {
+        New-InvalidArgumentException -ArgumentName 'TestScript' -Message $script:localizedData.GetScriptDidNotReturnHashtable
+    }
+
+    Write-Verbose -Message $script:localizedData.GetTargetResourceEndVerboseMessage
+
+    return $invokeScriptResultAsHashTable
 }
 
+<#
+    .SYNOPSIS
+        Runs the given set script.
+        Should not return.
 
-# The Set-TargetResource cmdlet is used to Set the desired state of the DSC managed node through a powershell script.
-# The method executes the user supplied script (i.e., the script is responsible for validating the desired state of the 
-# DSC managed node). If the DSC managed node requires a restart either during or after the execution of the SetScript,
-# the SetScript notifies the PS Infrasturcure by setting the variable $DSCMachineStatus.IsRestartRequired to $true.
+    .PARAMETER GetScript
+        Not used in Set-TargetResource.
+
+    .PARAMETER SetScript
+        The script to set the resource to the desired state.
+
+    .PARAMETER TestScript
+        Not used in Set-TargetResource.
+
+    .PARAMETER Credential
+        The Credential to run the set script under if needed.
+#>
 function Set-TargetResource 
 {
-    [CmdletBinding(SupportsShouldProcess=$true)]
-     param 
-     (       
-       [parameter(Mandatory = $true)]
-       [ValidateNotNullOrEmpty()]
-       [string]
-       $SetScript,
+    [CmdletBinding()]
+    param 
+    (       
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $GetScript,
+      
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $SetScript,
 
-       [parameter(Mandatory = $true)]
-       [ValidateNotNullOrEmpty()]
-       [string]
-       $GetScript,
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $TestScript,
 
-       [Parameter(Mandatory=$false)]
-       [System.Management.Automation.PSCredential] 
-       $Credential,
+        [Parameter()]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential
+    )
 
-       [parameter(Mandatory = $true)]
-       [ValidateNotNullOrEmpty()]
-       [string]
-       $TestScript
+    Write-Verbose -Message $script:localizedData.SetTargetResourceStartVerboseMessage
 
- )
-
-    $setscriptmessage = '$SetScript:' + $SetScript
-    $testscriptmessage = '$TestScript:' + $TestScript
-    if ($pscmdlet.ShouldProcess($($LocalizedData.SetScriptWhatIfMessage))) 
-    {
-        $setTargetResourceStartVerboseMessage = $($LocalizedData.SetTargetResourceStartVerboseMessage);
-        Write-Debug -Message $setTargetResourceStartVerboseMessage;
-
-        $script = [ScriptBlock]::Create($SetScript);
-        $parameters = $psboundparameters.Remove("SetScript");
-        $psboundparameters.Add("ScriptBlock", $script);
-
-        $parameters = $psboundparameters.Remove("GetScript");
-        $parameters = $psboundparameters.Remove("TestScript");
-
-        $scriptResult = ScriptExecutionHelper @psboundparameters ;
-
-        $scriptResultAsErrorRescord = $scriptResult -as [System.Management.Automation.ErrorRecord]
-        if($null -ne $scriptResultAsErrorRescord)
-        {
-            $PSCmdlet.ThrowTerminatingError($scriptResultAsErrorRescord);
-        }
-        
-        $setTargetResourceEndVerboseMessage = $($LocalizedData.SetTargetResourceEndVerboseMessage);
-        Write-Debug -Message $setTargetResourceEndVerboseMessage; 
+    $invokeScriptParameters = @{
+        ScriptBlock = [ScriptBlock]::Create($SetScript)
     }
+
+    if ($PSBoundParameters.ContainsKey('Credential'))
+    {
+        $invokeScriptParameters['Credential'] = $Credential
+    }
+
+    $invokeScriptResult = Invoke-Script @invokeScriptParameters
+
+    if ($invokeScriptResult -is [System.Management.Automation.ErrorRecord])
+    {
+        New-InvalidOperationException -Message $script:localizedData.SetScriptThrewError -ErrorRecord $invokeScriptResult
+    }
+
+    Write-Verbose -Message $script:localizedData.SetTargetResourceEndVerboseMessage
 }
 
+<#
+    .SYNOPSIS
+        Runs the given test script.
+        Should return true if the resource is in the desired state and false otherwise.
 
-# The Test-TargetResource cmdlet is used to validate the desired state of the DSC managed node through a powershell script.
-# The method executes the user supplied script (i.e., the script is responsible for validating the desired state of the 
-# DSC managed node). The result of the script execution should be true if the DSC managed machine is in the desired state
-# or else false should be returned.
+    .PARAMETER GetScript
+        Not used in Test-TargetResource.
+
+    .PARAMETER SetScript
+        Not used in Test-TargetResource.
+
+    .PARAMETER TestScript
+        The script to validate whether or not the resource is in the desired state.
+
+    .PARAMETER Credential
+        The Credential to run the test script under if needed.
+#>
 function Test-TargetResource 
 {
     [OutputType([Boolean])]
+    [CmdletBinding()]
     param 
-    (       
-        [parameter(Mandatory = $true)]
+    (     
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]
+        [String]
+        $GetScript,
+      
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $SetScript,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
         $TestScript,
-  
-        [parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$SetScript,
 
-        [parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$GetScript,
-
-        [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential] 
+        [Parameter()]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential
     )
-    $testTargetResourceResult = $false;
 
-    $testTargetResourceStartVerboseMessage = $($LocalizedData.TestTargetResourceStartVerboseMessage);
-    Write-Debug -Message $testTargetResourceStartVerboseMessage;
+    Write-Verbose -Message $script:localizedData.TestTargetResourceStartVerboseMessage
 
-    $script = [ScriptBlock]::Create($TestScript);
-    $parameters = $psboundparameters.Remove("TestScript");
-    $psboundparameters.Add("ScriptBlock", $script);
-
-    $parameters = $psboundparameters.Remove("GetScript");
-    $parameters = $psboundparameters.Remove("SetScript");
-     
-    $scriptResult = ScriptExecutionHelper @psboundparameters ;
-
-    $scriptResultAsErrorRescord = $scriptResult -as [System.Management.Automation.ErrorRecord]
-    if($null -ne $scriptResultAsErrorRescord)
-    {
-        $PSCmdlet.ThrowTerminatingError($scriptResultAsErrorRescord);
+    $invokeScriptParameters = @{
+        ScriptBlock = [ScriptBlock]::Create($TestScript)
     }
 
-    if($null -eq $scriptResult)
+    if ($PSBoundParameters.ContainsKey('Credential'))
     {
-        $errorId = "InValidResultFromTestScript"; 
-        $errorCategory = [System.Management.Automation.ErrorCategory]::InvalidResult;
-        $exception = New-Object System.InvalidOperationException $($LocalizedData.InValidResultFromTestScriptError) ;
-        $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, $errorId, $errorCategory, $null
-
-        $PSCmdlet.ThrowTerminatingError($errorRecord);
+        $invokeScriptParameters['Credential'] = $Credential
     }
 
-    # If the script is returing multiple objects, then we consider the last object to be the result of script execution.
-    if($scriptResult.GetType().ToString() -eq 'System.Object[]')
+    $invokeScriptResult = Invoke-Script @invokeScriptParameters
+
+    # If the script is returing multiple objects, then we consider the last object to be the result of the script execution.
+    if ($invokeScriptResult -is [Object[]] -and $invokeScriptResult.Count -gt 0)
     {
-        $reultObject = $scriptResult[$scriptResult.Length -1];
-    }
-    else
-    {
-        $reultObject = $scriptResult;
+        $invokeScriptResult = $invokeScriptResult[$invokeScriptResult.Count - 1]
     }
 
-    if(($null -ne $reultObject) -and 
-       (($reultObject -eq $true) -or ($reultObject -eq $false)))
+    if ($invokeScriptResult -is [System.Management.Automation.ErrorRecord])
     {
-        $testTargetResourceResult = $reultObject;
-    }
-    else
-    {
-        $errorId = "InValidResultFromTestScript"; 
-        $errorCategory = [System.Management.Automation.ErrorCategory]::InvalidResult;
-        $exception = New-Object System.InvalidOperationException $($LocalizedData.InValidResultFromTestScriptError) ;
-        $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, $errorId, $errorCategory, $null
-
-        $PSCmdlet.ThrowTerminatingError($errorRecord);
+        New-InvalidOperationException -Message $script:localizedData.TestScriptThrewError -ErrorRecord $invokeScriptResult
     }
 
-    $testTargetResourceEndVerboseMessage = $($LocalizedData.TestTargetResourceEndVerboseMessage);
-    Write-Debug -Message $testTargetResourceEndVerboseMessage;
+    if ($null -eq $invokeScriptResult -or -not ($invokeScriptResult -is [Boolean]))
+    {
+        New-InvalidArgumentException -ArgumentName 'TestScript' -Message $script:localizedData.TestScriptDidNotReturnBoolean
+    }
 
-    $testTargetResourceResult;
+    Write-Verbose -Message $script:localizedData.TestTargetResourceEndVerboseMessage
+
+    return $invokeScriptResult
 }
 
+<#
+    .SYNOPSIS
+        Invokes the given script block.
 
-function ScriptExecutionHelper 
+        The output of the script will be returned unless the script throws an error.
+        If the script throws an error, the ErrorRecord will be returned rather than thrown.
+
+    .PARAMETER ScriptBlock
+        The script block to invoke.
+
+    .PARAMETER Credential
+        The credential to run the script under if needed.
+#>
+function Invoke-Script
 {
+    [OutputType([Object])]
+    [CmdletBinding()]
     param 
     (
+        [Parameter(Mandatory = $true)]
         [ScriptBlock] 
         $ScriptBlock,
     
-        [System.Management.Automation.PSCredential] 
+        [Parameter()]
+        [ValidateNotNull()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential
     )
 
-    $scriptExecutionResult = $null;
+    $scriptResult = $null
 
     try
     {
+        Write-Verbose -Message ($script:localizedData.ExecutingScriptMessage -f $ScriptBlock)
 
-        $executingScriptMessage = $($LocalizedData.ExecutingScriptMessage) -f ${ScriptBlock} ;
-        Write-Debug -Message $executingScriptMessage;
-
-       if($null -ne $Credential)
-       {
-          $scriptExecutionResult = Invoke-Command -ScriptBlock $ScriptBlock -ComputerName . -Credential $Credential
-       }
-       else
-       {
-          $scriptExecutionResult = &$ScriptBlock;
-       }
-        $scriptExecutionResult;
+        if ($null -ne $Credential)
+        {
+            $scriptResult = Invoke-Command -ScriptBlock $ScriptBlock -Credential $Credential -ComputerName .
+        }
+        else
+        {
+            $scriptResult = & $ScriptBlock
+        }
     }
     catch
     {
-        # Surfacing the error thrown by the execution of Get/Set/Test script.
-        $_;
+        # Surfacing the error thrown by the execution of the script
+        $scriptResult = $_
     }
-}
 
-Export-ModuleMember -function Get-TargetResource, Set-TargetResource, Test-TargetResource
+    return $scriptResult
+}

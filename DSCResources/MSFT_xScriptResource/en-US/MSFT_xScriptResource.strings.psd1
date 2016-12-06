@@ -1,18 +1,16 @@
 ﻿# Localized MSFT_xScriptResource.strings.psd1
 
 ConvertFrom-StringData @'
-###PSLOC
-SetScriptWhatIfMessage=Executing the SetScript with the user supplied credential
-InValidResultFromGetScriptError=Failure to get the results from the script in a hash table format.
-InValidResultFromTestScriptError=Failure to get a valid result from the execution of TestScript. The Test script should return True or False.
-ScriptBlockProviderScriptExecutionFailureError=Failure to successfully execute the script.
-GetTargetResourceStartVerboseMessage=Begin executing Get Script.
-GetTargetResourceEndVerboseMessage=End executing Get Script.
-SetTargetResourceStartVerboseMessage=Begin executing Set Script.
-SetTargetResourceEndVerboseMessage=End executing Set Script.
-TestTargetResourceStartVerboseMessage=Begin executing Test Script.
-TestTargetResourceEndVerboseMessage=End executing Test Script.
-ExecutingScriptMessage=Executing Script: {0}
-###PSLOC
-
+    GetTargetResourceStartVerboseMessage = Begin executing get script.
+    GetScriptThrewError = The get script threw an error.
+    GetScriptDidNotReturnHashtable = The get script did not return a hashtable.
+    GetTargetResourceEndVerboseMessage = End executing get script.
+    SetTargetResourceStartVerboseMessage = Begin executing set script.
+    SetScriptThrewError = The set script threw an error.
+    SetTargetResourceEndVerboseMessage = End executing set script.
+    TestTargetResourceStartVerboseMessage = Begin executing test script.
+    TestScriptThrewError = The test script threw an error.
+    TestScriptDidNotReturnBoolean = The test script did not return a boolean.
+    TestTargetResourceEndVerboseMessage = End executing test script.
+    ExecutingScriptMessage = Executing script: {0}
 '@

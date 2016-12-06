@@ -26,11 +26,11 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 * **xFileUpload** is a composite resource which ensures that local files exist on an SMB share.
 * **xRegistry** provides a mechanism to manage registry keys and values on a target node.
 * **xEnvironment** configures and manages environment variables.
-* **xWindowsFeature** provides a mechanism to install or uninstall Windows roles or features on a target node.
-* **xScript** provides a mechanism to run Windows PowerShell script blocks on target nodes.
 * **xProcessSet** allows starting and stopping of a group of windows processes with no arguments.
 * **xServiceSet** allows starting, stopping and change in state or account type for a group of services.
+* **xScript** provides a mechanism to run PowerShell script blocks on a target node.
 * **xUser** provides a mechanism to manage local users on the target node.
+* **xWindowsFeature** provides a mechanism to install or uninstall Windows roles or features on a target node.
 * **xWindowsFeatureSet** allows installation and uninstallation of a group of Windows features and their subfeatures.
 * **xWindowsOptionalFeature** provides a mechanism to enable or disable optional features on a target node.
 * **xWindowsOptionalFeatureSet** allows installation and uninstallation of a group of optional Windows features.
@@ -40,6 +40,7 @@ Resources that work on Nano Server:
 
 * xGroup
 * xService
+* xScript
 * xUser
 * xWindowsOptionalFeature
 * xWindowsPackageCab
@@ -215,36 +216,28 @@ xRegistry provides a mechanism to manage registry keys and values on a target no
    - Suported values: $true, $false.
    - Default value: $false.
 
-### xWindowsFeature
-Provides a mechanism to install or uninstall Windows roles or features on a target node.
+### xScript
+Provides a mechanism to run PowerShell script blocks on a target node.
+This resource works on Nano Server.
 
 #### Requirements
 
-* Target machine must be running Windows Server 2008 or later.
-* Target machine must have access to the DISM PowerShell module.
-* Target machine must have access to the ServerManager module.
+None
 
 #### Parameters
 
-* **[String] Name** _(Key)_: Indicates the name of the role or feature that you want to ensure is added or removed. This is the same as the Name property from the Get-WindowsFeature cmdlet, and not the display name of the role or feature.
-* **[PSCredential] Credential** _(Write)_: Indicates the credential to use to add or remove the role or feature if needed.
-* **[String] Ensure** _(Write)_: Specifies whether the feature should be installed (Present) or uninstalled (Absent) { *Present* | Absent }.
-* **[Boolean] IncludeAllSubFeature** _(Write)_: Set this property to $true to ensure the state of all required subfeatures with the state of the feature you specify with the Name property. The default value is $false.
-* **[String] LogPath** _(Write)_: Indicates the path to a log file to log the operation.
+* **[String] GetScript** _(Key)_: A string that can be used to create a PowerShell script block that retrieves the current state of the resource. This script block runs when the Get-DscConfiguration cmdlet is called. This script block should return a hash table containing one key named Result with a string value.
+* **[String] SetScript** _(Key)_: A string that can be used to create a PowerShell script block that sets the resource to the desired state. This script block runs conditionally when the Start-DscConfiguration cmdlet is called. The TestScript script block will run first. If the TestScript block returns False, this script block will run. If the TestScript block returns True, this script block will not run. This script block should not return.
+* **[String] TestScript** _(Key)_: A string that can be used to create a PowerShell script block that validates whether or not the resource is in the desired state. This script block runs when the Start-DscConfiguration cmdlet is called or when the Test-DscConfiguration cmdlet is called. This script block should return a boolean with True meaning that the resource is in the desired state and False meaning that the resource is not in the desired state.
+* **[PSCredential] Credential** _(Write)_: The credential of the user account to run the script under if needed.
 
 #### Read-Only Properties from Get-TargetResource
 
-* **[String] DisplayName** _(Read)_: The display name of the retrieved role or feature.
+* **[String] Result** _(Read)_: The result from the GetScript script block.
 
 #### Examples
 
-* [Install or uninstall a Windows feature](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xWindowsFeature.ps1)
-
-### xScript
-* **GetScript**: Provides a block of Windows PowerShell script that runs when you invoke the Get-DscConfiguration cmdlet. This block must return a hash table.
-* **SetScript**: Provides a block of Windows PowerShell script. When you invoke the Start-DscConfiguration cmdlet, the TestScript block runs first. If the TestScript block returns $false, the SetScript block will run. If the TestScript block returns $true, the SetScript block will not run.
-* **TestScript**: Provides a block of Windows PowerShell script. When you invoke the Start-DscConfiguration cmdlet, this block runs. If it returns $false, the SetScript block will run. If it returns $true, the SetScript block will not run. The TestScript block also runs when you invoke the Test-DscConfiguration cmdlet. However, in this case, the SetScript block will not run, no matter what value the TestScript block returns. The TestScript block must return True if the actual configuration matches the current desired state configuration, and False if it does not match. (The current desired state configuration is the last configuration enacted on the node that is using DSC.)
-* **Credential**: Indicates the credentials to use for running this script, if credentials are required.
+* [Create a file with content through xScript](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xScript.ps1)
 
 ### xUser
 Provides a mechanism to manage local users on a target node.
@@ -326,6 +319,31 @@ These parameters will be the same for each service in the set. Please refer to t
    - Suported values: Present, Absent
    - Default value: Present
 * **Credential**: Indicates credentials for the account that the service will run under. This property and the BuiltinAccount property cannot be used together.
+
+### xWindowsFeature
+Provides a mechanism to install or uninstall Windows roles or features on a target node.
+
+#### Requirements
+
+* Target machine must be running Windows Server 2008 or later.
+* Target machine must have access to the DISM PowerShell module.
+* Target machine must have access to the ServerManager module.
+
+#### Parameters
+
+* **[String] Name** _(Key)_: Indicates the name of the role or feature that you want to ensure is added or removed. This is the same as the Name property from the Get-WindowsFeature cmdlet, and not the display name of the role or feature.
+* **[PSCredential] Credential** _(Write)_: Indicates the credential to use to add or remove the role or feature if needed.
+* **[String] Ensure** _(Write)_: Specifies whether the feature should be installed (Present) or uninstalled (Absent) { *Present* | Absent }.
+* **[Boolean] IncludeAllSubFeature** _(Write)_: Set this property to $true to ensure the state of all required subfeatures with the state of the feature you specify with the Name property. The default value is $false.
+* **[String] LogPath** _(Write)_: Indicates the path to a log file to log the operation.
+
+#### Read-Only Properties from Get-TargetResource
+
+* **[String] DisplayName** _(Read)_: The display name of the retrieved role or feature.
+
+#### Examples
+
+* [Install or uninstall a Windows feature](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xWindowsFeature.ps1)
 
 ### xWindowsFeatureSet
 * **Name**: Defines the names of the Windows features in the set.
@@ -439,7 +457,12 @@ None
     * Fixes null verbose log output error. This resolves issue [#224](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/224).
 * xDSCWebService
 	* Fixed issue where resource would fail to read redirection.config file. This resolves issue [#191] (https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/191)
-
+* xScript
+    * Cleaned resource for high quality requirements
+    * Added unit tests
+    * Added integration tests
+    * Updated documentation and example
+    
 ### 5.0.0.0
 
 * xWindowsFeature:
