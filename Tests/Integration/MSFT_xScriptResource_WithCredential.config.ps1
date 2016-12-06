@@ -1,14 +1,12 @@
-﻿<#
-    .SYNOPSIS
-        Creates a file at the given file path with the specified content through the xScript resource.
+﻿param
+(
+    [Parameter(Mandatory = $true)]
+    [String]
+    $ConfigurationName
+)
 
-    .PARAMETER FilePath
-        The path at which to create the file.
-
-    .PARAMETER FileContent
-        The content to set for the new file.
-#>
-Configuration xScriptExample {
+Configuration $ConfigurationName
+{
     [CmdletBinding()]
     param
     (
@@ -20,14 +18,20 @@ Configuration xScriptExample {
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $FileContent
+        $FileContent,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
+        $Credential
     )
 
     Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
 
     Node localhost
     {
-        xScript ScriptExample
+        xScript Script1
         {
             SetScript = {
                 $streamWriter = New-Object -TypeName 'System.IO.StreamWriter' -ArgumentList @( $using:FilePath )
@@ -57,6 +61,7 @@ Configuration xScriptExample {
                     Result = Get-Content -Path $fileContent
                 }
             }
+            Credential = $Credential
         }
     }
 }
