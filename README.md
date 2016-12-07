@@ -201,8 +201,8 @@ None
 
 #### Examples
 
-* [Start a set of services](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xServiceSet_StartServices.ps1)
-* [Set a set of services to start under LocalService](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xServiceSet_BuiltInAccount.ps1)
+* [Ensure that multiple services are running](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xServiceSet_StartServices.ps1)
+* [Set multiple services to run under the built-in account LocalService](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xServiceSet_BuiltInAccount.ps1)
 
 ### xRemoteFile
 

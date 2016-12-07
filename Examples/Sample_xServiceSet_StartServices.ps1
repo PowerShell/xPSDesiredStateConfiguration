@@ -1,25 +1,14 @@
 ﻿<#
     .SYNOPSIS
-        Starts the services with the given names.
-
-    .PARAMETER ServiceNames
-        The names of the services to start.
+        Ensures that the DHCP Client and Windows Firewall services are running.
 #>
 Configuration xServiceSetStartExample
 {
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [String[]]
-        $ServiceNames
-    )
-
     Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
 
     xServiceSet ServiceSet1
     {
-        Name   = $ServiceNames
+        Name   = @( 'Dhcp', 'MpsSvc' )
         Ensure = 'Present'
         State  = 'Running'
     }
