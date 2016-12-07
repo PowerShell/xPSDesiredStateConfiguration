@@ -1,5 +1,9 @@
+#Set-StrictMode -Version 'Latest'
+
 Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) `
                                -ChildPath 'CommonResourceHelper.psm1')
+
+# Localized messages for verbose and error statements in this resource
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xProcessResource'
 
 <#
@@ -79,7 +83,7 @@ function Get-TargetResource
         HandleCount = $getProcessResult.HandleCount
         Ensure = 'Present'
         ProcessId = $processCimInstance[0].ProcessId
-        Count = $processCimInstance.Count
+        ProcessCount = $processCimInstance.Count
     }
 
     Write-Verbose ($script:localizedData.GetTargetResourceEndMessage -f $Path)
@@ -158,7 +162,6 @@ function Set-TargetResource
         [String]
         $WorkingDirectory
     )
-
     Write-Verbose ($script:localizedData.SetTargetResourceStartMessage -f $Path)
 
     if ($null -ne $PsDscContext.RunAsUser)
@@ -593,7 +596,7 @@ function Get-ProcessCimInstance
             {
                 Write-Verbose -Message ($script:localizedData.VerboseInProcessHandle -f $process.Id)
                 $getCimInstanceParams = @{
-                    ClassName = '_Process'
+                    ClassName = 'Win32_Process'
                     Filter = "ProcessId = $($process.Id)"
                     ErrorAction = 'SilentlyContinue'
                 }
@@ -835,7 +838,7 @@ function Wait-ProcessCount
         $ProcessCount,
 
         [Int]
-        $WaitTime = 2000
+        $WaitTime = 200000
     )
 
     $startTime = [DateTime]::Now

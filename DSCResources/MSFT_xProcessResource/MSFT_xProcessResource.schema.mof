@@ -1,19 +1,18 @@
 [ClassVersion("1.0.0"), FriendlyName("xWindowsProcess")] 
 class MSFT_xProcessResource : OMI_BaseResource
 {
-  [key] string Path;
-  [key] string Arguments;
-  [write,EmbeddedInstance("MSFT_Credential")] string Credential;
-  [write,ValueMap{"Present", "Absent"},Values{"Present", "Absent"}] string Ensure;
-  [write] string StandardOutputPath;
-  [write] string StandardErrorPath;
-  [write] string StandardInputPath;
-  [write] string WorkingDirectory;
-  [read] uint64 PagedMemorySize;
-  [read] uint64 NonPagedMemorySize;
-  [read] uint64 VirtualMemorySize;
-  [read] sint32 HandleCount;
-  [read] sint32 ProcessId;
+  [Key] String Path;
+  [Key] String Arguments;
+  [Write, EmbeddedInstance("MSFT_Credential")] String Credential;
+  [Write, ValueMap{"Present", "Absent"},Values{"Present", "Absent"}] String Ensure;
+  [Write] String StandardOutputPath;
+  [Write] String StandardErrorPath;
+  [Write] String StandardInputPath;
+  [Write] String WorkingDirectory;
+  [Read] Uint64 PagedMemorySize;
+  [Read] Uint64 NonPagedMemorySize;
+  [Read] Uint64 VirtualMemorySize;
+  [Read] Sint32 HandleCount;
+  [Read] Sint32 ProcessId;
+  [Read] Sint32 ProcessCount;
 };
-
-
