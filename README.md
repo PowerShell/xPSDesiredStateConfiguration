@@ -19,13 +19,13 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 * **xDscWebService** configures an OData endpoint for DSC service to make a node a DSC pull server.
 * **xGroup** provides a mechanism to manage local groups on the target node.
 * **xGroupSet** configures multiple xGroups with common settings but different names.
-* **xWindowsProcess** configures and manages Windows processes.
 * **xService** provides a mechanism to configure and manage Windows services.
 * **xRemoteFile** ensures the presence of remote files on a local machine.
 * **xPackage** manages the installation of .msi and .exe packages.
 * **xFileUpload** is a composite resource which ensures that local files exist on an SMB share.
 * **xRegistry** provides a mechanism to manage registry keys and values on a target node.
 * **xEnvironment** configures and manages environment variables.
+* **xProcess** provides a mechanism to start and stop a windows process.
 * **xProcessSet** allows starting and stopping of a group of windows processes with no arguments.
 * **xServiceSet** allows starting, stopping and change in state or account type for a group of services.
 * **xScript** provides a mechanism to run PowerShell script blocks on a target node.
@@ -105,15 +105,35 @@ None
 * [Create or modify a group with Members](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
 * [Create or modify a group with MembersToInclude and/or MembersToExclude](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
 
-### xWindowsProcess
+### xProcess
+Provides a mechanism to start and stop a windows process.
 
-For a complete list of properties, please use Get-DscResource
+#### Requirements
 
-* **Path**: The full path or the process executable
-* **Arguments**: This is a mandatory parameter for passing arguments to the process executable.
-Specify an empty string if you don't want to pass any arguments.
-* **Credential**: The credentials of the user under whose context you want to run the process.
-* **Ensure**: Ensures that the process is running or stopped: { Present | Absent }
+None
+
+#### Parameters
+* **[String] Path** _(Key)_: The full path or the process executable to start or stop.
+* **[String] Arguments** _(Key)_: A string of arguments to pass to the process executable. Pass in an empty string if no arguments are needed.
+* **[PSCredential] Credential** _(Write)_: The credential to run the process under.
+* **[String] Ensure** _(Write)_: Indicates whether the process is present (running) or absent (not running). Defaults to Present. { *Present* | Absent }.
+* **[String] StandardOutputPath** _(Write)_: The path to write the standard output stream to.
+* **[String] StandardErrorPath** _(Write)_: The path to write the standard error stream to.
+* **[String] StandardInputPath** _(Write)_: The path to receive standard input from.
+* **[String] WorkingDirectory** _(Write)_: The directory to run the processes under.
+
+#### Read-Only Properties from Get-TargetResource
+* **[Uint64] PagedMemorySize** _(Read)_: The amount of paged memory, in bytes, allocated for the process.
+* **[Uint64] NonPagedMemorySize** _(Read)_: The amount of nonpaged memory, in bytes, allocated for the process.
+* **[Uint64] VirtualMemorySize** _(Read)_: The amount of virtual memory, in bytes, allocated for the process.
+* **[Sint32] HandleCount** _(Read)_: The number of handles opened by the process.
+* **[Sint32] ProcessId** _(Read)_: The unique identifier of the process.
+* **[Sint32] ProcessCount** _(Read)_: The number of instances of the given process that are currently running.
+
+#### Examples
+
+* [Create or modify a group with Members](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
+* [Create or modify a group with MembersToInclude and/or MembersToExclude](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
 
 ### xService
 Provides a mechanism to configure and manage Windows services.
@@ -463,8 +483,17 @@ None
     * Cleaned resource for high quality requirements
     * Added unit tests
     * Added integration tests
-    * Updated documentation and example
-	
+    * Updated documentation and example	
+* xProcess
+    * Cleaned resource as per high quality guidelines.
+    * Added unit tests.
+    * Added integration tests.
+    * Updated documentation.
+    * Updated examples.
+    * Fixed bug in Get-TargetResource.
+    * Added a 'Count' value to the hashtable returned by Get-TargetResource so that the user can see how many instances of the process are running.
+    * Fixed bug in finding the path to the executable.
+    
 ### 5.0.0.0
 
 * xWindowsFeature:

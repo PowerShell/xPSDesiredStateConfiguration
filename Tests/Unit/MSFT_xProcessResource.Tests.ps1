@@ -13,10 +13,6 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
 
 try
 {
-
-    Import-Module -Name (Join-Path -Path  $PSScriptRoot `
-                                   -ChildPath 'MSFT_xProcessResource.TestHelper.psm1')
-
     InModuleScope 'MSFT_xProcessResource' {
         # Mock objects
         $script:validPath1 = 'ValidPath1'
