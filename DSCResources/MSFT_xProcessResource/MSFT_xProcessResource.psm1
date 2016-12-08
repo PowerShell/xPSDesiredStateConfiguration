@@ -1,4 +1,4 @@
-#Set-StrictMode -Version 'Latest'
+Set-StrictMode -Version 'Latest'
 
 Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) `
                                -ChildPath 'CommonResourceHelper.psm1')
@@ -164,14 +164,7 @@ function Set-TargetResource
     )
     Write-Verbose ($script:localizedData.SetTargetResourceStartMessage -f $Path)
 
-    if ($null -ne $PsDscContext.RunAsUser)
-    {
-        $newInvalidArgumentExceptionParams = @{
-            ArgumentName = 'PsDscRunAsCredential'
-            Message = ($script:localizedData.ErrorRunAsCredentialParameterNotSupported -f $PsDscContext.RunAsUser)
-        }
-        New-InvalidArgumentException @newInvalidArgumentExceptionParams
-    }
+    Assert-PsDscContextNotRunAsUser
 
     $Path = Expand-Path -Path $Path
 
@@ -448,15 +441,7 @@ function Test-TargetResource
 
     Write-Verbose ($script:localizedData.TestTargetResourceStartMessage -f $Path)
 
-    if ($null -ne $PsDscContext.RunAsUser)
-    {
-        $newInvalidArgumentExceptionParams = @{
-            ArgumentName = 'PsDscRunAsCredential'
-            Message = ($script:localizedData.ErrorRunAsCredentialParameterNotSupported -f $PsDscContext.RunAsUser)
-        }
-
-        New-InvalidArgumentException @newInvalidArgumentExceptionParams
-    }
+    Assert-PsDscContextNotRunAsUser
 
     $Path = Expand-Path -Path $Path
 
@@ -1061,6 +1046,32 @@ function Split-Credential
     return @{
         Domain = $domain
         UserName = $userName
+    }
+}
+
+<#
+    .SYNOPSIS
+        Asserts that the PsDscContext is not run as user. If so, it will throw 
+        an invalid argument exception.
+
+    .NOTES
+        Strict mode is turned off for this function since it does not recognize $PsDscContext
+#>
+function Assert-PsDscContextNotRunAsUser
+{
+    [CmdletBinding()]
+    param 
+    ()
+
+    Set-StrictMode -Off
+
+    if ($null -ne $PsDscContext.RunAsUser)
+    {
+        $newInvalidArgumentExceptionParams = @{
+            ArgumentName = 'PsDscRunAsCredential'
+            Message = ($script:localizedData.ErrorRunAsCredentialParameterNotSupported -f $PsDscContext.RunAsUser)
+        }
+        New-InvalidArgumentException @newInvalidArgumentExceptionParams
     }
 }
 
