@@ -1,10 +1,22 @@
+<#
+    .SYNOPSIS
+        Stops the gpresult process.
+
+    .PARAMETER Credential
+        Credential to stop the process
+#>
 Configuration Sample_xWindowsProcess_EnsureAbsentWithCredential
 {
+    [CmdletBinding()]
     param
     (
-        [pscredential]$cred = (Get-Credential)
+       [ValidateNotNullOrEmpty()]
+       [System.Management.Automation.PSCredential]
+       [System.Management.Automation.Credential()]
+       $Credential = (Get-Credential)
     )
-    Import-DSCResource -ModuleName xPSDesiredStateConfiguration
+    Import-DSCResource -ModuleName 'xPSDesiredStateConfiguration'
+
     Node localhost
     {
         xWindowsProcess Notepad

@@ -113,7 +113,7 @@ Provides a mechanism to start and stop a windows process.
 None
 
 #### Parameters
-* **[String] Path** _(Key)_: The full path or the process executable to start or stop.
+* **[String] Path** _(Key)_: The full path or file name to the process executable to start or stop.
 * **[String] Arguments** _(Key)_: A string of arguments to pass to the process executable. Pass in an empty string if no arguments are needed.
 * **[PSCredential] Credential** _(Write)_: The credential to run the process under.
 * **[String] Ensure** _(Write)_: Indicates whether the process is present (running) or absent (not running). Defaults to Present. { *Present* | Absent }.
@@ -132,8 +132,8 @@ None
 
 #### Examples
 
-* [Create or modify a group with Members](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
-* [Create or modify a group with MembersToInclude and/or MembersToExclude](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
+* [Start a process](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xWindowsProcess_WithoutCredential.ps1)
+* [Stop a process](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xWindowsProcess_EnsureAbsent.ps1)
 
 ### xService
 Provides a mechanism to configure and manage Windows services.
