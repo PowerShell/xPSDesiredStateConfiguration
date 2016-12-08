@@ -12,8 +12,10 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
 try
 {
     Describe 'xProcessResource Integration Tests' {
-        $testProcessPath = 'C:\Users\mabreake.REDMOND\git\ProcessResourceTestProcess.exe'
-        $logFilePath = 'C:\Users\mabreake.REDMOND\git\processTestLog.txt'
+        $testProcessPath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
+                                     -ChildPath 'ProcessResourceTestProcess.exe'
+        $logFilePath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
+                                 -ChildPath 'processTestLog.txt'
 
         $configFile = Join-Path -Path $PSScriptRoot `
                                 -ChildPath 'MSFT_xProcessResource.config.ps1'
