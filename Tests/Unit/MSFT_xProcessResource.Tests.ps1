@@ -31,7 +31,7 @@ try
 
         $script:mockProcess1 = @{
             Path = $script:validPath1
-            CommandLine = 'c:\temp\test.exe argument1 argument2 argument3'
+            CommandLine = 'C:\temp\test.exe argument1 argument2 argument3'
             Arguments = 'argument1 argument2 argument3'
             ProcessId = 12345
             Id = 12345
@@ -55,7 +55,7 @@ try
 
         $script:mockProcess3 = @{
             Path = $script:validPath1
-            CommandLine = 'c:\test.exe arg6'
+            CommandLine = 'C:\test.exe arg6'
             Arguments = 'arg6'
             ProcessId = 1111101
             Id = 1111101
@@ -67,7 +67,7 @@ try
 
         $script:mockProcess4 = @{
             Path = $script:validPath1
-            CommandLine = 'c:\test.exe arg6'
+            CommandLine = 'C:\test.exe arg6'
             Arguments = 'arg6'
             ProcessId = 1111101
             Id = 1111101
