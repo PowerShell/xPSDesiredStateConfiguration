@@ -339,7 +339,7 @@ function Set-TargetResource
                     }
                     catch [System.Exception]
                     {
-                        $message = $script:localizedData.ErrorStarting -f $Path, $_.Message
+                        $message = ($script:localizedData.ErrorStarting -f $Path, $_.Exception.Message)
                         
                         New-InvalidOperationException -Message $message
                     }

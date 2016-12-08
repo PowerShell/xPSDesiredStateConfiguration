@@ -34,6 +34,7 @@ try
             CommandLine = 'c:\temp\test.exe argument1 argument2 argument3'
             Arguments = 'argument1 argument2 argument3'
             ProcessId = 12345
+            Id = 12345
             PagedMemorySize64 = 1048
             NonpagedSystemMemorySize64 = 16
             VirtualMemorySize64 = 256
@@ -45,6 +46,7 @@ try
             CommandLine = ''
             Arguments = ''
             ProcessId = 54321
+            Id = 54321
             PagedMemorySize64 = 2096
             NonpagedSystemMemorySize64 = 8
             VirtualMemorySize64 = 512
@@ -56,6 +58,7 @@ try
             CommandLine = 'c:\test.exe arg6'
             Arguments = 'arg6'
             ProcessId = 1111101
+            Id = 1111101
             PagedMemorySize64 = 512
             NonpagedSystemMemorySize64 = 32
             VirtualMemorySize64 = 64
@@ -67,6 +70,7 @@ try
             CommandLine = 'c:\test.exe arg6'
             Arguments = 'arg6'
             ProcessId = 1111101
+            Id = 1111101
             PagedMemorySize64 = 510
             NonpagedSystemMemorySize64 = 16
             VirtualMemorySize64 = 8
@@ -78,6 +82,7 @@ try
             CommandLine = ''
             Arguments = ''
             ProcessId = 77777
+            Id = 77777
             PagedMemorySize64 = 0
             NonpagedSystemMemorySize64 = 0
             VirtualMemorySize64 = 0
@@ -311,8 +316,20 @@ try
                 }
 
                 It 'Should throw when Ensure set to Present and Start-Process fails' {
+                <#
+                    $invalidOperationException = New-Object -TypeName 'InvalidOperationException' `
+                                                            -ArgumentList @( 'Start-Process error test message' )
+                    $newObjectParams = @{
+                        TypeName = 'System.Management.Automation.ErrorRecord'
+                        ArgumentList = @( $invalidOperationException.ToString(), 'MachineStateIncorrect',
+                        'InvalidOperation', $null )
+                    }
+                    $errorRecordToThrow = New-Object @newObjectParams
+                    #>
+                    $mockStartProcessException = New-Object -TypeName 'InvalidOperationException' `
+                                                            -ArgumentList @('Start-Process test exception')
                     Mock -CommandName Wait-ProcessCount -MockWith { return $true }
-                    Mock -CommandName Start-Process -MockWith { Throw 'test' }
+                    Mock -CommandName Start-Process -MockWith { Throw $mockStartProcessException }
 
                     { Set-TargetResource -Path $script:invalidPath `
                                          -Arguments $script:mockProcess1.Arguments `
