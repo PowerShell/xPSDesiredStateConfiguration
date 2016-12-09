@@ -47,7 +47,7 @@ function Get-TargetResource
         $Credential
     )
 
-    Write-Verbose ($script:localizedData.GetTargetResourceStartMessage -f $Path)
+    Write-Verbose -Message ($script:localizedData.GetTargetResourceStartMessage -f $Path)
 
     $Path = Expand-Path -Path $Path
 
@@ -86,7 +86,7 @@ function Get-TargetResource
         ProcessCount = $processCimInstance.Count
     }
 
-    Write-Verbose ($script:localizedData.GetTargetResourceEndMessage -f $Path)
+    Write-Verbose -Message ($script:localizedData.GetTargetResourceEndMessage -f $Path)
     return $processToReturn
 }
 
@@ -162,7 +162,7 @@ function Set-TargetResource
         [String]
         $WorkingDirectory
     )
-    Write-Verbose ($script:localizedData.SetTargetResourceStartMessage -f $Path)
+    Write-Verbose -Message ($script:localizedData.SetTargetResourceStartMessage -f $Path)
 
     Assert-PsDscContextNotRunAsUser
 
@@ -363,7 +363,7 @@ function Set-TargetResource
         }
     }
 
-    Write-Verbose ($script:localizedData.SetTargetResourceEndMessage -f $Path)
+    Write-Verbose -Message ($script:localizedData.SetTargetResourceEndMessage -f $Path)
 }
 
 <#
@@ -439,7 +439,7 @@ function Test-TargetResource
         $WorkingDirectory
     )
 
-    Write-Verbose ($script:localizedData.TestTargetResourceStartMessage -f $Path)
+    Write-Verbose -Message ($script:localizedData.TestTargetResourceStartMessage -f $Path)
 
     Assert-PsDscContextNotRunAsUser
 
@@ -457,7 +457,7 @@ function Test-TargetResource
 
     $processCimInstances = @( Get-ProcessCimInstance @getProcessArguments )
 
-    Write-Verbose ($script:localizedData.TestTargetResourceEndMessage -f $Path)
+    Write-Verbose -Message ($script:localizedData.TestTargetResourceEndMessage -f $Path)
 
     if ($Ensure -eq 'Absent')
     {
@@ -960,6 +960,7 @@ function Start-ProcessAsLocalSystemUser
     )
 
     $splitCredentialResult = Split-Credential -Credential $Credential
+
     <#
         Internally we use win32 api LogonUser() with
         dwLogonType == LOGON32_LOGON_NETWORK_CLEARTEXT.
@@ -1360,7 +1361,7 @@ namespace PSDesiredStateConfiguration
                 }  
                 if (!bResult)  
                 {  
-                    ThrowException('LocalizedData.UserCouldNotBeLoggedError)' + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException("$($script:localizedData.UserCouldNotBeLoggedError)" + Marshal.GetLastWin32Error().ToString());  
                 }  
                 IntPtr hproc = GetCurrentProcess();  
                 IntPtr htok = IntPtr.Zero;  
@@ -1371,7 +1372,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException('LocalizedData.OpenProcessTokenError)' + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException("$($script:localizedData.OpenProcessTokenError)" + Marshal.GetLastWin32Error().ToString());  
                 }  
                 tp.Count = 1;  
                 tp.Luid = 0;  
@@ -1383,7 +1384,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException('LocalizedData.PrivilegeLookingUpError)' + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException("$($script:localizedData.PrivilegeLookingUpError)" + Marshal.GetLastWin32Error().ToString());  
                 }  
                 bResult = AdjustTokenPrivileges(  
                     htok,  
@@ -1395,7 +1396,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException('LocalizedData.TokenElevationError)' + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException("$($script:localizedData.TokenElevationError)" + Marshal.GetLastWin32Error().ToString());  
                 }  
   
                 bResult = DuplicateTokenEx(  
@@ -1408,7 +1409,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException('LocalizedData.DuplicateTokenError)' + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException("$($script:localizedData.DuplicateTokenError)" + Marshal.GetLastWin32Error().ToString());  
                 }  
                 var si = new STARTUPINFO();  
                 si.cb = Marshal.SizeOf(si);  
@@ -1428,19 +1429,19 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException('LocalizedData.CouldNotCreateProcessError)' + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException("$($script:localizedData.CouldNotCreateProcessError)" + Marshal.GetLastWin32Error().ToString());  
                 }  
                 if (waitForExit) {  
                     int status = WaitForSingleObject(pi.hProcess, -1);  
                     if(status == -1)  
                     {  
-                        ThrowException('LocalizedData.WaitFailedError)' + Marshal.GetLastWin32Error().ToString());  
+                        ThrowException("$($script:localizedData.WaitFailedError)" + Marshal.GetLastWin32Error().ToString());  
                     }  
   
                     bResult = GetExitCodeProcess(pi.hProcess, out ExitCode);  
                     if(!bResult)  
                     {  
-                        ThrowException('LocalizedData.RetriveStatusError)' + Marshal.GetLastWin32Error().ToString());  
+                        ThrowException("$($script:localizedData.RetriveStatusError)" + Marshal.GetLastWin32Error().ToString());  
                     }  
                 }  
             }  

@@ -28,5 +28,13 @@ ConvertFrom-StringData @'
     StoppingProcessWhatIf = Stop-Process.
     TestTargetResourceStartMessage = Begin executing Test functionality for the process {0}.
     TestTargetResourceEndMessage = End executing Test functionality for the process {0}.
+    UserCouldNotBeLoggedError = User could not be logged. Error code: 
+    OpenProcessTokenError = Error while opening process token.
+    PrivilegeLookingUpError = Error while looking up privilege.
+    TokenElevationError = Error while getting token elevation.
+    DuplicateTokenError = Duplicate token is not allowed.
+    CouldNotCreateProcessError = Could not create process.
+    WaitFailedError = Failed during wait.
+    RetriveStatusError = Failed to retrieve status.
     VerboseInProcessHandle = In process handle {0}.
 '@
