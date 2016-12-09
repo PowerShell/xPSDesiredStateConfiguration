@@ -1,4 +1,14 @@
-﻿Set-StrictMode -Version 'Latest'
+﻿<#
+    These tests should only be run in AppVeyor since the second half of the tests require
+    the AppVeyor administrator account credential to run.
+
+    Also please note that some of these tests depend on each other.
+    They must be run in the order given - if one test fails, subsequent tests may
+    also fail.
+#>
+
+
+Set-StrictMode -Version 'Latest'
 
 Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
                                -ChildPath 'CommonTestHelper.psm1') `
@@ -274,7 +284,7 @@ try
         $testUserName = 'TestUserName12345'
         $testUserPassword = 'StrongOne7.'
         $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
-        $testCredential = New-Object PSCredential ($testUserName, $secureTestPassword)
+        $testCredential = Get-AppVeyorAdministratorCredential
 
         $testProcessPath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
                                      -ChildPath 'ProcessResourceTestProcess.exe'
@@ -299,8 +309,8 @@ try
                     & $configurationName -Path $testProcessPath `
                                          -Arguments $logFilePath `
                                          -Ensure 'Absent' `
+                                         -Credential $testCredential `
                                          -OutputPath $configurationPath `
-                                         -Credential Get-AppVeyorAdministratorCredential `
                                          -ConfigurationData $ConfigData `
                                          -ErrorAction 'Stop'
                     Start-DscConfiguration -Path $configurationPath -Wait -Force
@@ -339,6 +349,7 @@ try
                     & $configurationName -Path $testProcessPath `
                                          -Arguments $logFilePath `
                                          -Ensure 'Present' `
+                                         -Credential Get-AppVeyorAdministratorCredential `
                                          -ErrorAction 'Stop' `
                                          -OutputPath $configurationPath `
                                          -ConfigurationData $ConfigData
