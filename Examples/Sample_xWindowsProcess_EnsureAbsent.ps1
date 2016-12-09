@@ -22,4 +22,3 @@ Configuration Sample_xWindowsProcess_EnsureAbsent
  
 Sample_xWindowsProcess_EnsureAbsent
 
-            
