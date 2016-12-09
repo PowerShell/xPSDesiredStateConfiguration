@@ -1360,7 +1360,7 @@ namespace PSDesiredStateConfiguration
                 }  
                 if (!bResult)  
                 {  
-                    ThrowException("$($LocalizedData.UserCouldNotBeLoggedError)" + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException('LocalizedData.UserCouldNotBeLoggedError)' + Marshal.GetLastWin32Error().ToString());  
                 }  
                 IntPtr hproc = GetCurrentProcess();  
                 IntPtr htok = IntPtr.Zero;  
@@ -1371,7 +1371,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException("$($LocalizedData.OpenProcessTokenError)" + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException('LocalizedData.OpenProcessTokenError)' + Marshal.GetLastWin32Error().ToString());  
                 }  
                 tp.Count = 1;  
                 tp.Luid = 0;  
@@ -1383,7 +1383,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException("$($LocalizedData.PrivilegeLookingUpError)" + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException('LocalizedData.PrivilegeLookingUpError)' + Marshal.GetLastWin32Error().ToString());  
                 }  
                 bResult = AdjustTokenPrivileges(  
                     htok,  
@@ -1395,7 +1395,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException("$($LocalizedData.TokenElevationError)" + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException('LocalizedData.TokenElevationError)' + Marshal.GetLastWin32Error().ToString());  
                 }  
   
                 bResult = DuplicateTokenEx(  
@@ -1408,7 +1408,7 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException("$($LocalizedData.DuplicateTokenError)" + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException('LocalizedData.DuplicateTokenError)' + Marshal.GetLastWin32Error().ToString());  
                 }  
                 var si = new STARTUPINFO();  
                 si.cb = Marshal.SizeOf(si);  
@@ -1428,19 +1428,19 @@ namespace PSDesiredStateConfiguration
                     );  
                 if (!bResult)  
                 {  
-                    ThrowException("$($LocalizedData.CouldNotCreateProcessError)" + Marshal.GetLastWin32Error().ToString());  
+                    ThrowException('LocalizedData.CouldNotCreateProcessError)' + Marshal.GetLastWin32Error().ToString());  
                 }  
                 if (waitForExit) {  
                     int status = WaitForSingleObject(pi.hProcess, -1);  
                     if(status == -1)  
                     {  
-                        ThrowException("$($LocalizedData.WaitFailedError)" + Marshal.GetLastWin32Error().ToString());  
+                        ThrowException('LocalizedData.WaitFailedError)' + Marshal.GetLastWin32Error().ToString());  
                     }  
   
                     bResult = GetExitCodeProcess(pi.hProcess, out ExitCode);  
                     if(!bResult)  
                     {  
-                        ThrowException("$($LocalizedData.RetriveStatusError)" + Marshal.GetLastWin32Error().ToString());  
+                        ThrowException('LocalizedData.RetriveStatusError)' + Marshal.GetLastWin32Error().ToString());  
                     }  
                 }  
             }  

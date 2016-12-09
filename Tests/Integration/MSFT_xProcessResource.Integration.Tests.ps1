@@ -306,6 +306,7 @@ try
                     Start-DscConfiguration -Path $configurationPath -Wait -Force
                 } | Should Not Throw
             }
+
             It 'Should be able to call Get-DscConfiguration without throwing' {
                     { Get-DscConfiguration -Verbose -ErrorAction 'Stop' } | Should Not Throw
             }
@@ -337,15 +338,15 @@ try
                     .$configFile -ConfigurationName $configurationName
                     & $configurationName -Path $testProcessPath `
                                          -Arguments $logFilePath `
-                                         -Credential $testCredential `
                                          -Ensure 'Present' `
+                                         -Credential $testCredential `
                                          -ErrorAction 'Stop' `
                                          -OutputPath $configurationPath `
                                          -ConfigurationData $ConfigData
                     Start-DscConfiguration -Path $configurationPath -ErrorAction 'Stop' -Wait -Force
                 } | Should Not Throw
             }
-       <#
+       
             It 'Should be able to call Get-DscConfiguration without throwing' {
                     { Get-DscConfiguration -Verbose -ErrorAction 'Stop' } | Should Not Throw
             }
@@ -361,8 +362,8 @@ try
             It 'Should create a logfile' {
                 $pathResult = Test-Path $logFilePath
                 $pathResult | Should Be $true
-            }#>
-        #}
+            }
+        }#>
     }
 }
 finally

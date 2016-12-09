@@ -26,7 +26,7 @@ Configuration $ConfigurationName
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
-        $Credential
+        $Credential = (Get-Credential)
     )
 
     Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
