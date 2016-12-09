@@ -310,9 +310,9 @@ try
                                          -Arguments $logFilePath `
                                          -Ensure 'Absent' `
                                          -Credential $testCredential `
+                                         -ErrorAction 'Stop' `
                                          -OutputPath $configurationPath `
-                                         -ConfigurationData $ConfigData `
-                                         -ErrorAction 'Stop'
+                                         -ConfigurationData $ConfigData
                     Start-DscConfiguration -Path $configurationPath -Wait -Force
                 } | Should Not Throw
             }
@@ -333,7 +333,7 @@ try
                 $pathResult | Should Be $false
             }
         }
-        <#
+        
         Context 'Should start a new testProcess instance as running' {
             $configurationName = 'MSFT_xProcess_StartProcessWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
@@ -349,7 +349,7 @@ try
                     & $configurationName -Path $testProcessPath `
                                          -Arguments $logFilePath `
                                          -Ensure 'Present' `
-                                         -Credential Get-AppVeyorAdministratorCredential `
+                                         -Credential $testCredential `
                                          -ErrorAction 'Stop' `
                                          -OutputPath $configurationPath `
                                          -ConfigurationData $ConfigData
@@ -390,6 +390,7 @@ try
                     & $configurationName -Path $testProcessPath `
                                          -Arguments $logFilePath `
                                          -Ensure 'Present' `
+                                         -Credential $testCredential `
                                          -ErrorAction 'Stop' `
                                          -OutputPath $configurationPath `
                                          -ConfigurationData $ConfigData
@@ -430,6 +431,7 @@ try
                     & $configurationName -Path $testProcessPath `
                                          -Arguments $logFilePath `
                                          -Ensure 'Absent' `
+                                         -Credential $testCredential `
                                          -ErrorAction 'Stop' `
                                          -OutputPath $configurationPath `
                                          -ConfigurationData $ConfigData
@@ -470,6 +472,7 @@ try
                                          -Arguments $logFilePath `
                                          -Ensure 'Present' `
                                          -ErrorAction 'Stop' `
+                                         -Credential $testCredential `
                                          -OutputPath $configurationPath `
                                          -ConfigurationData $ConfigData
                     Start-DscConfiguration -Path $configurationPath -ErrorAction 'Stop' -Wait -Force
@@ -515,6 +518,7 @@ try
                     & $configurationName -Path $testProcessPath `
                                          -Arguments $logFilePath `
                                          -Ensure 'Absent' `
+                                         -Credential $testCredential `
                                          -ErrorAction 'Stop' `
                                          -OutputPath $configurationPath `
                                          -ConfigurationData $ConfigData
@@ -537,7 +541,7 @@ try
                 $pathResult = Test-Path $logFilePath
                 $pathResult | Should Be $false
             }
-        }#>
+        }
     }
 }
 finally
