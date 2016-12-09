@@ -11,7 +11,7 @@ Configuration Sample_xWindowsProcess_WithoutCredential
 
     Node localhost
     {
-        xWindowsProcess Notepad
+        xWindowsProcess GPresult
         {
             Path = 'C:\Windows\System32\gpresult.exe'
             Arguments = '/h C:\gp2.htm'
@@ -21,3 +21,4 @@ Configuration Sample_xWindowsProcess_WithoutCredential
 }
 
 Sample_xWindowsProcess_WithoutCredential
+

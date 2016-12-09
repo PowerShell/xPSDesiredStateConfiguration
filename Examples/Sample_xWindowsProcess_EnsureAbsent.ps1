@@ -11,7 +11,7 @@ Configuration Sample_xWindowsProcess_EnsureAbsent
 
     Node localhost
     {
-        xWindowsProcess Notepad
+        xWindowsProcess GPresult
         {
             Path = 'C:\Windows\System32\gpresult.exe'
             Arguments = '/h C:\gp2.htm'
@@ -21,4 +21,5 @@ Configuration Sample_xWindowsProcess_EnsureAbsent
 }
  
 Sample_xWindowsProcess_EnsureAbsent
+
             

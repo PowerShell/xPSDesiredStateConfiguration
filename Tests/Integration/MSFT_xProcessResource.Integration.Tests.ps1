@@ -11,7 +11,7 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
 
 try
 {
-    Describe 'xProcessResource Integration Tests' {
+    Describe 'xProcessResource Integration Tests without Credential' {
         $testProcessPath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
                                      -ChildPath 'ProcessResourceTestProcess.exe'
         $logFilePath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
@@ -256,6 +256,113 @@ try
                 $pathResult | Should Be $false
             }
         }
+    }
+
+    Describe 'xProcessResource Integration Tests with Credential' {
+        $ConfigData = @{
+            AllNodes = @(
+                @{
+                    NodeName = '*'
+                    PSDscAllowPlainTextPassword = $true
+                }
+                @{
+                    NodeName = 'localhost'
+                }
+            )
+        }
+
+        $testUserName = 'TestUserName12345'
+        $testUserPassword = 'StrongOne7.'
+        $secureTestPassword = ConvertTo-SecureString $testUserPassword -AsPlainText -Force
+        $testCredential = New-Object PSCredential ($testUserName, $secureTestPassword)
+
+        $testProcessPath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
+                                     -ChildPath 'ProcessResourceTestProcess.exe'
+        $logFilePath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
+                                 -ChildPath 'processTestLog.txt'
+
+        $configFile = Join-Path -Path $PSScriptRoot `
+                                -ChildPath 'MSFT_xProcessResourceCredential.config.ps1'
+
+        Context 'Should stop any current instances of the testProcess running' {
+            $configurationName = 'MSFT_xProcess_SetupWithCredential'
+            $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+
+            It 'Should compile without throwing' {
+                {
+                    if (Test-Path -Path $logFilePath)
+                    {
+                        Remove-Item -Path $logFilePath
+                    }
+
+                    .$configFile -ConfigurationName $configurationName
+                    & $configurationName -Path $testProcessPath `
+                                         -Arguments $logFilePath `
+                                         -Credential $testCredential `
+                                         -Ensure 'Absent' `
+                                         -OutputPath $configurationPath `
+                                         -ConfigurationData $ConfigData `
+                                         -ErrorAction 'Stop'
+                    Start-DscConfiguration -Path $configurationPath -Wait -Force
+                } | Should Not Throw
+            }
+            It 'Should be able to call Get-DscConfiguration without throwing' {
+                    { Get-DscConfiguration -Verbose -ErrorAction 'Stop' } | Should Not Throw
+            }
+
+            It 'Should return the correct configuration' {
+                    $currentConfig = Get-DscConfiguration -Verbose -ErrorAction 'Stop'
+                    $currentConfig.Path | Should Be $testProcessPath
+                    $currentConfig.Arguments | Should Be $logFilePath
+                    $currentConfig.Ensure | Should Be 'Absent'
+            }
+
+            It 'Should not create a logfile' {
+                $pathResult = Test-Path $logFilePath
+                $pathResult | Should Be $false
+            }
+        }
+        <#
+        Context 'Should start a new testProcess instance as running' {
+            $configurationName = 'MSFT_xProcess_StartProcessWithCredential'
+            $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
+
+            It 'Should compile without throwing' {
+                {
+                    if (Test-Path -Path $logFilePath)
+                    {
+                        Remove-Item -Path $logFilePath
+                    }
+
+                    .$configFile -ConfigurationName $configurationName
+                    & $configurationName -Path $testProcessPath `
+                                         -Arguments $logFilePath `
+                                         -Credential $testCredential `
+                                         -Ensure 'Present' `
+                                         -ErrorAction 'Stop' `
+                                         -OutputPath $configurationPath `
+                                         -ConfigurationData $ConfigData
+                    Start-DscConfiguration -Path $configurationPath -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+            }
+       <#
+            It 'Should be able to call Get-DscConfiguration without throwing' {
+                    { Get-DscConfiguration -Verbose -ErrorAction 'Stop' } | Should Not Throw
+            }
+
+            It 'Should return the correct configuration' {
+                    $currentConfig = Get-DscConfiguration -Verbose -ErrorAction 'Stop'
+                    $currentConfig.Path | Should Be $testProcessPath
+                    $currentConfig.Arguments | Should Be $logFilePath
+                    $currentConfig.Ensure | Should Be 'Present'
+                    $currentConfig.ProcessCount | Should Be 1
+            }
+
+            It 'Should create a logfile' {
+                $pathResult = Test-Path $logFilePath
+                $pathResult | Should Be $true
+            }#>
+        #}
     }
 }
 finally

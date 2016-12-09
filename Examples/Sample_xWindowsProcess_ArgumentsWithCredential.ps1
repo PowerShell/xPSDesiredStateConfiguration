@@ -19,7 +19,7 @@ Configuration Sample_xWindowsProcess_ArgumentsWithCredential
 
     Node localhost
     {
-        xWindowsProcess PowerShell
+        xWindowsProcess GPresult
         {
             Path = 'C:\Windows\System32\gpresult.exe'
             Arguments = '/h C:\gp2.htm'
@@ -35,3 +35,4 @@ Configuration Sample_xWindowsProcess_ArgumentsWithCredential
 #>
 
 Sample_xWindowsProcess_ArgumentsWithCredential
+
