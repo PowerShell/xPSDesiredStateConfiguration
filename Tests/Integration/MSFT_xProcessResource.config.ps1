@@ -26,7 +26,7 @@ Configuration $ConfigurationName
 
     Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
 
-    xWindowsProcess Process1
+    xProcess Process1
     {
         Path = $Path
         Arguments = $Arguments

@@ -33,7 +33,7 @@ Configuration $ConfigurationName
 
     Node $AllNodes.NodeName
     {
-        xWindowsProcess Process1
+        xProcess Process1
         {
             Path = $Path
             Arguments = $Arguments
