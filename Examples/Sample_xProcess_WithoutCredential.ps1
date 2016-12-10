@@ -2,7 +2,7 @@
     .SYNOPSIS
         Starts the gpresult process which generates a log about the group policy.
 #>
-Configuration Sample_xWindowsProcess_WithoutCredential
+Configuration Sample_xProcess_WithoutCredential
 {
     param
     ()
@@ -11,7 +11,7 @@ Configuration Sample_xWindowsProcess_WithoutCredential
 
     Node localhost
     {
-        xWindowsProcess GPresult
+        xProcess GPresult
         {
             Path = 'C:\Windows\System32\gpresult.exe'
             Arguments = '/h C:\gp2.htm'
@@ -20,5 +20,5 @@ Configuration Sample_xWindowsProcess_WithoutCredential
     }
 }
 
-Sample_xWindowsProcess_WithoutCredential
+Sample_xProcess_WithoutCredential
 

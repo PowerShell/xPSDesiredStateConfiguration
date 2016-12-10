@@ -1,4 +1,4 @@
-[ClassVersion("1.0.0"), FriendlyName("xWindowsProcess")] 
+[ClassVersion("1.0.0"), FriendlyName("xProcess")] 
 class MSFT_xProcessResource : OMI_BaseResource
 {
   [Key, Description("The full path or file name to the process executable to start or stop.")] String Path;

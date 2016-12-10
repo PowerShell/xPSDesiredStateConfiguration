@@ -1078,9 +1078,9 @@ function Assert-PsDscContextNotRunAsUser
 
 <#
     .SYNOPSIS
-        Imports the DSC native methods so that a process can
-        be started with a credential on a local system.
-        Currently Start-Process does not have this functionality.
+        Imports the DSC native methods so that a process can be started with a credential
+        on a local system. Currently Start-Process, which is the command used when no credential
+        is passed in, does not have this functionality.
 #>
 function Import-DscNativeMethods  
 {  

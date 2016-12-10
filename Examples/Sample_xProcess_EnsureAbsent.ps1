@@ -2,7 +2,7 @@
     .SYNOPSIS
         Stops the gpresult process.
 #>
-Configuration Sample_xWindowsProcess_EnsureAbsent
+Configuration Sample_xProcess_EnsureAbsent
 {
     param
     ()
@@ -11,7 +11,7 @@ Configuration Sample_xWindowsProcess_EnsureAbsent
 
     Node localhost
     {
-        xWindowsProcess GPresult
+        xProcess GPresult
         {
             Path = 'C:\Windows\System32\gpresult.exe'
             Arguments = '/h C:\gp2.htm'
@@ -20,5 +20,5 @@ Configuration Sample_xWindowsProcess_EnsureAbsent
     }
 }
  
-Sample_xWindowsProcess_EnsureAbsent
+Sample_xProcess_EnsureAbsent
 
