@@ -123,12 +123,12 @@ None
 * **[String] WorkingDirectory** _(Write)_: The directory to run the processes under.
 
 #### Read-Only Properties from Get-TargetResource
-* **[Uint64] PagedMemorySize** _(Read)_: The amount of paged memory, in bytes, allocated for the process.
-* **[Uint64] NonPagedMemorySize** _(Read)_: The amount of nonpaged memory, in bytes, allocated for the process.
-* **[Uint64] VirtualMemorySize** _(Read)_: The amount of virtual memory, in bytes, allocated for the process.
-* **[Sint32] HandleCount** _(Read)_: The number of handles opened by the process.
-* **[Sint32] ProcessId** _(Read)_: The unique identifier of the process.
-* **[Sint32] ProcessCount** _(Read)_: The number of instances of the given process that are currently running.
+* **[UInt64] PagedMemorySize** _(Read)_: The amount of paged memory, in bytes, allocated for the process.
+* **[UInt64] NonPagedMemorySize** _(Read)_: The amount of nonpaged memory, in bytes, allocated for the process.
+* **[UInt64] VirtualMemorySize** _(Read)_: The amount of virtual memory, in bytes, allocated for the process.
+* **[SInt32] HandleCount** _(Read)_: The number of handles opened by the process.
+* **[SInt32] ProcessId** _(Read)_: The unique identifier of the process.
+* **[SInt32] ProcessCount** _(Read)_: The number of instances of the given process that are currently running.
 
 #### Examples
 

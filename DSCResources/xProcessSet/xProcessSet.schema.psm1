@@ -32,7 +32,7 @@ Configuration xProcessSet
 
     $commonParameterNames = @("Credential", "Ensure", "StandardOutputPath", "StandardErrorPath", "StandardInputPath", "WorkingDirectory")
     $keyParameterName = "Path"
-    $resourceName = "xWindowsProcess"
+    $resourceName = "xProcess"
 
     # Build common parameters for all xProcess resource nodes
     [string] $commonParameters = New-ResourceCommonParameterString -KeyParameterName $keyParameterName -CommonParameterNames $commonParameterNames -Parameters $PSBoundParameters

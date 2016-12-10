@@ -9,10 +9,10 @@ class MSFT_xProcessResource : OMI_BaseResource
   [Write, Description("The path to write the standard error stream to.")] String StandardErrorPath;
   [Write, Description("The path to receive standard input from.")] String StandardInputPath;
   [Write, Description("The directory to run the processes under.")] String WorkingDirectory;
-  [Read, Description("The amount of paged memory, in bytes, allocated for the process.")] Uint64 PagedMemorySize;
-  [Read, Description("The amount of nonpaged memory, in bytes, allocated for the process.")] Uint64 NonPagedMemorySize;
-  [Read, Description("The amount of virtual memory, in bytes, allocated for the process.")] Uint64 VirtualMemorySize;
-  [Read, Description("The number of handles opened by the process.")] Sint32 HandleCount;
-  [Read, Description("The unique identifier of the process.")] Sint32 ProcessId;
-  [Read, Description("The number of instances of the given process that are currently running.")] Sint32 ProcessCount;
+  [Read, Description("The amount of paged memory, in bytes, allocated for the process.")] UInt64 PagedMemorySize;
+  [Read, Description("The amount of nonpaged memory, in bytes, allocated for the process.")] UInt64 NonPagedMemorySize;
+  [Read, Description("The amount of virtual memory, in bytes, allocated for the process.")] UInt64 VirtualMemorySize;
+  [Read, Description("The number of handles opened by the process.")] SInt32 HandleCount;
+  [Read, Description("The unique identifier of the process.")] SInt32 ProcessId;
+  [Read, Description("The number of instances of the given process that are currently running.")] SInt32 ProcessCount;
 };
