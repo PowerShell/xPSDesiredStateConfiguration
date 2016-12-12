@@ -4,7 +4,7 @@ Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) `
                                -ChildPath 'CommonResourceHelper.psm1')
 
 # Localized messages for verbose and error statements in this resource
-$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xProcessResource'
+$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xWindowsProcess'
 
 <#
     .SYNOPSIS

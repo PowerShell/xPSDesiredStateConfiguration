@@ -7,7 +7,7 @@ Describe "xProcessSet Integration Tests" {
     BeforeAll {
         $script:testsFolderFilePath = Split-Path -Path $PSScriptRoot -Parent
         $script:serviceTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath `
-                                                      -ChildPath 'MSFT_xProcessResource.TestHelper.psm1'
+                                                      -ChildPath 'MSFT_xWindowsProcess.TestHelper.psm1'
 
         Import-Module -Name $script:serviceTestHelperFilePath
 

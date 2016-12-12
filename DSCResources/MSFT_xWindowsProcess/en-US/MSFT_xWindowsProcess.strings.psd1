@@ -1,4 +1,4 @@
-# Localized resources for MSFT_xProcessResource
+# Localized resources for MSFT_xWindowsProcess
 
 ConvertFrom-StringData @'
     AbsolutePathOrFileName = Absolute path or file name expected.

@@ -8,12 +8,13 @@ Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
-    -DscResourceName 'MSFT_xProcessResource' `
+    -DscResourceName 'MSFT_xWindowsProcess' `
     -TestType 'Unit'
 
 try
 {
-    InModuleScope 'MSFT_xProcessResource' {
+    InModuleScope 'MSFT_xWindowsProcess' {
+
         # Mock objects
         $script:validPath1 = 'ValidPath1'
         $script:validPath2 = 'ValidPath2'

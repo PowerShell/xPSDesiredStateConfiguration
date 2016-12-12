@@ -2,7 +2,7 @@
 using System.Threading;
 
 // This is a test process used for testing configuring running and stopping a process on a machine
-namespace ProcessResourceTestProcess
+namespace WindowsProcessTestProcess
 {
     class Program
     {

@@ -16,22 +16,22 @@ Import-Module -Name (Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
-    -DscResourceName 'MSFT_xProcessResource' `
+    -DscResourceName 'MSFT_xWindowsProcess' `
     -TestType 'Integration'
 
 try
 {
-    Describe 'xProcessResource Integration Tests without Credential' {
+    Describe 'xWindowsProcess Integration Tests without Credential' {
         $testProcessPath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
-                                     -ChildPath 'ProcessResourceTestProcess.exe'
+                                     -ChildPath 'WindowsProcessTestProcess.exe'
         $logFilePath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
                                  -ChildPath 'processTestLog.txt'
 
         $configFile = Join-Path -Path $PSScriptRoot `
-                                -ChildPath 'MSFT_xProcessResource.config.ps1'
+                                -ChildPath 'MSFT_xWindowsProcess.config.ps1'
 
         Context 'Should stop any current instances of the testProcess running' {
-            $configurationName = 'MSFT_xProcess_Setup'
+            $configurationName = 'MSFT_xWindowsProcess_Setup'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -69,7 +69,7 @@ try
         }
 
         Context 'Should start a new testProcess instance as running' {
-            $configurationName = 'MSFT_xProcess_StartProcess'
+            $configurationName = 'MSFT_xWindowsProcess_StartProcess'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -108,7 +108,7 @@ try
         }
 
         Context 'Should not start a second new testProcess instance when one is already running' {
-            $configurationName = 'MSFT_xProcess_StartSecondProcess'
+            $configurationName = 'MSFT_xWindowsProcess_StartSecondProcess'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -147,7 +147,7 @@ try
         }
 
         Context 'Should stop the testProcess instance from running' {
-            $configurationName = 'MSFT_xProcess_StopProcesses'
+            $configurationName = 'MSFT_xWindowsProcess_StopProcesses'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -185,7 +185,7 @@ try
         }
 
         Context 'Should return correct amount of processes running when more than 1 are running' {
-            $configurationName = 'MSFT_xProcess_StartMultipleProcesses'
+            $configurationName = 'MSFT_xWindowsProcess_StartMultipleProcesses'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -230,7 +230,7 @@ try
         }
 
         Context 'Should stop all of the testProcess instances from running' {
-            $configurationName = 'MSFT_xProcess_StopAllProcesses'
+            $configurationName = 'MSFT_xWindowsProcess_StopAllProcesses'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -268,7 +268,7 @@ try
         }
     }
     
-    Describe 'xProcessResource Integration Tests with Credential' {
+    Describe 'xWindowsProcess Integration Tests with Credential' {
         $ConfigData = @{
             AllNodes = @(
                 @{
@@ -287,15 +287,15 @@ try
         $testCredential = Get-AppVeyorAdministratorCredential
 
         $testProcessPath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
-                                     -ChildPath 'ProcessResourceTestProcess.exe'
+                                     -ChildPath 'WindowsProcessTestProcess.exe'
         $logFilePath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
                                  -ChildPath 'processTestLog.txt'
 
         $configFile = Join-Path -Path $PSScriptRoot `
-                                -ChildPath 'MSFT_xProcessResourceCredential.config.ps1'
+                                -ChildPath 'MSFT_xWindowsProcessWithCredential.config.ps1'
 
         Context 'Should stop any current instances of the testProcess running' {
-            $configurationName = 'MSFT_xProcess_SetupWithCredential'
+            $configurationName = 'MSFT_xWindowsProcess_SetupWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -335,7 +335,7 @@ try
         }
         
         Context 'Should start a new testProcess instance as running' {
-            $configurationName = 'MSFT_xProcess_StartProcessWithCredential'
+            $configurationName = 'MSFT_xWindowsProcess_StartProcessWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -376,7 +376,7 @@ try
         }
 
         Context 'Should not start a second new testProcess instance when one is already running' {
-            $configurationName = 'MSFT_xProcess_StartSecondProcessWithCredential'
+            $configurationName = 'MSFT_xWindowsProcess_StartSecondProcessWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -417,7 +417,7 @@ try
         }
 
         Context 'Should stop the testProcess instance from running' {
-            $configurationName = 'MSFT_xProcess_StopProcessesWithCredential'
+            $configurationName = 'MSFT_xWindowsProcess_StopProcessesWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -457,7 +457,7 @@ try
         }
 
         Context 'Should return correct amount of processes running when more than 1 are running' {
-            $configurationName = 'MSFT_xProcess_StartMultipleProcessesWithCredential'
+            $configurationName = 'MSFT_xWindowsProcess_StartMultipleProcessesWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {
@@ -504,7 +504,7 @@ try
         }
 
         Context 'Should stop all of the testProcess instances from running' {
-            $configurationName = 'MSFT_xProcess_StopAllProcessesWithCredential'
+            $configurationName = 'MSFT_xWindowsProcess_StopAllProcessesWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
             It 'Should compile without throwing' {

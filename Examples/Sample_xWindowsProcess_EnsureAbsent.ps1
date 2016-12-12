@@ -1,8 +1,8 @@
 <#
     .SYNOPSIS
-        Starts the gpresult process which generates a log about the group policy.
+        Stops the gpresult process.
 #>
-Configuration Sample_xProcess_WithoutCredential
+Configuration Sample_xWindowsProcess_EnsureAbsent
 {
     param
     ()
@@ -11,14 +11,14 @@ Configuration Sample_xProcess_WithoutCredential
 
     Node localhost
     {
-        xProcess GPresult
+        xWindowsProcess GPresult
         {
             Path = 'C:\Windows\System32\gpresult.exe'
             Arguments = '/h C:\gp2.htm'
-            Ensure = 'Present'
+            Ensure = 'Absent'
         }
     }
 }
-
-Sample_xProcess_WithoutCredential
+ 
+Sample_xProcess_EnsureAbsent
 
