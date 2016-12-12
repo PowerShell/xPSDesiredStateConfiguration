@@ -102,8 +102,8 @@ None
 
 #### Examples
 
-* [Create or modify a group with Members](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
-* [Create or modify a group with MembersToInclude and/or MembersToExclude](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_Members.ps1)
+* [Remove members from a group](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_RemoveMembers.ps1)
+* [Set the members of a group](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroup_SetMembers.ps1)
 
 ### xGroupSet
 
@@ -130,7 +130,7 @@ None
 
 #### Examples
 
-* [Create or modify a set of groups](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroupSet.ps1)
+* [Add members to multiple groups](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xGroupSet_AddMembers.ps1)
 
 ### xWindowsProcess
 
@@ -162,7 +162,7 @@ None
 * **[PSCredential] Credential** _(Write)_: The credential of the user account the service should start under. Cannot be specified at the same time as BuiltInAccount. The user specified by this credential will automatically be granted the Log on as a Service right. The user account specified by this property must have access to the service executable path defined by Path in order to start the service.
 * **[Boolean] DesktopInteract** _(Write)_: Indicates whether or not the service should be able to communicate with a window on the desktop. Must be false for services not running as LocalSystem. The default value is False.
 * **[String] StartupType** _(Write)_: The startup type of the service. { Automatic | Disabled | Manual }.
-* **[String] State** _(Write)_: The state the service. { *Running* | Stopped | Ignore }.
+* **[String] State** _(Write)_: The state of the service. { *Running* | Stopped | Ignore }.
 * **[Uint32] StartupTimeout** _(Write)_: The time to wait for the service to start in milliseconds. Defaults to 30000 (30 seconds).
 * **[Uint32] TerminateTimeout** _(Write)_: The time to wait for the service to stop in milliseconds. Defaults to 30000 (30 seconds).
 
@@ -190,7 +190,7 @@ None
 The following parameters will be the same for each service in the set:
 
 * **[String] Ensure** _(Write)_: Indicates whether the services are present or absent. { *Present* | Absent }.
-* **[String] BuiltInAccount** _(Write)_: The built-in account the servicea should start under. Cannot be specified at the same time as Credential. The user account specified by this property must have access to the service executable paths in order to start the services. { LocalService | LocalSystem | NetworkService }.
+* **[String] BuiltInAccount** _(Write)_: The built-in account the services should start under. Cannot be specified at the same time as Credential. The user account specified by this property must have access to the service executable paths in order to start the services. { LocalService | LocalSystem | NetworkService }.
 * **[PSCredential] Credential** _(Write)_: The credential of the user account the services should start under. Cannot be specified at the same time as BuiltInAccount. The user specified by this credential will automatically be granted the Log on as a Service right. The user account specified by this property must have access to the service executable paths in order to start the services.
 * **[String] StartupType** _(Write)_: The startup type of the services. { Automatic | Disabled | Manual }.
 * **[String] State** _(Write)_: The state the services. { *Running* | Stopped | Ignore }.

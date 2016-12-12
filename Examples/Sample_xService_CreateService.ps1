@@ -1,64 +1,28 @@
+<#
+    .SYNOPSIS
+        If the service with the name Service1 does not exist, creates the service with the name
+        Service1 and the executable/binary path 'C:\FilePath\MyServiceExecutable.exe'. The new
+        service will be started by default.
+
+        If the service with the name Service1 already exists, sets executable/binary path of the
+        service with the name Service1 to 'C:\FilePath\MyServiceExecutable.exe' and starts the
+        service by default if it is not running already.
+#>
 Configuration Sample_xService_CreateService
 {
-
+    [CmdletBinding()]
     param
-    (
-        [string[]] 
-        $nodeName = 'localhost',
+    ()
 
-        [System.String]
-        $Name,
-        
-        [System.String]
-        [ValidateSet("Automatic", "Manual", "Disabled")]
-        $StartupType="Automatic",
+    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
 
-        [System.String]
-        [ValidateSet("LocalSystem", "LocalService", "NetworkService")]
-        $BuiltInAccount="LocalSystem",
-
-        [System.Management.Automation.PSCredential]
-        $Credential,
-
-        [System.String]
-        [ValidateSet("Running", "Stopped")]
-        $State="Running",
-
-        [System.String]
-        [ValidateSet("Present", "Absent")]
-        $Ensure="Present",
-
-        [System.String]
-        $Path,
-
-        [System.String]
-        $DisplayName,
-
-        [System.String]
-        $Description,
-
-        [System.String[]]
-        $Dependencies
-    )
-
-    Import-DscResource -Name MSFT_xServiceResource -ModuleName xPSDesiredStateConfiguration
-
-    Node $nodeName
+    Node localhost
     {
-        xService service
+        xService ServiceResource1
         {
-            Name = $Name
-            Ensure = $Ensure
-            Path = $Path
+            Name = 'Service1'
+            Ensure = 'Present'
+            Path = 'C:\FilePath\MyServiceExecutable.exe'
         }
     }
 }
-
-
-Sample_xService_CreateService -Name "Sample Service" -Ensure "Present" -Path "C:\DSC\TestService.exe"
-
-
-
-
-
-
