@@ -267,8 +267,6 @@ function Test-SetTargetResourceWithWhatIf
     }
 }
 
-$script:appVeyorAdministratorCredential = $null
-
 <#
     .SYNOPSIS
         Retrieves the administrator credential on an AppVeyor machine.
@@ -306,42 +304,6 @@ function Get-AppVeyorAdministratorCredential
         $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
 
         $script:appVeyorAdministratorCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @( "$($env:computerName)\$appVeyorAdministratorUsername", $securePassword )
-    }
-
-    return $script:appVeyorAdministratorCredential
-}
-
-<#
-    .SYNOPSIS
-        Retrieves the administrator credential on an AppVeyor machine.
-        The password will be reset so that we know what the password is.
-
-    .NOTES
-        The AppVeyor credential will be cached after the first call to this function so that the
-        password is not reset again if this function is called again.
-#>
-function Get-AppVeyorAdministratorCredential
-{
-    [OutputType([System.Management.Automation.PSCredential])]
-    [CmdletBinding()]
-    param ()
-
-    if ($null -eq $script:appVeyorAdministratorCredential)
-    {
-        $randomObj = New-Object System.Random
-        $password = ""
-        1..(Get-Random -Minimum 15 -Maximum 126) | ForEach { $password = $password + [char]$randomObj.next(45,126) }
-        
-        # Change password
-        $username = 'appveyor'
-
-        $objUser = [ADSI]("WinNT://$($env:computerName)/$username")
-        $null = $objUser.SetPassword($password)
-        [Microsoft.Win32.Registry]::SetValue("HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon", "DefaultPassword", $password)
-
-        $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
-
-        $script:appVeyorAdministratorCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @( "$($env:computerName)\$username", $securePassword )
     }
 
     return $script:appVeyorAdministratorCredential
@@ -450,6 +412,5 @@ Export-ModuleMember -Function @(
     'Test-SetTargetResourceWithWhatIf', `
     'Get-AppVeyorAdministratorCredential', `
     'Enter-DscResourceTestEnvironment', `
-    'Exit-DscResourceTestEnvironment', `
-    'Get-AppVeyorAdministratorCredential'
+    'Exit-DscResourceTestEnvironment'
 )

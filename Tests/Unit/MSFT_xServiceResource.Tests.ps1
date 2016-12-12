@@ -32,80 +32,6 @@ try
         $script:testCredential1 = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList ($script:testUsername1, $secureTestPassword)
         $script:testCredential2 = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList ($script:testUsername2, $secureTestPassword)
 
-        <#
-        $script:testService = @{
-            Name               = $script:testServiceName
-            ServiceName        = $script:testServiceName
-            DisplayName        = 'DSC test service display name'
-            StartType          = 'Automatic'
-            Status             = [System.ServiceProcess.ServiceControllerStatus]::Running
-            ServicesDependedOn = @( @{ Name = 'winrm' }, @{ Name = 'spooler' } )
-        }
-
-        $script:testServiceCimInstance = @{
-            Name            = $script:testServiceName
-            Status          = 'OK'
-            DesktopInteract = $true
-            PathName        = 'DscTestService.exe'
-            StartMode       = 'Auto'
-            Description     = 'This is the DSC test service used for unit testing xService.'
-            Started         = $true
-            DisplayName     = 'DSC test service display name'
-            StartName       = 'LocalSystem'
-            State           = [System.ServiceProcess.ServiceControllerStatus]::Running
-        }
-        #>
-
-        <#
-        $script:testServiceMockRunning = New-Object -TypeName PSObject -Property @{
-            Name               = $script:testServiceName
-            ServiceName        = $script:testServiceName
-            DisplayName        = $script:testServiceDisplayName
-            StartType          = $script:testServiceStartupType
-            Status             = $script:testServiceStatusRunning
-            ServicesDependedOn = $script:testServiceDependsOnHash
-        }
-
-        Add-Member -InputObject  $script:testServiceMockRunning `
-            -MemberType ScriptMethod `
-            -Name Stop -Value { $global:ServiceStopped = $true }
-
-        Add-Member -InputObject  $script:testServiceMockRunning `
-            -MemberType ScriptMethod `
-            -Name WaitForStatus -Value { param( $Status, $WaitTimeSpan ) }
-
-        $script:testServiceMockStopped = New-Object -TypeName PSObject -Property @{
-            Name               = $script:testServiceName
-            ServiceName        = $script:testServiceName
-            DisplayName        = $script:testServiceDisplayName
-            StartType          = $script:testServiceStartupType
-            Status             = $script:testServiceStatusStopped
-            ServicesDependedOn = $script:testServiceDependsOnHash
-        }
-
-        Add-Member -InputObject  $script:testServiceMockStopped `
-            -MemberType ScriptMethod `
-            -Name Start -Value { $global:ServiceStarted = $true }
-
-        Add-Member -InputObject  $script:testServiceMockStopped `
-            -MemberType ScriptMethod `
-            -Name WaitForStatus -Value { param( $Status, $WaitTimeSpan ) }
-
-        
-
-        $script:splatServiceExistsAutomatic = @{
-            Name                    = $script:testServiceName
-            StartupType             = $script:testServiceStartupType
-            BuiltInAccount          = 'LocalSystem'
-            DesktopInteract         = $true
-            State                   = $script:testServiceStatusRunning
-            Ensure                  = 'Present'
-            Path                    = $script:testServiceExecutablePath
-            DisplayName             = $script:testServiceDisplayName
-            Description             = $script:testServiceDescription
-        }
-        #>
-
         Describe 'xService\Get-TargetResource' {
             Mock -CommandName 'Get-Service' -MockWith { }
             Mock -CommandName 'Get-ServiceCimInstance' -MockWith { }
@@ -121,18 +47,15 @@ try
                 }
 
                 It 'Should retrieve service' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to retrieve the service CIM instance' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled 'Get-ServiceCimInstance' -Times 0 -Scope 'It'
+                    Assert-MockCalled 'Get-ServiceCimInstance' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert the service start mode to a startup type string' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -Times 0 -Scope 'Context'
                 }
 
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
@@ -186,18 +109,15 @@ try
                 }
 
                 It 'Should retrieve service' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service CIM instance' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should convert the service start mode to a startup type string' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -ParameterFilter { $StartMode -eq $testServiceCimInstance.StartMode } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -ParameterFilter { $StartMode -eq $testServiceCimInstance.StartMode } -Times 1 -Scope 'Context'
                 }
 
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
@@ -278,18 +198,15 @@ try
                 }
 
                 It 'Should retrieve service' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service CIM instance' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should convert the service start mode to a startup type string' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -ParameterFilter { $StartMode -eq $testServiceCimInstance.StartMode } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -ParameterFilter { $StartMode -eq $testServiceCimInstance.StartMode } -Times 1 -Scope 'Context'
                 }
 
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
@@ -377,18 +294,15 @@ try
                 }
 
                 It 'Should retrieve service' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service CIM instance' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $getTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should convert the service start mode to a startup type string' {
-                    $null = Get-TargetResource @getTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -ParameterFilter { $StartMode -eq $testServiceCimInstance.StartMode } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartupTypeString' -ParameterFilter { $StartMode -eq $testServiceCimInstance.StartMode } -Times 1 -Scope 'Context'
                 }
 
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
@@ -476,43 +390,35 @@ try
                 }
 
                 It 'Should not check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service properties' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to stop or restart the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -540,43 +446,35 @@ try
                 }
 
                 It 'Should not check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name -and $BinaryPathName -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name -and $BinaryPathName -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service properties' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to stop or restart the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -599,43 +497,35 @@ try
                 }
 
                 It 'Should check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name -and $BinaryPathName -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name -and $BinaryPathName -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should change all service properties except Credential' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $BuiltInAccount -eq $setTargetResourceParameters.BuiltInAccount -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $BuiltInAccount -eq $setTargetResourceParameters.BuiltInAccount -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to stop or restart the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -658,43 +548,35 @@ try
                 }
 
                 It 'Should check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name -and $BinaryPathName -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name -and $BinaryPathName -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should change all service properties except BuiltInAccount' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Credential -DifferenceObject $Credential) -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Credential -DifferenceObject $Credential) -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should stop the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
             }
 
@@ -726,43 +608,35 @@ try
                 }
 
                 It 'Should not check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should stop the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service properties' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -777,43 +651,35 @@ try
                 }
 
                 It 'Should not check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service properties' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
  
                 It 'Should not attempt to stop or restart the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -829,43 +695,35 @@ try
                 }
 
                 It 'Should not check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $Path -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $Path -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service properties' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should stop the service to restart it' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
             }
 
@@ -888,43 +746,35 @@ try
                 }
 
                 It 'Should check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $Path -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $Path -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should change all service properties except Credential' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $BuiltInAccount -eq $setTargetResourceParameters.BuiltInAccount -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $BuiltInAccount -eq $setTargetResourceParameters.BuiltInAccount -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should stop the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
             }
 
@@ -946,43 +796,35 @@ try
                 }
 
                 It 'Should check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $State -eq $setTargetResourceParameters.State } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should change all service properties except BuiltInAccount' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $BuiltInAccount -eq $setTargetResourceParameters.BuiltInAccount -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $StartupType -eq $setTargetResourceParameters.StartupType -and $BuiltInAccount -eq $setTargetResourceParameters.BuiltInAccount -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract -and $DisplayName -eq $setTargetResourceParameters.DisplayName -and $Description -eq $setTargetResourceParameters.Description -and $null -eq (Compare-Object -ReferenceObject $setTargetResourceParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to stop the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -998,43 +840,35 @@ try
                 }
 
                 It 'Should not check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should change only DesktopInteract service property' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $DesktopInteract -eq $setTargetResourceParameters.DesktopInteract } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to stop the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -1052,43 +886,35 @@ try
                 }
 
                 It 'Should not check for a startup type and state conflict' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to create the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'New-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to remove the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should attempt to change the service path' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServicePath' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $Path -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServicePath' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name -and $Path -eq $setTargetResourceParameters.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to change the service properties' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not stop the service to restart it' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Stop-ServiceWithTimeout' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should start the service' {
-                    Set-TargetResource @setTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Start-ServiceWithTimeout' -ParameterFilter { $ServiceName -eq $setTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
             }
         }
@@ -1127,28 +953,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert a credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $true
                 }
             }
 
@@ -1162,28 +984,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert a credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $false
                 }
             }
 
@@ -1212,28 +1030,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert a credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $false
                 }
             }
 
@@ -1247,28 +1061,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert a credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $true
                 }
             }
 
@@ -1279,28 +1089,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-
                 It 'Should check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $testTargetResourceParameters.Name -and $StartupType -eq $testTargetResourceParameters.StartupType -and $State -eq $testTargetResourceParameters.State } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $testTargetResourceParameters.Name -and $StartupType -eq $testTargetResourceParameters.StartupType -and $State -eq $testTargetResourceParameters.State } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $testTargetResourceParameters.Path -and $ActualPath -eq $serviceResourceWithAllProperties.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $testTargetResourceParameters.Path -and $ActualPath -eq $serviceResourceWithAllProperties.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert a credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $true
                 }
             }
 
@@ -1327,38 +1133,35 @@ try
                         { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                     }
 
-                    It 'Should return false' {
-                        Test-TargetResource @testTargetResourceParameters | Should Be $false
-                    }
+                    
 
                     if ($mismatchingParameterName -eq 'StartupType')
                     {
                         It 'Should check for a startup type and state conflict' {
-                            Test-TargetResource @testTargetResourceParameters
-                            Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $testTargetResourceParameters.Name -and $StartupType -eq $testTargetResourceParameters.StartupType -and $State -eq 'Running' } -Times 1 -Scope 'It'
+                            Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -ParameterFilter { $ServiceName -eq $testTargetResourceParameters.Name -and $StartupType -eq $testTargetResourceParameters.StartupType -and $State -eq 'Running' } -Times 1 -Scope 'Context'
                         }
                     }
                     else
                     {
                         It 'Should not check for a startup type and state conflict' {
-                            Test-TargetResource @testTargetResourceParameters
-                            Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                            Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                         }
                     }
 
                     It 'Should retrieve the service' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not test if the service path matches the specified path' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to convert a credential username to a service start name' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                    }
+
+                    It 'Should return false' {
+                        Test-TargetResource @testTargetResourceParameters | Should Be $false
                     }
                 }
             }
@@ -1374,28 +1177,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert a credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $true
                 }
             }
 
@@ -1422,28 +1221,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should convert the credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $script:testCredential1.UserName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $script:testCredential1.UserName } -Times 1 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $true
                 }
             }
 
@@ -1458,28 +1253,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should convert the credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $script:testCredential2.UserName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $script:testCredential2.UserName } -Times 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $false
                 }
             }
 
@@ -1506,28 +1297,24 @@ try
                         { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                     }
 
-                    It 'Should return false' {
-                        Test-TargetResource @testTargetResourceParameters | Should Be $false
-                    }
-
                     It 'Should not check for a startup type and state conflict' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should retrieve the service' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not test if the service path matches the specified path' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to convert a credential username to a service start name' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                    }
+
+                    It 'Should return false' {
+                        Test-TargetResource @testTargetResourceParameters | Should Be $false
                     }
                 }
             }
@@ -1559,28 +1346,24 @@ try
                         { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                     }
 
-                    It 'Should return false' {
-                        Test-TargetResource @testTargetResourceParameters | Should Be $false
-                    }
-
                     It 'Should not check for a startup type and state conflict' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should retrieve the service' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not test if the service path matches the specified path' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to convert a credential username to a service start name' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                    }
+
+                    It 'Should return false' {
+                        Test-TargetResource @testTargetResourceParameters | Should Be $false
                     }
                 }
 
@@ -1594,28 +1377,24 @@ try
                         { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                     }
 
-                    It 'Should return true' {
-                        Test-TargetResource @testTargetResourceParameters | Should Be $true
-                    }
-
                     It 'Should not check for a startup type and state conflict' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should retrieve the service' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not test if the service path matches the specified path' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Test-PathsMatch' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to convert a credential username to a service start name' {
-                        Test-TargetResource @testTargetResourceParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                    }
+
+                    It 'Should return true' {
+                        Test-TargetResource @testTargetResourceParameters | Should Be $true
                     }
                 }
             }
@@ -1633,28 +1412,24 @@ try
                     { Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-
                 It 'Should not check for a startup type and state conflict' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Assert-NoStartupTypeStateConflict' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should retrieve the service' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter { $Name -eq $testTargetResourceParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should test if the service path matches the specified path' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $testTargetResourceParameters.Path -and $ActualPath -eq $serviceResourceWithNullProperties.Path } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $testTargetResourceParameters.Path -and $ActualPath -eq $serviceResourceWithNullProperties.Path } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not attempt to convert a credential username to a service start name' {
-                    Test-TargetResource @testTargetResourceParameters
-                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $false
                 }
             }
         }
@@ -1668,8 +1443,7 @@ try
                 }
 
                 It 'Should retrieve the CIM instance of the service with the given name' {
-                    $null = Get-ServiceCimInstance -ServiceName $script:testServiceName
-                    Assert-MockCalled -CommandName 'Get-CimInstance' -ParameterFilter {$ClassName -ieq 'Win32_Service' -and $Filter.Contains($script:testServiceName)} -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-CimInstance' -ParameterFilter {$ClassName -ieq 'Win32_Service' -and $Filter.Contains($script:testServiceName)} -Times 1 -Scope 'Context'
                 }
 
                 It 'Should return null' {
@@ -1687,8 +1461,7 @@ try
                 }
 
                 It 'Should retrieve the CIM instance of the service with the given name' {
-                    $null = Get-ServiceCimInstance -ServiceName $script:testServiceName
-                    Assert-MockCalled -CommandName 'Get-CimInstance' -ParameterFilter {$ClassName -ieq 'Win32_Service' -and $Filter.Contains($script:testServiceName)} -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-CimInstance' -ParameterFilter {$ClassName -ieq 'Win32_Service' -and $Filter.Contains($script:testServiceName)} -Times 1 -Scope 'Context'
                 }
 
                 It 'Should return the retrieved CIM instance' {
@@ -1845,23 +1618,20 @@ try
                         { Set-ServicePath @setServicePathParameters } | Should Not Throw
                     }
 
-                    It 'Should return false' {
-                        Set-ServicePath @setServicePathParameters | Should Be $false
-                    }
-
                     It 'Should retrieve the service CIM instance' {
-                        $null = Set-ServicePath @setServicePathParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePathParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePathParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should test if the specfied path matches the service path' {
-                        $null = Set-ServicePath @setServicePathParameters
-                        Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $setServicePathParameters.Path -and $ActualPath -eq $testServiceCimInstance.PathName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $setServicePathParameters.Path -and $ActualPath -eq $testServiceCimInstance.PathName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not change the service' {
-                        $null = Set-ServicePath @setServicePathParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
+                    }
+
+                    It 'Should return false' {
+                        Set-ServicePath @setServicePathParameters | Should Be $false
                     }
                 }
 
@@ -1877,23 +1647,20 @@ try
                         { Set-ServicePath @setServicePathParameters } | Should Not Throw
                     }
 
-                    It 'Should return true' {
-                        Set-ServicePath @setServicePathParameters | Should Be $true
-                    }
-
                     It 'Should retrieve the service CIM instance' {
-                        $null = Set-ServicePath @setServicePathParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePathParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePathParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should test if the specfied path matches the service path' {
-                        $null = Set-ServicePath @setServicePathParameters
-                        Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $setServicePathParameters.Path -and $ActualPath -eq $testServiceCimInstance.PathName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Test-PathsMatch' -ParameterFilter { $ExpectedPath -eq $setServicePathParameters.Path -and $ActualPath -eq $testServiceCimInstance.PathName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should change the service' {
-                        $null = Set-ServicePath @setServicePathParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.PathName -eq $setServicePathParameters.Path} -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.PathName -eq $setServicePathParameters.Path} -Times 1 -Scope 'Context'
+                    }
+
+                    It 'Should return true' {
+                        Set-ServicePath @setServicePathParameters | Should Be $true
                     }
                 }
     
@@ -1953,18 +1720,15 @@ try
                     }
 
                     It 'Should retrieve the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'                        
+                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'                        
                     }
 
                     It 'Should not retrieve the service CIM instance' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not change the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
                     }
                 }
 
@@ -1979,18 +1743,15 @@ try
                     }
 
                     It 'Should retrieve the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'                        
+                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'                        
                     }
 
                     It 'Should retrieve the service CIM instance' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should change the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $null -eq (Compare-Object -ReferenceObject $setServiceDependenciesParameters.Dependencies -DifferenceObject $Arguments.ServiceDependencies) } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $null -eq (Compare-Object -ReferenceObject $setServiceDependenciesParameters.Dependencies -DifferenceObject $Arguments.ServiceDependencies) } -Times 1 -Scope 'Context'
                     }
                 }
 
@@ -2005,18 +1766,15 @@ try
                     }
 
                     It 'Should retrieve the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'                        
+                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'                        
                     }
 
                     It 'Should retrieve the service CIM instance' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should change the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $null -eq (Compare-Object -ReferenceObject $setServiceDependenciesParameters.Dependencies -DifferenceObject $Arguments.ServiceDependencies) } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $null -eq (Compare-Object -ReferenceObject $setServiceDependenciesParameters.Dependencies -DifferenceObject $Arguments.ServiceDependencies) } -Times 1 -Scope 'Context'
                     }
                 }
 
@@ -2037,18 +1795,15 @@ try
                     }
 
                     It 'Should retrieve the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'                        
+                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'                        
                     }
 
                     It 'Should not retrieve the service CIM instance' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not change the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
                     }
                 }
 
@@ -2063,18 +1818,15 @@ try
                     }
 
                     It 'Should retrieve the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'                        
+                        Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'                        
                     }
 
                     It 'Should retrieve the service CIM instance' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceDependenciesParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should change the service' {
-                        Set-ServiceDependencies @setServiceDependenciesParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $null -eq (Compare-Object -ReferenceObject $setServiceDependenciesParameters.Dependencies -DifferenceObject $Arguments.ServiceDependencies) } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $null -eq (Compare-Object -ReferenceObject $setServiceDependenciesParameters.Dependencies -DifferenceObject $Arguments.ServiceDependencies) } -Times 1 -Scope 'Context'
                     }                    
                 }
     
@@ -2084,7 +1836,7 @@ try
 
                 Mock -CommandName 'Invoke-CimMethod' -MockWith { return $invokeCimMethodFailResult }
 
-                Context 'Specified dependencies do not match the service dependencies and the dependency change change fails' {
+                Context 'Specified dependencies do not match the service dependencies and the dependency change fails' {
                     $setServiceDependenciesParameters = @{
                         ServiceName = $script:testServiceName
                         Dependencies = @( 'TestDependency3', 'TestDependency4' )
@@ -2127,23 +1879,19 @@ try
                     }
 
                     It 'Should retrieve service CIM instance' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not attempt to convert the built-in account or credential username to a service start name' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to grant Log on As a Service right' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to change service' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
                     }
                 }
 
@@ -2158,23 +1906,19 @@ try
                     }
 
                     It 'Should retrieve service CIM instance' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not attempt to convert the built-in account or credential username to a service start name' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to grant Log on As a Service right' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to change service' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
                     }
                 }
 
@@ -2189,23 +1933,19 @@ try
                     }
 
                     It 'Should retrieve service CIM instance' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not attempt to convert the built-in account or credential username to a service start name' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to grant Log on As a Service right' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should change service' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.DesktopInteract -eq $setServiceAccountPropertyParameters.DesktopInteract} -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.DesktopInteract -eq $setServiceAccountPropertyParameters.DesktopInteract} -Times 1 -Scope 'Context'
                     }
                 }
 
@@ -2223,23 +1963,19 @@ try
                     }
 
                     It 'Should retrieve service CIM instance' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should convert the credential username to a service start name' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.Credential.UserName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.Credential.UserName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not attempt to grant Log on As a Service right' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to change service' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
                     }
                 }
 
@@ -2254,23 +1990,19 @@ try
                     }
 
                     It 'Should retrieve service CIM instance' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should convert the credential username to a service start name' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.Credential.UserName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.Credential.UserName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should grant Log on As a Service right' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.Credential.UserName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.Credential.UserName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should change service' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartName -eq $setServiceAccountPropertyParameters.Credential.UserName -and $Arguments.StartPassword -eq $setServiceAccountPropertyParameters.Credential.GetNetworkCredential().Password } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartName -eq $setServiceAccountPropertyParameters.Credential.UserName -and $Arguments.StartPassword -eq $setServiceAccountPropertyParameters.Credential.GetNetworkCredential().Password } -Times 1 -Scope 'Context'
                     }
                 }
 
@@ -2285,23 +2017,19 @@ try
                     }
 
                     It 'Should retrieve service CIM instance' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should convert the built-in account to a service start name' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.BuiltInAccount } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.BuiltInAccount } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not attempt to grant Log on As a Service right' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should not attempt to change service' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
                     }
                 }
 
@@ -2316,23 +2044,19 @@ try
                     }
 
                     It 'Should retrieve service CIM instance' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceAccountPropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should convert the built-in account to a service start name' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.BuiltInAccount } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'ConvertTo-StartName' -ParameterFilter { $Username -eq $setServiceAccountPropertyParameters.BuiltInAccount } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not attempt to grant Log on As a Service right' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Grant-LogOnAsServiceRight' -Times 0 -Scope 'Context'
                     }
 
                     It 'Should change service' {
-                        Set-ServiceAccountProperty @setServiceAccountPropertyParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartName -eq $setServiceAccountPropertyParameters.BuiltInAccount -and $Arguments.StartPassword -eq [String]::Empty } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartName -eq $setServiceAccountPropertyParameters.BuiltInAccount -and $Arguments.StartPassword -eq [String]::Empty } -Times 1 -Scope 'Context'
                     }
                 }
 
@@ -2414,13 +2138,11 @@ try
                     }
 
                     It 'Should retrieve the service CIM instance' {
-                        Set-ServiceStartupType @setServiceStartupTypeParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceStartupTypeParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceStartupTypeParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should not attempt to change the service' {
-                        Set-ServiceStartupType @setServiceStartupTypeParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -Times 0 -Scope 'Context'
                     }
                 }
 
@@ -2435,13 +2157,11 @@ try
                     }
 
                     It 'Should retrieve the service CIM instance' {
-                        Set-ServiceStartupType @setServiceStartupTypeParameters
-                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceStartupTypeParameters.ServiceName } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServiceStartupTypeParameters.ServiceName } -Times 1 -Scope 'Context'
                     }
 
                     It 'Should change the service' {
-                        Set-ServiceStartupType @setServiceStartupTypeParameters
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartMode -eq $setServiceStartupTypeParameters.StartupType } -Times 1 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartMode -eq $setServiceStartupTypeParameters.StartupType } -Times 1 -Scope 'Context'
                     }
                 }
 
@@ -2495,28 +2215,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service description or display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2531,28 +2246,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should set service display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -ParameterFilter { $Name -eq $setServicePropertyParameters.ServiceName -and $DisplayName -eq $setServicePropertyParameters.DisplayName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -ParameterFilter { $Name -eq $setServicePropertyParameters.ServiceName -and $DisplayName -eq $setServicePropertyParameters.DisplayName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2567,28 +2277,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should set service description' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -ParameterFilter { $Name -eq $setServicePropertyParameters.ServiceName -and $Description -eq $setServicePropertyParameters.Description } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -ParameterFilter { $Name -eq $setServicePropertyParameters.ServiceName -and $Description -eq $setServicePropertyParameters.Description } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2604,28 +2309,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service description or display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2640,28 +2340,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service description or display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $null -eq (Compare-Object -ReferenceObject $setServicePropertyParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $null -eq (Compare-Object -ReferenceObject $setServicePropertyParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2676,28 +2371,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service description or display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and [PSCredential]::Equals($setServicePropertyParameters.Credential, $Credential) } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and [PSCredential]::Equals($setServicePropertyParameters.Credential, $Credential) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2712,28 +2402,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service description or display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $BuiltInAccount -eq $setServicePropertyParameters.BuiltInAccount } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $BuiltInAccount -eq $setServicePropertyParameters.BuiltInAccount } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2748,28 +2433,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service description or display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $DesktopInteract -eq $setServicePropertyParameters.DesktopInteract } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $DesktopInteract -eq $setServicePropertyParameters.DesktopInteract } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -Times 0 -Scope 'Context'
                 }
             }
 
@@ -2784,28 +2464,23 @@ try
                 }
 
                 It 'Should retrieve service CIM instance' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-ServiceCimInstance' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service description or display name' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-Service' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service dependencies' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service startup type' {
-                    Set-ServiceProperty @setServicePropertyParameters
-                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $StartupType -eq $setServicePropertyParameters.StartupType } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Set-ServiceStartupType' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $StartupType -eq $setServicePropertyParameters.StartupType } -Times 1 -Scope 'Context'
                 }
             }
         }
@@ -2825,13 +2500,11 @@ try
                 }
 
                 It 'Should remove service' {
-                    Remove-ServiceWithTimeout @removeServiceWithTimeoutParameters
-                    Assert-MockCalled -CommandName 'Remove-Service' -ParameterFilter { $Name -eq $removeServiceWithTimeoutParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Remove-Service' -ParameterFilter { $Name -eq $removeServiceWithTimeoutParameters.Name } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should retrieve service to check for removal once' {
-                    Remove-ServiceWithTimeout @removeServiceWithTimeoutParameters
-                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $removeServiceWithTimeoutParameters.Name } -Times 1 -Scope 'It'
+                    Assert-MockCalled -CommandName 'Get-Service' -ParameterFilter { $Name -eq $removeServiceWithTimeoutParameters.Name } -Times 1 -Scope 'Context'
                 }
             }
 
@@ -2866,13 +2539,11 @@ try
             }
 
             It 'Should start service' {
-                Start-ServiceWithTimeout @startServiceWithTimeoutParameters
-                Assert-MockCalled -CommandName 'Start-Service' -ParameterFilter { $Name -eq $startServiceWithTimeoutParameters.ServiceName } -Times 1 -Scope 'It'
+                Assert-MockCalled -CommandName 'Start-Service' -ParameterFilter { $Name -eq $startServiceWithTimeoutParameters.ServiceName } -Times 1 -Scope 'Describe'
             }
 
             It 'Should wait for service to start' {
-                Start-ServiceWithTimeout @startServiceWithTimeoutParameters
-                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $startServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Running -and [TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'It'
+                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $startServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Running -and [TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'Describe'
             }
         }
 
@@ -2892,13 +2563,11 @@ try
             }
 
             It 'Should stop service' {
-                Stop-ServiceWithTimeout @stopServiceWithTimeoutParameters
-                Assert-MockCalled -CommandName 'Stop-Service' -ParameterFilter { $Name -eq $stopServiceWithTimeoutParameters.ServiceName } -Times 1 -Scope 'It'
+                Assert-MockCalled -CommandName 'Stop-Service' -ParameterFilter { $Name -eq $stopServiceWithTimeoutParameters.ServiceName } -Times 1 -Scope 'Describe'
             }
 
             It 'Should wait for service to stop' {
-                Stop-ServiceWithTimeout @stopServiceWithTimeoutParameters
-                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $stopServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped -and [TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'It'
+                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $stopServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped -and [TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'Describe'
             }
         }
     }

@@ -151,19 +151,19 @@ try
                 $differentDependencies | Should Be $null
             }
 
-            It 'Should have created a new service with the default state Running' {
+            It 'Should have created a new service with the default state as Running' {
                 $service.Status | Should Be 'Running'
             }
 
-            It 'Should have created a new service with the default startup type Auto' {
+            It 'Should have created a new service with the default startup type as Auto' {
                 $serviceCimInstance.StartMode | Should Be 'Auto'
             }
 
-            It 'Should have created a new service with the default startup account name LocalSystem' {
+            It 'Should have created a new service with the default startup account name as LocalSystem' {
                 $serviceCimInstance.StartName | Should Be 'LocalSystem'
             }
 
-            It 'Should have created a new service with the default desktop interaction setting False' {
+            It 'Should have created a new service with the default desktop interaction setting as False' {
                 $serviceCimInstance.DesktopInteract | Should Be $false
             }
 
@@ -214,19 +214,19 @@ try
                 $differentDependencies | Should Be $null
             }
 
-            It 'Should not have changed the service state Running' {
+            It 'Should not have changed the service state from Running' {
                 $service.Status | Should Be 'Running'
             }
 
-            It 'Should not have changed the service startup type Auto' {
+            It 'Should not have changed the service startup type from Auto' {
                 $serviceCimInstance.StartMode | Should Be 'Auto'
             }
 
-            It 'Should not have changed the service startup account name LocalSystem' {
+            It 'Should not have changed the service startup account name from LocalSystem' {
                 $serviceCimInstance.StartName | Should Be 'LocalSystem'
             }
 
-            It 'Should not have changed the service desktop interaction setting False' {
+            It 'Should not have changed the service desktop interaction setting from False' {
                 $serviceCimInstance.DesktopInteract | Should Be $false
             }
 

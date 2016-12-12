@@ -6,7 +6,7 @@
 $errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
-# Import CommonResourceHelper for Test-IsNanoServer
+# Import CommonResourceHelper for Get-LocalizedData, Test-IsNanoServer, New-InvalidArgumentException, New-InvalidOperationException
 $script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
 Import-Module -Name $script:commonResourceHelperFilePath
@@ -169,7 +169,7 @@ function Get-TargetResource
 
         Set-TargetResource --> Set-ServicePath --> Invoke-CimMethod
                            --> Set-ServiceProperty --> Set-ServiceDependencies --> Invoke-CimMethod
-                                                   --> Set-ServieceAccountProperty --> Invoke-CimMethod
+                                                   --> Set-ServiceAccountProperty --> Invoke-CimMethod
                                                    --> Set-ServiceStartupType --> Invoke-CimMethod
 #>
 function Set-TargetResource
@@ -1266,9 +1266,6 @@ function Grant-LogOnAsServiceRight
     try
     {
         [LogOnAsServiceHelper.NativeMethods]::SetLogOnAsServicePolicy($Username)
-
-        # Trigger group policy to update now
-        # & gpupdate /force /target:computer /wait:0
     }
     catch
     {
@@ -1597,7 +1594,7 @@ function Remove-Service
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullorEmpty()]
+        [ValidateNotNullOrEmpty()]
         [String]
         $Name
     )
@@ -1621,7 +1618,7 @@ function Remove-ServiceWithTimeout
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullorEmpty()]
+        [ValidateNotNullOrEmpty()]
         [String]
         $Name,
 

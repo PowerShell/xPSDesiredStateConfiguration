@@ -16,7 +16,7 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
 
 try
 {
-    Describe "xGroupSet Integration Tests" {
+    Describe 'xGroupSet Integration Tests' {
         BeforeAll {
             # Import xGroup Test Helper for TestGroupExists, New-Group, Remove-Group, New-User, Remove-User
             $groupTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'MSFT_xGroupResource.TestHelper.psm1'

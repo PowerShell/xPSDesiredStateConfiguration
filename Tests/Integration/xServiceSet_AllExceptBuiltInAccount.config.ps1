@@ -22,6 +22,7 @@ Configuration $ConfigurationName
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [System.Management.Automation.PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential,
 
         [ValidateSet('Running', 'Stopped', 'Ignore')]

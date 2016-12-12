@@ -1,59 +1,21 @@
+<#
+    .SYNOPSIS
+        Stops and then removes the service with the name Service1.
+#>
 Configuration Sample_xService_DeleteService
 {
-
+    [CmdletBinding()]
     param
-    (
-        [string[]] 
-        $nodeName = 'localhost',
+    ()
 
-        [System.String]
-        $Name,
-        
-        [System.String]
-        [ValidateSet("Automatic", "Manual", "Disabled")]
-        $StartupType,
+    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
 
-        [System.String]
-        [ValidateSet("LocalSystem", "LocalService", "NetworkService")]
-        $BuiltInAccount,
-
-        [System.Management.Automation.PSCredential]
-        $Credential ,
-
-        [System.String]
-        [ValidateSet("Running", "Stopped")]
-        $State="Running",
-
-        [System.String]
-        [ValidateSet("Present", "Absent")]
-        $Ensure="Present",
-
-        [System.String]
-        $Path,
-
-        [System.String]
-        $DisplayName,
-
-        [System.String]
-        $Description,
-
-        [System.String[]]
-        $Dependencies
-    )
-
-    Import-DscResource -Name MSFT_xServiceResource -ModuleName xPSDesiredStateConfiguration
-
-    Node $nodeName
+    Node localhost
     {
-        xService service
+        xService ServiceResource1
         {
-            Name = $Name
-            Ensure = $Ensure
+            Name = 'Service1'
+            Ensure = 'Absent'
         }
     }
 }
-
-
-Sample_xService_DeleteService -Name "Sample Service" -Ensure "Absent" 
-
-
