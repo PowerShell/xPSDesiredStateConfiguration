@@ -32,12 +32,12 @@ Configuration xProcessSet
 
     $commonParameterNames = @("Credential", "Ensure", "StandardOutputPath", "StandardErrorPath", "StandardInputPath", "WorkingDirectory")
     $keyParameterName = "Path"
-    $resourceName = "xProcess"
+    $resourceName = "xWindowsProcess"
 
-    # Build common parameters for all xProcess resource nodes
+    # Build common parameters for all xWindowsProcess resource nodes
     [string] $commonParameters = New-ResourceCommonParameterString -KeyParameterName $keyParameterName -CommonParameterNames $commonParameterNames -Parameters $PSBoundParameters
 
-    # Arguments is a key parameter in xProcess resource. Adding it as default parameter with an empty value string
+    # Arguments is a key parameter in xWindowsProcess resource. Adding it as default parameter with an empty value string
     $defaultParameters = 'Arguments = ""'
 
     # Build WindowsProcess resource string
