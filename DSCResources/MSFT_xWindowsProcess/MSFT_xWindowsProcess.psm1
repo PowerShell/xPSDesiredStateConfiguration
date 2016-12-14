@@ -1,3 +1,4 @@
+$errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
 Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) `
@@ -8,8 +9,11 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xWindowsProcess'
 
 <#
     .SYNOPSIS
-        Returns a hashtable of results about the managed process. If more than one process is
-        found, only the first will be returned
+        Retrieves the current state of the Windows process(es) with the specified
+        executable and arguments.
+
+        If more than one process is found, only the information of the first process is retrieved.
+        ProcessCount will contain the actual number of processes that were found.
 
     .PARAMETER Path
         The path to the process executable. If this is the file name of the executable
@@ -19,11 +23,10 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xWindowsProcess'
         error if the path does not exist. Relative paths are not allowed.
 
     .PARAMETER Arguments
-        Indicates a string of arguments to pass to the process as-is. If you need to pass several
-        arguments, put them all in this string.
+        The arguments to the process as a single string.
 
     .PARAMETER Credential
-        Indicates the credential for starting the process.
+        The credential of the user account to start the process under.
 #>
 function Get-TargetResource
 {
@@ -56,16 +59,18 @@ function Get-TargetResource
         Arguments = $Arguments
     }
 
-    if ($null -ne $Credential)
+    if ($PSBoundParameters.ContainsKey('Credential'))
     {
         $getProcessCimInstanceArguments['Credential'] = $Credential
     }
 
     $processCimInstance = @( Get-ProcessCimInstance @getProcessCimInstanceArguments )
 
+    $processToReturn = @{}
+
     if ($processCimInstance.Count -eq 0)
     {
-        return @{
+        $processToReturn = @{
             Path = $Path
             Arguments = $Arguments
             Ensure ='Absent'
@@ -75,8 +80,8 @@ function Get-TargetResource
     $getProcessResult = Get-Process -ID $processCimInstance[0].ProcessId -ErrorAction 'Ignore'
 
     $processToReturn = @{
-        Path = $processCimInstance[0].Path
-        Arguments = (Get-ArgumentsFromCommandLineInput -CommandLineInput $processCimInstance[0].CommandLine)
+        Path = $Path
+        Arguments = $Arguments
         PagedMemorySize = $getProcessResult.PagedMemorySize64
         NonPagedMemorySize = $getProcessResult.NonpagedSystemMemorySize64
         VirtualMemorySize = $getProcessResult.VirtualMemorySize64
@@ -92,7 +97,10 @@ function Get-TargetResource
 
 <#
     .SYNOPSIS
-        Ensures the managed process executable is Present or Absent.
+        Sets the Windows process with the specified executable path and arguments
+        to the specified state.
+
+        If multiple process are found, the specified state will be set for all of them.
 
     .PARAMETER Path
         The path to the process executable. If this is the file name of the executable
@@ -102,29 +110,34 @@ function Get-TargetResource
         error if the path does not exist. Relative paths are not allowed.
 
     .PARAMETER Arguments
-        Indicates a string of arguments to pass to the process as-is. If you need to pass several
-        arguments, put them all in this string.
+        The arguments to the process as a single string.
 
     .PARAMETER Credential
-        Indicates the credential for starting the process.
+        The credential of the user account to start the process under.
 
     .PARAMETER Ensure
-        Indicates if the process exists. Set this property to "Present" to ensure that the process
-        exists. Otherwise, set it to "Absent". The default is "Present".
+        Specifies whether or not the process should exist.
+        To start or modify a process, set this property to Present.
+        To stop a process, set this property to Absent.
+        The default value is Present.
 
     .PARAMETER StandardOutputPath
-        Indicates the location to write the standard output. Any existing file there will be
-        overwritten.
+        The file path to write the standard output to. Any existing file at this path
+        will be overwritten.This property cannot be specified at the same time as Credential
+        when running the process as a local user.
 
     .PARAMETER StandardErrorPath
-        Indicates the directory path to write the standard error. Any existing file there will be
-        overwritten.
+        The file path to write the standard error output to. Any existing file at this path
+        will be overwritten.
 
     .PARAMETER StandardInputPath
-        Indicates the standard input location.
+        The file path to get standard input from. This property cannot be specified at the
+        same time as Credential when running the process as a local user.
 
     .PARAMETER WorkingDirectory
-        Indicates the location that will be used as the current working directory for the process.
+        The file path to use as the working directory for the process. Any existing file
+        at this path will be overwritten. This property cannot be specified at the same time
+        as Credential when running the process as a local user.
 #>
 function Set-TargetResource
 {
@@ -162,6 +175,7 @@ function Set-TargetResource
         [String]
         $WorkingDirectory
     )
+
     Write-Verbose -Message ($script:localizedData.SetTargetResourceStartMessage -f $Path)
 
     Assert-PsDscContextNotRunAsUser
@@ -173,7 +187,7 @@ function Set-TargetResource
         Arguments = $Arguments
     }
 
-    if ($null -ne $Credential)
+    if ($PSBoundParameters.ContainsKey('Credential'))
     {
         $getProcessCimInstanceArguments['Credential'] = $Credential
     }
@@ -202,16 +216,15 @@ function Set-TargetResource
 
             if ($null -eq $stopProcessError)
             {
-                $message = ($script:localizedData.ProcessesStopped -f $Path, ($processIds -join ','))
-                Write-Verbose -Message $message
+                Write-Verbose -Message ($script:localizedData.ProcessesStopped -f $Path, ($processIds -join ','))
             }
             else
             {
-                $message = ($script:localizedData.ErrorStopping -f $Path,
+                $errorMessage = ($script:localizedData.ErrorStopping -f $Path,
                            ($processIds -join ','),
                            ($stopProcessError | Out-String))
 
-                New-InvalidOperationException -Message $message
+                New-InvalidOperationException -Message $errorMessage
            }
            <#
                Before returning from Set-TargetResource we have to ensure a subsequent
@@ -330,7 +343,7 @@ function Set-TargetResource
                                           -ArgumentList @( $_.Exception, 'Win32Exception', 'OperationStopped', $null ))
                     }
                 }
-                # Credential not passed in
+                # Credential not passed in or running from a LocalSystem
                 else
                 {
                     try
@@ -339,9 +352,9 @@ function Set-TargetResource
                     }
                     catch [System.Exception]
                     {
-                        $message = ($script:localizedData.ErrorStarting -f $Path, $_.Exception.Message)
+                        $errorMessage = ($script:localizedData.ErrorStarting -f $Path, $_.Exception.Message)
                         
-                        New-InvalidOperationException -Message $message
+                        New-InvalidOperationException -Message $errorMessage
                     }
                 }
 
@@ -368,7 +381,8 @@ function Set-TargetResource
 
 <#
     .SYNOPSIS
-        Tests if the managed process is Present or Absent.
+        Tests if the Windows process with the specified executable path and arguments is in
+        the specified state.
 
     .PARAMETER Path
         The path to the process executable. If this is the file name of the executable
@@ -378,16 +392,16 @@ function Set-TargetResource
         error if the path does not exist. Relative paths are not allowed.
 
     .PARAMETER Arguments
-        Indicates a string of arguments to pass to the process as-is. If you need to pass several
-        arguments, put them all in this string.
+        The arguments to the process as a single string.
 
     .PARAMETER Credential
-        Indicates the credential for starting the process.
+        The credential of the user account the process should be running under.
 
     .PARAMETER Ensure
-        Indicates if the process exists. Set this property to "Present" to return true
-        if the process that is being tested exists. Otherwise, set it to "Absent" to return true if
-        the process does not exist. The default is "Present".
+        Specifies whether or not the process should exist.
+        If the process should exist, set this property to Present.
+        If the process should not exist, set this property to Absent.
+        The default value is Present.
 
     .PARAMETER StandardOutputPath
         Not used in Test-TargetResource.
@@ -445,14 +459,14 @@ function Test-TargetResource
 
     $Path = Expand-Path -Path $Path
 
-    $getProcessArguments = @{
+    $getProcessCimInstanceArguments = @{
         Path = $Path
         Arguments = $Arguments
     }
 
-    if ($null -ne $Credential)
+    if ($PSBoundParameters.ContainsKey('Credential'))
     {
-        $getProcessArguments['Credential'] = $Credential
+        $getProcessCimInstanceArguments['Credential'] = $Credential
     }
 
     $processCimInstances = @( Get-ProcessCimInstance @getProcessArguments )
@@ -472,7 +486,7 @@ function Test-TargetResource
 <#
     .SYNOPSIS
         Expands a relative leaf path into a full, rooted path. Throws an invalid argument exception
-        if any there are any issues with the path.
+        if the path is not valid.
 
     .PARAMETER Path
         The relative leaf path to expand.
@@ -518,26 +532,26 @@ function Expand-Path
 
 <#
     .SYNOPSIS
-        Retrieves any process cim instance objects that match the given path, arguments, and credential.
+        Retrieves any process CIM instance objects that match the given path, arguments, and credential.
 
     .PARAMETER Path
-        The path that should match the retrieved process.
+        The executable path of the process to retrieve.
 
     .PARAMETER Arguments
-        The arguments that should match the retrieved process.
+        The arguments of the process to retrieve as a single string.
 
     .PARAMETER Credential
-        The credential whose username should match the owner of the process.
+        The credential of the user account of the process to retrieve
 
     .PARAMETER UseGetCimInstanceThreshold
         If the number of processes returned by the Get-Process method is greater than or equal to
         this value, this function will retrieve all processes at the executable path. This will
-        help the function execute faster. Otherwise, this function will retrieve each Process cim
-        instance object with the product IDs returned from Get-Process.
+        help the function execute faster. Otherwise, this function will retrieve each process
+        CIM instance with the process IDs retrieved from Get-Process.
 #>
 function Get-ProcessCimInstance
 {
-    [OutputType([Object[]])]
+    [OutputType([CimInstance[]])]
     [CmdletBinding()]
     param
     (
@@ -563,7 +577,7 @@ function Get-ProcessCimInstance
 
     $getProcessResult = @( Get-Process -Name $processName -ErrorAction 'SilentlyContinue' )
 
-    $processes = @()
+    $processCimInstances = @()
 
     if ($getProcessResult.Count -ge $UseGetCimInstanceThreshold)
     {
@@ -571,7 +585,7 @@ function Get-ProcessCimInstance
         $escapedPathForWqlFilter = ConvertTo-EscapedStringForWqlFilter -FilterString $Path
         $wqlFilter = "ExecutablePath = '$escapedPathForWqlFilter'"
 
-        $processes = Get-CimInstance -ClassName 'Win32_Process' -Filter $wqlFilter
+        $processCimInstances = Get-CimInstance -ClassName 'Win32_Process' -Filter $wqlFilter
     }
     else
     {
@@ -585,7 +599,7 @@ function Get-ProcessCimInstance
                     Filter = "ProcessId = $($process.Id)"
                     ErrorAction = 'SilentlyContinue'
                 }
-                $processes += Get-CimInstance @getCimInstanceParams
+                $processCimInstances += Get-CimInstance @getCimInstanceParams
             }
         }
     }
@@ -597,14 +611,14 @@ function Get-ProcessCimInstance
         $userName = $splitCredentialResult.UserName
         $processesWithCredential = @()
 
-        foreach ($process in $processes)
+        foreach ($process in $processCimInstances)
         {
             if ((Get-ProcessOwner -Process $process) -eq "$domain\$userName")
             {
                 $processesWithCredential += $process
             }
         }
-        $processes = $processesWithCredential
+        $processCimInstances = $processesWithCredential
     }
 
     if ($null -eq $Arguments)
@@ -614,7 +628,7 @@ function Get-ProcessCimInstance
 
     $processesWithMatchingArguments = @()
 
-    foreach ($process in $processes)
+    foreach ($process in $processCimInstances)
     {
         if ((Get-ArgumentsFromCommandLineInput -CommandLineInput $process.CommandLine) -eq $Arguments)
         {
@@ -686,10 +700,10 @@ function Get-ProcessOwner
 
 <#
     .SYNOPSIS
-        Wrapper function to retrieve the cim instance of the owner of a process
+        Wrapper function to retrieve the CIM instance of the owner of a process
 
     .PARAMETER Process
-        The process to retrieve the cim instance of the owner of.
+        The process to retrieve the CIM instance of the owner of.
 
     .NOTES
         If the process was killed by the time this function is called, this function will throw a
@@ -697,7 +711,7 @@ function Get-ProcessOwner
 #>
 function Get-ProcessOwnerCimInstance
 {
-    [OutputType([Object])]
+    [OutputType([CimInstance])]
     [CmdletBinding()]
     param
     (
@@ -707,7 +721,7 @@ function Get-ProcessOwnerCimInstance
         $Process
     )
 
-    return Invoke-CimMethod -InputObject $Process -MethodName 'GetOwner' -ErrorAction 'SilentlyContinue'
+    return Invoke-CimMethod -InputObject $Process -MethodName 'GetOwner'
 }
 
 <#
@@ -759,7 +773,7 @@ function Get-ArgumentsFromCommandLineInput
 
 <#
     .SYNOPSIS
-        Throws an exception if the given hashtable contains the given key(s).
+        Throws an invalid argument exception if the given hashtable contains the given key(s).
 
     .PARAMETER Hashtable
         The hashtable to check the keys of.
@@ -772,6 +786,7 @@ function Assert-HashtableDoesNotContainKey
     [CmdletBinding()]
     param
     (
+        [Parameter(Mandatory = $true)]
         [Hashtable]
         $Hashtable,
 
@@ -1052,8 +1067,9 @@ function Split-Credential
 
 <#
     .SYNOPSIS
-        Asserts that the PsDscContext is not run as user. If so, it will throw 
-        an invalid argument exception.
+        Asserts that the PsDscContext is not run as user.
+        Throws an invalid argument exception if DSC is running as a specific user
+        (the PsDscRunAsCredential parameter was provided to DSC).
 
     .NOTES
         Strict mode is turned off for this function since it does not recognize $PsDscContext
@@ -1079,12 +1095,12 @@ function Assert-PsDscContextNotRunAsUser
 <#
     .SYNOPSIS
         Imports the DSC native methods so that a process can be started with a credential
-        on a local system. Currently Start-Process, which is the command used when no credential
-        is passed in, does not have this functionality.
+        for a user from the local system.
+        Currently Start-Process, which is the command used otherwise, cannot do this.
 #>
 function Import-DscNativeMethods  
 {  
-$script:ProgramSource = @"  
+$dscNativeMethodsSource = @"  
   
 using System;  
 using System.Collections.Generic;  
@@ -1466,7 +1482,7 @@ namespace PSDesiredStateConfiguration
   
 "@
     # if not on Nano:
-    Add-Type -TypeDefinition $ProgramSource -ReferencedAssemblies 'System.ServiceProcess'
+    Add-Type -TypeDefinition $dscNativeMethodsSource -ReferencedAssemblies 'System.ServiceProcess'
 } 
 
 Export-ModuleMember -Function *-TargetResource
