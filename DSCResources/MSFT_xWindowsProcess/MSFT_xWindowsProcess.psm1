@@ -76,19 +76,21 @@ function Get-TargetResource
             Ensure ='Absent'
         }
     }
+    else
+    {
+        $getProcessResult = Get-Process -ID $processCimInstance[0].ProcessId -ErrorAction 'Ignore'
 
-    $getProcessResult = Get-Process -ID $processCimInstance[0].ProcessId -ErrorAction 'Ignore'
-
-    $processToReturn = @{
-        Path = $Path
-        Arguments = $Arguments
-        PagedMemorySize = $getProcessResult.PagedMemorySize64
-        NonPagedMemorySize = $getProcessResult.NonpagedSystemMemorySize64
-        VirtualMemorySize = $getProcessResult.VirtualMemorySize64
-        HandleCount = $getProcessResult.HandleCount
-        Ensure = 'Present'
-        ProcessId = $processCimInstance[0].ProcessId
-        ProcessCount = $processCimInstance.Count
+        $processToReturn = @{
+            Path = $Path
+            Arguments = $Arguments
+            PagedMemorySize = $getProcessResult.PagedMemorySize64
+            NonPagedMemorySize = $getProcessResult.NonpagedSystemMemorySize64
+            VirtualMemorySize = $getProcessResult.VirtualMemorySize64
+            HandleCount = $getProcessResult.HandleCount
+            Ensure = 'Present'
+            ProcessId = $processCimInstance[0].ProcessId
+            ProcessCount = $processCimInstance.Count
+        }
     }
 
     Write-Verbose -Message ($script:localizedData.GetTargetResourceEndMessage -f $Path)
@@ -469,7 +471,7 @@ function Test-TargetResource
         $getProcessCimInstanceArguments['Credential'] = $Credential
     }
 
-    $processCimInstances = @( Get-ProcessCimInstance @getProcessArguments )
+    $processCimInstances = @( Get-ProcessCimInstance @getProcessCimInstanceArguments )
 
     Write-Verbose -Message ($script:localizedData.TestTargetResourceEndMessage -f $Path)
 
