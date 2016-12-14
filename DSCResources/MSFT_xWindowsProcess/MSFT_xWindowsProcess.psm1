@@ -685,17 +685,22 @@ function Get-ProcessOwner
         $Process
     )
 
-    $owner = Get-ProcessOwnerCimInstance -Process $Process
+    $owner = Get-ProcessOwnerCimInstance -Process $Process -ErrorAction 'SilentlyContinue'
 
-    if ($null -ne $owner.Domain)
+    if ($null -ne $owner)
     {
-        return ($owner.Domain + '\' + $owner.User)
+        if ($null -ne $owner.Domain)
+        {
+            return ($owner.Domain + '\' + $owner.User)
+        }
+        else
+        {
+            # return the default domain
+            return ($env:computerName + '\' + $owner.User)
+        }
     }
-    else
-    {
-        # return the default domain
-        return ($env:computerName + '\' + $owner.User)
-    }
+
+    return ''
 }
 
 <#
@@ -721,7 +726,7 @@ function Get-ProcessOwnerCimInstance
         $Process
     )
 
-    return Invoke-CimMethod -InputObject $Process -MethodName 'GetOwner'
+    return Invoke-CimMethod -InputObject $Process -MethodName 'GetOwner' -ErrorAction 'SilentlyContinue'
 }
 
 <#

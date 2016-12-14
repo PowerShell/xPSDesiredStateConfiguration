@@ -18,25 +18,24 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 
 * **xArchive** provides a mechanism to unpack archive (.zip) files or removed unpacked archive (.zip) files at a specific path.
 * **xDscWebService** configures an OData endpoint for DSC service to make a node a DSC pull server.
+* **xEnvironment** configures and manages environment variables.
 * **xGroup** provides a mechanism to manage local groups on the target node.
 * **xGroupSet** provides a mechanism to configure and manage multiple xGroup resources with common settings but different names.
+* **xFileUpload** is a composite resource which ensures that local files exist on an SMB share.
+* **xPackage** manages the installation of .msi and .exe packages.
+* **xRegistry** provides a mechanism to manage registry keys and values on a target node.
+* **xRemoteFile** ensures the presence of remote files on a local machine.
 * **xScript** provides a mechanism to run PowerShell script blocks on a target node.
-* **xGroupSet** configures multiple xGroups with common settings but different names.
 * **xService** provides a mechanism to configure and manage Windows services.
 * **xServiceSet** provides a mechanism to configure and manage multiple xService resources with common settings but different names.
-* **xRemoteFile** ensures the presence of remote files on a local machine.
-* **xPackage** manages the installation of .msi and .exe packages.
-* **xFileUpload** is a composite resource which ensures that local files exist on an SMB share.
-* **xRegistry** provides a mechanism to manage registry keys and values on a target node.
-* **xEnvironment** configures and manages environment variables.
-* **xWindowsProcess** provides a mechanism to start and stop a Windows process.
-* **xProcessSet** provides a mechanism to configure and manage multiple xWindowsProcess resources on a target node.
 * **xUser** provides a mechanism to manage local users on the target node.
 * **xWindowsFeature** provides a mechanism to install or uninstall Windows roles or features on a target node.
 * **xWindowsFeatureSet** provides a mechanism to configure and manage multiple xWindowsFeature resources on a target node.
 * **xWindowsOptionalFeature** provides a mechanism to enable or disable optional features on a target node.
 * **xWindowsOptionalFeatureSet** provides a mechanism to configure and manage multiple xWindowsOptionalFeature resources on a target node.
 * **xWindowsPackageCab** provides a mechanism to install or uninstall a package from a Windows cabinet (cab) file on a target node.
+* **xWindowsProcess** provides a mechanism to start and stop a Windows process.
+* **xProcessSet** allows starting and stopping of a group of windows processes with no arguments.
 
 Resources that work on Nano Server:
 
@@ -313,18 +312,6 @@ Read-Only Properties:
 * **Credential**: PSCredential for the user with access to DestinationPath.
 * **CertificateThumbprint**: Thumbprint of the certificate which should be used for encryption/decryption.
 
-### xRegistry
-
-xRegistry provides a mechanism to manage registry keys and values on a target node.
-
-* **[String] Key** _(Key)_: Indicates the path of the registry key for which you want to ensure a specific state. This path must include the hive.
-* **[String] ValueName** _(Key)_: Indicates the name of the registry value.
-* **[String] Ensure** _(Write)_: Indicates if the key and value exist. To ensure that they do, set this property to "Present". To ensure that they do not exist, set the property to "Absent". The default value is "Present". { *Present* | Absent }.
-* **[String] ValueData** _(Write)_: The data for the registry value.
-* **[String] ValueType** _(Write)_: Indicates the type of the value. { String | Binary | DWord | QWord | MultiString | ExpandString }
-* **[Boolean] Hex** _(Write)_: Indicates if data will be expressed in hexadecimal format. If specified, the DWORD/QWORD value data is presented in hexadecimal format. Not valid for other types. The default value is $false.
-* **[Boolean] Force** _(Write)_: If the specified registry key is present, Force overwrites it with the new value.
-
 ### xEnvironment
 
 * **Name**: Indicates the name of the environment variable for which you want to ensure a specific state.
@@ -360,6 +347,35 @@ None
 #### Examples
 
 * [Create a file with content through xScript](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xScript.ps1)
+
+### xRegistry
+
+Provides a mechanism to manage registry keys and values on a target node.
+
+#### Requirements
+
+None
+
+#### Parameters
+
+* **[String] Key** _(Key)_: The path of the registry key to add, modify, or remove. This path must include the registry hive/drive (e.g. HKEY_LOCAL_MACHINE, HKLM:).
+* **[String] ValueName** _(Key)_: The name of the registry value. To add or remove a registry key, specify this property as an empty string without specifying ValueType or ValueData. To modify or remove the default value of a registry key, specify this property as an empty string while also specifying ValueType or ValueData.
+* **[String] Ensure** _(Write)_: Specifies whether or not the registry key or value should exist. To add or modify a registry key or value, set this property to Present. To remove a registry key or value, set the property to Absent. { *Present* | Absent }.
+* **[String] ValueData** _(Write)_: The data the specified registry key value should have as an array of strings.
+* **[String] ValueType** _(Write)_: The type of the specified registry key value should have. { *String* | Binary | DWord | QWord | MultiString | ExpandString }
+* **[Boolean] Hex** _(Write)_: Specifies whether or not the specified DWord or QWord registry key data is provided in a hexadecimal format. Not valid for types other than DWord and QWord. The default value is $false.
+* **[Boolean] Force** _(Write)_: Specifies whether or not to overwrite the specified registry key value if it already has a value or whether or not to delete a registry key that has subkeys. The default value is $false.
+
+#### Read-Only Properties from Get-TargetResource
+
+None
+
+#### Examples
+
+* [Add a registry key](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xRegistryResource_AddKey.ps1)
+* [Add or modify a registry key value](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xRegistryResource_AddOrModifyValue.ps1)
+* [Remove a registry key value](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xRegistryResource_RemoveValue.ps1)
+* [Remove a registry key](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xRegistryResource_RemoveKey.ps1)
 
 ### xUser
 Provides a mechanism to manage local users on a target node.
@@ -593,6 +609,11 @@ None
 * xProcessSet
     * Updated resource to use new ResouceSetHelper functions and added integration tests.
     * Updated documentation and examples
+* xRegistry
+    * Updated resource to be high-quality
+    * Fixed bug in which the user could not set a Binary registry value to 0
+    * Added unit and integration tests
+    * Added examples and updated documentation
     
 ### 5.0.0.0
 

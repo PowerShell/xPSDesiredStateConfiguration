@@ -1646,21 +1646,7 @@ try
 
             Mock -CommandName 'Get-RegistryKeyValue' -MockWith { return 'NotNull' }
 
-            Context 'Registry key exists, Ensure specified as Absent, specified registry value exists, and Force not specified' {
-                $setTargetResourceParameters = @{
-                    Key = 'TestRegistryKey'
-                    ValueName = 'TestRegistryKeyValueName'
-                    Ensure = 'Absent'
-                }
-
-                It 'Should throw error for removing existing registry key without force' {
-                    $errorMessage = $script:localizedData.CannotRemoveExistingRegistryKeyValueWithoutForce -f $setTargetResourceParameters.Key, $setTargetResourceParameters.ValueName
-
-                    { Set-TargetResource @setTargetResourceParameters } | Should Throw $errorMessage
-                }
-            }
-
-            Context 'Registry key exists, Ensure specified as Absent specified registry value exists, and Force specified as True' {
+            Context 'Registry key exists, Ensure specified as Absent specified registry value exists' {
                 $setTargetResourceParameters = @{
                     Key = 'TestRegistryKey'
                     ValueName = 'TestRegistryKeyValueName'
@@ -1871,6 +1857,11 @@ try
         Describe 'xRegistry\Test-TargetResource' {
             Mock -CommandName 'Get-RegistryKeyValueDisplayName' -MockWith { return $RegistryKeyValueName }
             Mock -CommandName 'Test-RegistryKeyValuesMatch' -MockWith { return $true }
+            Mock -CommandName 'Get-RegistryKey' -MockWith { return $script:testRegistryKey }
+
+            $testRegistryKeyValue = 'Something'
+
+            Mock -CommandName 'Get-RegistryKeyValue' -MockWith { return $testRegistryKeyValue }
 
             Mock -CommandName 'Get-TargetResource' -MockWith {
                 return @{
@@ -2400,6 +2391,7 @@ try
                 return @{
                     Ensure ='Present'
                     ValueData = $testTargetResourceParameters.ValueData
+                    ValueType = $null
                 }
             }
 
@@ -2439,7 +2431,7 @@ try
                 It 'Should test if the specified registry key value matches the retrieved registry key value' {
                     $testRegistryKeyValuesMatchParameterFilter = {
                         $expectedRegistryKeyValueParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testTargetResourceParameters.ValueData -DifferenceObject $ExpectedRegistryKeyValue)
-                        $actualRegistryKeyValueParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testTargetResourceParameters.ValueData -DifferenceObject $ActualRegistryKeyValue)
+                        $actualRegistryKeyValueParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testRegistryKeyValue -DifferenceObject $ActualRegistryKeyValue)
                         $registryKeyValueTypeParameterCorrect = $RegistryKeyValueType -eq $script:defaultValueType
 
                         return $expectedRegistryKeyValueParameterCorrect -and $actualRegistryKeyValueParameterCorrect -and $registryKeyValueTypeParameterCorrect
@@ -2520,6 +2512,7 @@ try
                 return @{
                     Ensure ='Present'
                     ValueData = $mismatchingValueData
+                    ValueType = $null
                 }
             }
 
@@ -2561,7 +2554,7 @@ try
                 It 'Should test if the specified registry key value matches the retrieved registry key value' {
                     $testRegistryKeyValuesMatchParameterFilter = {
                         $expectedRegistryKeyValueParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testTargetResourceParameters.ValueData -DifferenceObject $ExpectedRegistryKeyValue)
-                        $actualRegistryKeyValueParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mismatchingValueData -DifferenceObject $ActualRegistryKeyValue)
+                        $actualRegistryKeyValueParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testRegistryKeyValue -DifferenceObject $ActualRegistryKeyValue)
                         $registryKeyValueTypeParameterCorrect = $RegistryKeyValueType -eq $script:defaultValueType
 
                         return $expectedRegistryKeyValueParameterCorrect -and $actualRegistryKeyValueParameterCorrect -and $registryKeyValueTypeParameterCorrect
@@ -2972,7 +2965,7 @@ try
 
                 It 'Should retrieve the registry drive key' {
                     $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $expectedRegistryDriveName
+                        $literalPathParameterCorrect = $LiteralPath -eq ($expectedRegistryDriveName  + ':')
                         return $literalPathParameterCorrect
                     }
 
@@ -2982,7 +2975,7 @@ try
                 It 'Should open the specified registry key' {
                     $openRegistrySubKeyParameterFilter = {
                         $parentKeyParameterCorrect = $null -eq (Compare-Object -ReferenceObject $script:testRegistryKey -DifferenceObject $ParentKey)
-                        $subKeyParameterCorrect = $SubKey -eq $getRegistryKeyParameters.RegistryKeyPath
+                        $subKeyParameterCorrect = $SubKey -eq ''
                         $writeAccessAllowedParameterCorrect = $WriteAccessAllowed -eq $false
 
                         return $parentKeyParameterCorrect -and $subKeyParameterCorrect -and $writeAccessAllowedParameterCorrect
@@ -3002,7 +2995,7 @@ try
 
             Context 'Registry key at specified path exists and WriteAccessAllowed not specified' {
                 $getRegistryKeyParameters = @{
-                    RegistryKeyPath = 'TestRegistryKeyPath'
+                    RegistryKeyPath = 'TestRegistryKeyPath\TestSubKey'
                 }
 
                 It 'Should not throw' {
@@ -3029,7 +3022,7 @@ try
 
                 It 'Should retrieve the registry drive key' {
                     $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $expectedRegistryDriveName
+                        $literalPathParameterCorrect = $LiteralPath -eq ($expectedRegistryDriveName  + ':')
                         return $literalPathParameterCorrect
                     }
 
@@ -3039,7 +3032,7 @@ try
                 It 'Should open the specified registry key' {
                     $openRegistrySubKeyParameterFilter = {
                         $parentKeyParameterCorrect = $null -eq (Compare-Object -ReferenceObject $script:testRegistryKey -DifferenceObject $ParentKey)
-                        $subKeyParameterCorrect = $SubKey -eq $getRegistryKeyParameters.RegistryKeyPath
+                        $subKeyParameterCorrect = $SubKey -eq 'TestSubKey'
                         $writeAccessAllowedParameterCorrect = $WriteAccessAllowed -eq $false
 
                         return $parentKeyParameterCorrect -and $subKeyParameterCorrect -and $writeAccessAllowedParameterCorrect
@@ -3057,7 +3050,7 @@ try
 
             Context 'Registry key at specified path exists and WriteAccessAllowed specified' {
                 $getRegistryKeyParameters = @{
-                    RegistryKeyPath = 'TestRegistryKeyPath'
+                    RegistryKeyPath = 'TestRegistryKeyPath\TestSubKey'
                     WriteAccessAllowed = $true
                 }
 
@@ -3085,7 +3078,7 @@ try
 
                 It 'Should retrieve the registry drive key' {
                     $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $expectedRegistryDriveName
+                        $literalPathParameterCorrect = $LiteralPath -eq ($expectedRegistryDriveName  + ':')
                         return $literalPathParameterCorrect
                     }
 
@@ -3095,7 +3088,7 @@ try
                 It 'Should open the specified registry key' {
                     $openRegistrySubKeyParameterFilter = {
                         $parentKeyParameterCorrect = $null -eq (Compare-Object -ReferenceObject $script:testRegistryKey -DifferenceObject $ParentKey)
-                        $subKeyParameterCorrect = $SubKey -eq $getRegistryKeyParameters.RegistryKeyPath
+                        $subKeyParameterCorrect = $SubKey -eq 'TestSubKey'
                         $writeAccessAllowedParameterCorrect = $WriteAccessAllowed -eq $getRegistryKeyParameters.WriteAccessAllowed
 
                         return $parentKeyParameterCorrect -and $subKeyParameterCorrect -and $writeAccessAllowedParameterCorrect
@@ -3525,9 +3518,6 @@ try
         }
 
         Describe 'xRegistry\ConvertTo-Binary' {
-            $readableRegistryKeyValue = 'ReadableRegistryKeyValue'
-            Mock -CommandName 'ConvertTo-ReadableString' -MockWith { $readableRegistryKeyValue }
-
             Context 'Specified registry key value is null' {
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = $null
@@ -3672,7 +3662,7 @@ try
                 }
 
                 It 'Should throw an error for unexpected array' {
-                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f $readableRegistryKeyValue, 'Binary'
+                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f 'Binary'
 
                     { $null = ConvertTo-Binary @convertToBinaryParameters } | Should Throw $errorMessage
                 }
@@ -3680,9 +3670,6 @@ try
         }
 
         Describe 'xRegistry\ConvertTo-DWord' {
-            $readableRegistryKeyValue = 'ReadableRegistryKeyValue'
-            Mock -CommandName 'ConvertTo-ReadableString' -MockWith { $readableRegistryKeyValue }
-
             Context 'Specified registry key value is null' {
                 $convertToDWordParameters = @{
                     RegistryKeyValue = $null
@@ -3811,7 +3798,7 @@ try
                 }
 
                 It 'Should throw an error for unexpected array' {
-                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f $readableRegistryKeyValue, 'Dword'
+                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f 'Dword'
 
                     { $null = ConvertTo-DWord @convertToDWordParameters } | Should Throw $errorMessage
                 }
@@ -3901,9 +3888,6 @@ try
         }
 
         Describe 'xRegistry\ConvertTo-QWord' {
-            $readableRegistryKeyValue = 'ReadableRegistryKeyValue'
-            Mock -CommandName 'ConvertTo-ReadableString' -MockWith { $readableRegistryKeyValue }
-
             Context 'Specified registry key value is null' {
                 $convertToQWordParameters = @{
                     RegistryKeyValue = $null
@@ -4032,7 +4016,7 @@ try
                 }
 
                 It 'Should throw an error for unexpected array' {
-                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f $readableRegistryKeyValue, 'Qword'
+                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f 'Qword'
 
                     { $null = ConvertTo-QWord @convertToQWordParameters } | Should Throw $errorMessage
                 }
@@ -4040,9 +4024,6 @@ try
         }
 
         Describe 'xRegistry\ConvertTo-String' {
-            $readableRegistryKeyValue = 'ReadableRegistryKeyValue'
-            Mock -CommandName 'ConvertTo-ReadableString' -MockWith { $readableRegistryKeyValue }
-
             Context 'Specified registry key value is null' {
                 $convertToStringParameters = @{
                     RegistryKeyValue = $null
@@ -4113,7 +4094,7 @@ try
                 }
 
                 It 'Should throw an error for unexpected array' {
-                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f $readableRegistryKeyValue, 'String or ExpandString'
+                    $errorMessage = $script:localizedData.ArrayNotAllowedForExpectedType -f 'String or ExpandString'
 
                     { $null = ConvertTo-String @convertToStringParameters } | Should Throw $errorMessage
                 }

@@ -1,44 +1,5 @@
 <#
     .SYNOPSIS
-        Retrieves a registry key.
-
-    .PARAMETER KeyPath
-        The path to the registry key to be opened.
-        Must include the registry hive.
-
-    .PARAMETER WriteAccess
-        Indicates that the registry key should be retrieved with write access.
-        If this switch parameter is not provided, the key will be opened in read-only mode.
-#>
-function Get-RegistryKey
-{
-    [CmdletBinding()]
-    [OutputType([Microsoft.Win32.RegistryKey])]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $KeyPath,
-
-        [switch]
-        $WriteAccess
-    )
-
-    $driveName = Split-Path -Path $KeyPath -Qualifier
-    Write-Verbose -Message "Get-RegistryKey - Drive name: $driveName"
-
-    $subKey = Split-Path -Path $KeyPath -NoQualifier
-    Write-Verbose -Message "Get-RegistryKey - Subkey: $subKey"
-
-    $drive = Get-Item -LiteralPath "${driveName}:\"
-    Write-Verbose -Message "Get-RegistryKey - Drive: $drive"
-
-    return $drive.OpenSubKey($subKey, $WriteAccess)
-}
-
-<#
-    .SYNOPSIS
         Tests if a registry key exists.
 
     .PARAMETER KeyPath
@@ -155,7 +116,7 @@ function Test-RegistryValueExists
         The path to the registry key to be created. 
         Must include the registry hive.
 #>
-function New-RegistryKey
+function New-TestRegistryKey
 {
     [CmdletBinding()]
     param
@@ -170,10 +131,10 @@ function New-RegistryKey
     
     if (-not (Test-RegistryKeyExists -KeyPath $parentPath))
     {
-        New-RegistryKey -KeyPath $parentPath
+        New-TestRegistryKey -KeyPath $parentPath
     }
     
-    Write-Verbose -Message "New-RegistryKey - Creating new registry key at: $KeyPath"
+    Write-Verbose -Message "New-TestRegistryKey - Creating new registry key at: $KeyPath"
 
     $null = New-Item -Path $KeyPath
 }
@@ -221,7 +182,7 @@ function New-RegistryValue
 
     if (-not (Test-Path -Path $KeyPath))
     {
-        New-RegistryKey -KeyPath $KeyPath
+        New-TestRegistryKey -KeyPath $KeyPath
     }
 
     if ($ValueType -ieq 'Binary')
@@ -297,28 +258,6 @@ function Remove-RegistryValue
     )
 
     $null = Remove-ItemProperty -Path $KeyPath -Name $ValueName -Force
-}
-
-<#
-    .SYNOPSIS
-        Removes the default registry value of a registry key.
-
-    .PARAMETER KeyPath
-        The path to the registry key to remove the default value of.
-#>
-function Remove-DefaultRegistryValue
-{
-    [CmdletBinding()]
-    param 
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $KeyPath
-    )
-
-    $registryKey = Get-RegistryKey -KeyPath $KeyPath -WriteAccess
-    $registryKey.DeleteValue('')
 }
 
 <#
@@ -453,14 +392,11 @@ function Convert-ByteArrayToHexString
 }
 
 Export-ModuleMember -Function `
-    'Get-RegistryKey', `
     'Test-RegistryKeyExists', `
     'Test-RegistryValueExists', `
-    'New-RegistryKey', `
+    'New-TestRegistryKey', `
     'New-RegistryValue', `
     'Remove-RegistryKey', `
     'Remove-RegistryValue', `
-    'Remove-DefaultRegistryValue', `
-    'Mount-RegistryDrive', `
     'Dismount-RegistryDrive', `
     'Test-RegistryDriveMounted'

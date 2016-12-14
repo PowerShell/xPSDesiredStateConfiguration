@@ -1,16 +1,11 @@
-#pragma namespace("\\\\.\\root\\default")
-instance of __namespace{ name="MS_409";};
-#pragma namespace("\\\\.\\root\\default\\MS_409")
-
-[Description("This resource is used to perform Get, Set and Test operations on Windows Registry.") : Amended,AMENDMENT, LOCALE(0x0409)] 
+[Description("Provides a mechanism to manage registry keys and values on a target node.") : Amended,AMENDMENT, LOCALE("MS_409")] 
 class MSFT_xRegistryResource : OMI_BaseResource
 {
-  [Key,Description("Path of the registry key.\n") : Amended] string Key;
-  [Key,Description("Name of the registry key value.\n") : Amended] string ValueName;
-  [Description("Data of the registry key value.\n") : Amended] string ValueData[];
-  [Description("Type of the registry key data.\n") : Amended] string ValueType;
-  [Description("Enumerated value describing if the environment variable should exist on target machine.\nPresent {default}  \nAbsent   \n") : Amended] string Ensure;
-  [Description("Flag to identify Hex or Decimal values.\n") : Amended] boolean Hex;
-  [Description("Flag to specify forced execution.\n") : Amended] boolean Force;
+  [Key,Description("The path of the registry key to add, modify, or remove. This path must include the registry hive/drive.") : Amended] String Key;
+  [Key,Description("The name of the registry value. To add or remove a registry key, specify this property as an empty string without specifying ValueType or ValueData. To modify or remove the default value of a registry key, specify this property as an empty string while also specifying ValueType or ValueData.") : Amended] String ValueName;
+  [Description("The data the specified registry key value should have as a string or an array of strings (MultiString only).") : Amended] String ValueData[];
+  [Description("The type the specified registry key value should have.") : Amended] String ValueType;
+  [Description("Specifies whether or not the registry key or value should exist. To add or modify a registry key or value, set this property to Present. To remove a registry key or value, set the property to Absent.") : Amended] String Ensure;
+  [Description("Specifies whether or not the specified DWord or QWord registry key data is provided in a hexadecimal format. Not valid for types other than DWord and QWord. The default value is $false.") : Amended] Boolean Hex;
+  [Description("Specifies whether or not to overwrite the specified registry key value if it already has a value or whether or not to delete a registry key that has subkeys. The default value is $false.") : Amended] Boolean Force;
 };
-
