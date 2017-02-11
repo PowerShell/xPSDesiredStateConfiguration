@@ -1,7 +1,7 @@
 $errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
-# Import CommonResourceHelper for Get-LocalizedData
+# Import CommonResourceHelper for Get-LocalizedData, Test-IsNanoServer
 $script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
 Import-Module -Name $script:commonResourceHelperFilePath
@@ -9,9 +9,15 @@ Import-Module -Name $script:commonResourceHelperFilePath
 # Localized messages for verbose and error statements in this resource
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xArchive'
 
-$script:cacheLocation = "$env:systemRoot\system32\Configuration\BuiltinProvCache\MSFT_xArchive"
-
-Add-Type -AssemblyName 'System.IO.Compression'
+if (Test-IsNanoServer)
+{
+    Add-Type -AssemblyName 'System.IO.Compression'
+}
+else
+{
+    Add-Type -AssemblyName 'System.IO.Compression'
+    Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
+}
 
 <#
     .SYNOPSIS

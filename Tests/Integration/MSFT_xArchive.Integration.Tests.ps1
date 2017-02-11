@@ -1,443 +1,651 @@
 $errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
-# Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
-$script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
-$script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
-Import-Module -Name $commonTestHelperFilePath
+Describe 'xArchive Integration Tests' {
+    BeforeAll {
+        # Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
+        $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
+        $commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
+        Import-Module -Name $commonTestHelperFilePath
 
-$script:testEnvironment = Enter-DscResourceTestEnvironment `
-    -DscResourceModuleName 'xPSDesiredStateConfiguration' `
-    -DscResourceName 'MSFT_xArchive' `
-    -TestType 'Unit'
+        $script:testEnvironment = Enter-DscResourceTestEnvironment `
+            -DscResourceModuleName 'xPSDesiredStateConfiguration' `
+            -DscResourceName 'MSFT_xArchive' `
+            -TestType 'Unit'
 
-try
-{
-    InModuleScope 'MSFT_xArchive' {
-        Describe 'xArchive Integration Tests' {
-            BeforeAll {
-                Import-Module "$PSScriptRoot\MSFT_xArchive.TestHelper.psm1" -Force
+        # Import archive test helper for New-ZipFileFromHashtable, Test-FileStructuresMatch
+        $archiveTestHelperFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xArchive.TestHelper.psm1'
+        Import-Module -Name $archiveTestHelperFilePath -Force
+    }
 
-                $script:currentTestCount = 0
+    AfterAll {
+        Exit-DscResourceTestEnvironment -TestEnvironment $script:testEnvironment
+    }
 
-                $script:allTestsDirectoryPath = Join-Path -Path (Get-Location) -ChildPath 'xArchiveResourceTests'
+    Context 'Expand a basic archive' {
+        $zipFileName = 'SetFunctionality'
+        $subfolderName = 'Folder1'
 
-                if (Test-Path -Path $script:allTestsDirectoryPath)
-                {
-                    Remove-Item -Path $script:allTestsDirectoryPath -Recurse
-                }
-
-                New-Item -Path $script:allTestsDirectoryPath -ItemType 'Directory'
-
-                Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
+        $zipFileStructure = @{
+            $subfolderName = @{
+                File1 = 'Fake file contents'
             }
+        }
 
-            AfterAll {
-                if (Test-Path -Path $script:allTestsDirectoryPath)
-                {
-                    Remove-Item -Path $script:allTestsDirectoryPath -Recurse
-                }
-                
-            }
+        $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
 
-            BeforeEach {
-                Remove-Item -Path $script:cacheLocation -Recurse -ErrorAction SilentlyContinue
+        $destinationDirectoryName = 'ExpandBasicArchive'
+        $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
 
-                $script:currentTestCount++
-                $script:currentTestDirectoryPath = Join-Path -Path $script:allTestsDirectoryPath -ChildPath "Test$script:currentTestCount"
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
 
-                New-Item -Path $script:currentTestDirectoryPath -ItemType Directory | Out-Null
-            }
-            
-            Context 'Get-TargetResource - Absent' {
-                $expectedResult = @{
-                        Path = 'testPath'
-                        Destination = 'testDest'
-                }
-                
-                Mock -CommandName Test-TargetResource -MockWith { return $false }
-                
-                It 'Should return the given path, destination, and Ensure = Absent' {
-                    $getResult = Get-TargetResource -Path $expectedResult.Path -Destination $expectedResult.Destination
-                    $getResult.Ensure | Should Be 'Absent'
-                    $getResult.Path | Should Be $expectedResult.Path
-                    $getResult.Destination | Should Be $expectedResult.Destination                                
-                }
-            }
-            
-            Context 'Get-TargetResource - Present' {
-                $expectedResult = @{
-                        Path = 'testPath'
-                        Destination = 'testDest'
-                }
-                    
-                Mock -CommandName Test-TargetResource -MockWith { return $true }
-                
-                It 'Should return the given path, destination, and Ensure = Present' {
-                    $getResult = Get-TargetResource -Path $expectedResult.Path -Destination $expectedResult.Destination
-                    $getResult.Ensure | Should Be 'Present'
-                    $getResult.Path | Should Be $expectedResult.Path
-                    $getResult.Destination | Should Be $expectedResult.Destination                                
-                }
-            }
+        It 'Test-TargetResource with Ensure as Present should return false before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
 
-            Context 'Set-TargetResource' {
-                It 'Should unzip the correct file with two zip files with the same timestamp' {
-                    $zipFileName1 = 'SameTimestamp1'
+        It 'Test-TargetResource with Ensure as Absent should return true before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
 
-                    $zipFileStructure1 = @{
-                        Folder1 = @{
-                            File1 = 'Fake file contents'
-                        }
-                    }
+        $null = Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
 
-                    $zipFilePath1 = New-ZipFileFromHashtable -Name $zipFileName1 -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure1
+        It 'File structure and contents of the destination should match the file structure and contents of the archive after Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $true
+        }
 
-                    $zipFileName2 = 'SameTimestamp2'
+        It 'Test-TargetResource with Ensure as Present should return true after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
 
-                    $zipFileStructure2 = @{
-                        Folder2 = @{
-                            File2 = 'Fake file contents'
-                        }
-                    }
-
-                    $zipFilePath2 = New-ZipFileFromHashtable -Name $zipFileName2 -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure2
-
-                    $currentTimestamp = Get-Date
-
-                    Set-ItemProperty -Path $zipFilePath1 -Name 'LastWriteTime' -Value $currentTimestamp
-                    Set-ItemProperty -Path $zipFilePath2 -Name 'LastWriteTime' -Value $currentTimestamp
-
-                    $destinationDirectoryName = 'UnzippedArchive'
-                    $destinationDirectoryPath = Join-Path -Path $script:currentTestDirectoryPath -ChildPath $destinationDirectoryName
-
-                    Set-TargetResource -Ensure 'Present' -Path $zipFilePath1 -Destination $destinationDirectoryPath
-
-                    Test-FileStructuresMatch -SourcePath $zipFilePath1.Replace('.zip', '') -DestinationPath $destinationDirectoryPath
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath1 -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath2 -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $false
-                }
-
-                It 'Should correctly unzip and remove a basic archive' {
-                    $zipFileName = 'SetFunctionality'
-                    $subfolderName = 'Folder1'
-
-                    $zipFileStructure = @{
-                        $subfolderName = @{
-                            File1 = 'Fake file contents'
-                        }
-                    }
-
-                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
-
-                    $destinationDirectoryName = 'UnzippedArchive'
-                    $destinationDirectoryPath = Join-Path -Path $script:currentTestDirectoryPath -ChildPath $destinationDirectoryName
-
-                    Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-
-                    Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $false
-
-                    $subfolderPath = Join-Path -Path $destinationDirectoryPath -ChildPath $subfolderName
-
-                    Test-Path $subfolderPath | Should Be $true
-
-                    Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
-
-                    Test-Path $subfolderPath | Should Be $false
-                }
-
-                It 'Should correctly unzip and remove an archive with nested directories' {
-                    $zipFileName = 'NestedArchive'
-
-                    $zipFileStructure = @{
-                        Folder1 = @{}
-                        Folder2 = @{
-                            Folder21 = @{
-                                Folder22 = @{
-                                    Folder23 = @{}
-                                }
-                            }
-                        }
-                        Folder3 = @{
-                            Folder31 = @{
-                                Folder31 = @{
-                                    Folder33 = @{
-                                        Folder34 = @{
-                                            File31 = 'Fake file contents'
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Folder4 = @{
-                            Folder41 = @{
-                                Folder42 = @{
-                                    Folder43 = @{
-                                        Folder44 = @{}
-                                    }
-                                }
-                            }
-                        }
-                        File1 = 'Fake file contents'
-                        File2 = 'Fake file contents'
-                    }
-
-                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
-
-                    $destinationDirectoryName = 'UnzippedArchive'
-                    $destinationDirectoryPath = Join-Path -Path $script:currentTestDirectoryPath -ChildPath $destinationDirectoryName
-
-                    Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-
-                    Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $false
-
-                    foreach ($fileName in $zipFileStructure.Keys)
-                    {
-                        $filePath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileName
-
-                        $testPathResult = Test-Path -Path $filePath
-                        $testPathResult | Should Be $true
-                    }
-
-                    Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $false
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    foreach ($fileName in $zipFileStructure.Keys)
-                    {
-                        $filePath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileName
-
-                        Test-Path -Path $filePath | Should Be $false
-                    }
-                }
-
-                It 'Should not remove an added file when removing a nested archive' {
-                    $zipFileName = 'NestedArchiveWithAdd'
-
-                    $zipFileStructure = @{
-                        Folder1 = @{
-                            Folder11 = @{
-                                Folder12 = @{
-                                    Folder13 = @{
-                                        Folder14 = @{
-                                            File11 = 'Fake file contents'
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        File1 = 'Fake file contents'
-                        File2 = 'Fake file contents'
-                    }
-
-                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
-
-                    $destinationDirectoryName = 'UnzippedArchive'
-                    $destinationDirectoryPath = Join-Path -Path $script:currentTestDirectoryPath -ChildPath $destinationDirectoryName
-
-                    Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-
-                    Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $newFilePath = "$destinationDirectoryPath\Folder1\Folder11\Folder12\AddedFile"
-                    New-Item -Path $newFilePath -ItemType File | Out-Null
-                    Set-Content -Path $newFilePath -Value 'Fake text' | Out-Null
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testPathResult = Test-Path -Path "$destinationDirectoryPath\Folder1"
-                    $testPathResult | Should Be $true
-
-                    $testPathResult = Test-Path -Path "$destinationDirectoryPath\Folder1\Folder12\Folder13\Folder14"
-                    $testPathResult | Should Be $false
-                }
-                
-                It 'Should not remove an added file with Validate and any Checksum value specified'{
-                    $zipFileName = 'ChecksumWithModifiedFile'
-                    $fileToEditName = 'File1'
-                    $fileNotToEditName = 'File2'
-
-                    $zipFileStructure = @{
-                        $fileToEditName = 'Fake file contents'
-                        $fileNotToEditName = 'Fake file contents'
-                    }
-
-                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
-
-                    $destinationDirectoryName = 'UnzippedArchive'
-                    $destinationDirectoryPath = Join-Path -Path $script:currentTestDirectoryPath -ChildPath $destinationDirectoryName
-
-                    $fileToEditPath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileToEditName
-
-                    $possibleChecksumValues = @( 'SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate' )
-
-                    foreach ($possibleChecksumValue in $possibleChecksumValues)
-                    {
-                        Write-Verbose -Message "Evaluating checksum value '$possibleChecksumValue'"
-
-                        $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue
-                        $testTargetResourceResult | Should Be $false
-
-                        Write-Verbose -Message 'Ensuring that the files are present with Force specified'
-                        Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue -Force $true
-
-                        $fileToEditContents = Get-Content -Path $fileToEditPath
-                        $fileToEditContents.Contains('Different false text') | Should Be $false
-
-                        Write-Verbose -Message 'Replacing file'
-                        Remove-Item -Path $fileToEditPath | Out-Null
-
-                        Set-Content -Path $fileToEditPath -Value 'Different false text' | Out-Null
-                        Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([DateTime]::MaxValue)
-                        Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([DateTime]::MaxValue)
-
-                        Test-Path -Path $fileToEditPath | Should Be $true
-
-                        Write-Verbose -Message 'Ensuring that the files are absent'
-                        Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue
-
-                        Test-Path -Path $fileToEditPath | Should Be $true
-
-                        $fileNotToEditPath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileNotToEditName
-
-                        Test-Path -Path $fileNotToEditPath | Should Be $false
-
-                        Write-Verbose -Message 'Ensuring that the files are present, Force not specified'
-                        { Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue } | Should Throw
-                    }
-                }
-            }
-
-            Context 'Test-TargetResource' {
-                It 'Should not throw when zip file contains wildcard characters' {
-                    $zipFileName = 'ReturnCorrectValue['
-
-                    $zipFileStructure = @{
-                        Folder1 = @{
-                            File1 = 'Fake file contents'
-                        }
-                    }
-
-                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
-
-                    { Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $script:currentTestDirectoryPath } | Should not throw
-                }
-                It 'Should return correct value based on presence or absence of an archive at the given location' {
-                    $zipFileName = 'ReturnCorrectValue'
-
-                    $zipFileStructure = @{
-                        Folder1 = @{
-                            File1 = 'Fake file contents'
-                        }
-                    }
-
-                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $script:currentTestDirectoryPath
-                    $testTargetResourceResult | Should Be $false
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $script:currentTestDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $destinationPath = Join-Path -Path $script:currentTestDirectoryPath -ChildPath $zipFileName
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationPath
-                    $testTargetResourceResult | Should Be $false
-                }
-
-                It 'Should return false when file modified and Validate specified' {
-                    $zipFileName = 'FileModifiedValidateSpecified'
-                    $fileToEditName = 'File1'
-                    $fileNotToEditName = 'File2'
-
-                    $zipFileStructure = @{
-                        $fileToEditName = 'Fake file contents'
-                        $fileNotToEditName = 'Fake file contents'
-                    }
-
-                    $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $script:currentTestDirectoryPath -ZipFileStructure $zipFileStructure
-
-                    $destinationDirectoryName = 'UnzippedArchive'
-                    $destinationDirectoryPath = Join-Path -Path $script:currentTestDirectoryPath -ChildPath $destinationDirectoryName
-
-                    Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true
-
-                    Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $fileToEditPath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileToEditName
-                    Set-Content -Path $fileToEditPath -Value 'Different false text' | Out-Null
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
-                    $testTargetResourceResult | Should Be $true
-
-                    $testTargetResourceResult = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true
-                    $testTargetResourceResult | Should Be $false
-                }
-            }
-            
-            Context 'ConvertTo-PowerShellHashAlgorithmName' {
-                $dscName = 'Dsc-Hash-Algorithm'
-                $expectedName = 'DscHashAlgorithm'
-                
-                It 'Should delete all dashes in name' {
-                    ConvertTo-PowerShellHashAlgorithmName -DscHashAlgorithmName $dscName | Should Be $expectedName
-                }
-            }
-            
-            Context 'Test-ChecksumIsSha' {
-                It 'Should return false when passed in string that does not start with sha' {
-                    Test-ChecksumIsSha -CheckSum 'sh123' | Should Be $false
-                }
-                
-                It 'Should return false when passed in string containing sha - not at beginning' {
-                    Test-ChecksumIsSha -CheckSum '123sha' | Should Be $false
-                }
-                
-                It 'Should return true when passed in string that does start with sha' {
-                    Test-ChecksumIsSha -CheckSum 'sha123' | Should Be $true
-                }
-                
-                It 'Should return true when passed in string that is sha' {
-                    Test-ChecksumIsSha -CheckSum 'sha' | Should Be $true
-                }
-            
-            }
-            
+        It 'Test-TargetResource with Ensure as Absent should return false after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
         }
     }
-}
-finally
-{
-    Exit-DscResourceTestEnvironment -TestEnvironment $script:testEnvironment
+
+    Context 'Remove a basic archive' {
+        $zipFileName = 'SetFunctionality'
+        $subfolderName = 'Folder1'
+
+        $zipFileStructure = @{
+            $subfolderName = @{
+                File1 = 'Fake file contents'
+            }
+        }
+
+        $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+        $destinationDirectoryName = 'RemoveBasicArchive'
+        $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        $null = Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
+
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive after Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+    }
+
+    Context 'Expand an archive with nested directories' {
+        $zipFileName = 'NestedArchive'
+
+        $zipFileStructure = @{
+            Folder1 = @{}
+            Folder2 = @{
+                Folder21 = @{
+                    Folder22 = @{
+                        Folder23 = @{}
+                    }
+                }
+            }
+            Folder3 = @{
+                Folder31 = @{
+                    Folder31 = @{
+                        Folder33 = @{
+                            Folder34 = @{
+                                File31 = 'Fake file contents'
+                            }
+                        }
+                    }
+                }
+            }
+            Folder4 = @{
+                Folder41 = @{
+                    Folder42 = @{
+                        Folder43 = @{
+                            Folder44 = @{}
+                        }
+                    }
+                }
+            }
+            File1 = 'Fake file contents'
+            File2 = 'Fake file contents'
+        }
+
+        $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+        $destinationDirectoryName = 'ExpandNestedArchive'
+        $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        $null = Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath
+
+        It 'File structure and contents of the destination should match the file structure and contents of the archive after Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $true
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return true after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return false after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+    }
+
+    Context 'Remove an archive with nested directories' {
+        $zipFileName = 'NestedArchive'
+
+        $zipFileStructure = @{
+            Folder1 = @{}
+            Folder2 = @{
+                Folder21 = @{
+                    Folder22 = @{
+                        Folder23 = @{}
+                    }
+                }
+            }
+            Folder3 = @{
+                Folder31 = @{
+                    Folder31 = @{
+                        Folder33 = @{
+                            Folder34 = @{
+                                File31 = 'Fake file contents'
+                            }
+                        }
+                    }
+                }
+            }
+            Folder4 = @{
+                Folder41 = @{
+                    Folder42 = @{
+                        Folder43 = @{
+                            Folder44 = @{}
+                        }
+                    }
+                }
+            }
+            File1 = 'Fake file contents'
+            File2 = 'Fake file contents'
+        }
+
+        $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+        $destinationDirectoryName = 'RemoveNestedArchive'
+        $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        $null = Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
+
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive after Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+    }
+
+    Context 'Expand an archive when another archive with the same timestamp exists in the same folder' {
+        $zipFileName1 = 'SameTimestamp1'
+
+        $zipFileStructure1 = @{
+            Folder1 = @{
+                File1 = 'Fake file contents'
+            }
+        }
+
+        $zipFilePath1 = New-ZipFileFromHashtable -Name $zipFileName1 -ParentPath $TestDrive -ZipFileStructure $zipFileStructure1
+
+        $zipFileName2 = 'SameTimestamp2'
+
+        $zipFileStructure2 = @{
+            Folder2 = @{
+                File2 = 'Fake file contents'
+            }
+        }
+
+        $zipFilePath2 = New-ZipFileFromHashtable -Name $zipFileName2 -ParentPath $TestDrive -ZipFileStructure $zipFileStructure2
+
+        $currentTimestamp = Get-Date
+        $null = Set-ItemProperty -Path $zipFilePath1 -Name 'LastWriteTime' -Value $currentTimestamp
+        $null = Set-ItemProperty -Path $zipFilePath2 -Name 'LastWriteTime' -Value $currentTimestamp
+
+        $destinationDirectoryName = 'ArchiveWithMatchingTimeStampDestination'
+        $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath1.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false for specified archive before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath1 -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true for specified archive before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath1 -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false for other archive with same timestamp with before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath2 -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true for other archive with same timestamp before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath2 -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        $null = Set-TargetResource -Ensure 'Present' -Path $zipFilePath1 -Destination $destinationDirectoryPath
+
+        It 'File structure and contents of the destination should match the file structure and contents of the archive after Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath1.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $true
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return true for specified archive after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath1 -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return false for specified archive after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath1 -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false for other archive with same timestamp with before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath2 -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true for other archive with same timestamp before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath2 -Destination $destinationDirectoryPath | Should Be $true
+        }
+    }
+
+    Context 'Remove an archive with an extra file in a nested directory' {
+        $zipFileName = 'NestedArchiveWithAdd'
+
+        $zipFileStructure = @{
+            Folder1 = @{
+                Folder11 = @{
+                    Folder12 = @{
+                        Folder13 = @{
+                            Folder14 = @{
+                                File11 = 'Fake file contents'
+                            }
+                        }
+                    }
+                }
+            }
+            File1 = 'Fake file contents'
+            File2 = 'Fake file contents'
+        }
+
+        $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+        $destinationDirectoryName = 'RemoveArchiveWithExtra'
+        $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+        $null = Expand-Archive -Path $zipFilePath -DestinationPath $destinationDirectoryPath -Force
+
+        $newFilePath = "$destinationDirectoryPath\Folder1\Folder11\Folder12\AddedFile"
+        $null = New-Item -Path $newFilePath -ItemType 'File'
+        $null = Set-Content -Path $newFilePath -Value 'Fake text'
+
+        It 'File structure and contents of the destination should match the file structure and contents of the archive before Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $true
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return true before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return false before Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Extra file should be present before Set-TargetResource' {
+            Test-Path -Path $newFilePath | Should Be $true
+        }
+
+        Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath
+        
+        It 'File structure and contents of the destination should not match the file structure and contents of the archive after Set-TargetResource' {
+            Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Present should return false after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $false
+        }
+
+        It 'Test-TargetResource with Ensure as Absent should return true after Set-TargetResource' {
+            Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath | Should Be $true
+        }
+
+        It 'Extra file should be present after Set-TargetResource' {
+            Test-Path -Path $newFilePath | Should Be $true
+        }
+    }
+    
+    $possibleChecksumValues = @( 'SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate' )
+    
+    foreach ($possibleChecksumValue in $possibleChecksumValues)
+    {        
+        Context "Expand an archive with an edited file, Validate and Force specified, and Checksum specified as $possibleChecksumValue" {
+            $zipFileName = 'ChecksumWithModifiedFile'
+            $fileToEditName = 'File1'
+            $fileNotToEditName = 'File2'
+
+            $zipFileStructure = @{
+                $fileToEditName = 'Fake file contents'
+                $fileNotToEditName = 'Fake file contents'
+            }
+
+            $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+            $destinationDirectoryName = 'ExpandModifiedArchiveWithCheck'
+            $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+            $null = Expand-Archive -Path $zipFilePath -DestinationPath $destinationDirectoryPath -Force
+
+            $fileToEditPath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileToEditName
+
+            It 'File to edit should exist at the destination before Set-TargetResource' {
+                Test-Path -Path $fileToEditPath | Should Be $true
+            }
+
+            $fileBeforeEdit = Get-Item -Path $fileToEditPath
+            $lastWriteTimeBeforeEdit = $fileBeforeEdit.LastWriteTime
+            $creationTimeBeforeEdit = $fileBeforeEdit.CreationTime
+
+            $null = Set-Content -Path $fileToEditPath -Value 'Different false text' -Force
+            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([DateTime]::MaxValue)
+
+            $fileAfterEdit = Get-Item -Path $fileToEditPath
+
+            It 'Edited file at the destination should have different content than the same file in the archive before Set-TargetResource' {
+                Get-Content -Path $fileToEditPath -Raw | Should Not Be ($zipFileStructure[$fileToEditName] + "`r`n")
+            }
+
+            It 'Edited file at the destination should have different last write time than the same file in the archive before Set-TargetResource' {
+                $fileAfterEdit.LastWriteTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Edited file at the destination should have different creation time than the last write time of the the same file in the archive before Set-TargetResource' {
+                $fileAfterEdit.CreationTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Test-TargetResource with Ensure as Present should return false before Set-TargetResource' {
+                Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $false
+            }
+
+            It 'Test-TargetResource with Ensure as Absent should return true before Set-TargetResource' {
+                Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $true
+            }
+
+            It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+                Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+            }
+
+            Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue -Force $true
+
+            $fileAfterSetTargetResource = Get-Item -Path $fileToEditPath
+
+            It 'Edited file should exist at the destination after Set-TargetResource' {
+                Test-Path -Path $fileToEditPath | Should Be $true
+            }
+
+            It 'Edited file at the destination should have the same content as the same file in the archive after Set-TargetResource' {
+                Get-Content -Path $fileToEditPath -Raw | Should Be ($zipFileStructure[$fileToEditName] + "`r`n")
+            }
+
+            It 'Edited file at the destination should have the same last write time as the same file in the archive after Set-TargetResource' {
+                $fileAfterSetTargetResource.LastWriteTime | Should Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Edited file at the destination should have the same creation time as last write time of the the same file in the archive after Set-TargetResource' {
+                $fileAfterSetTargetResource.CreationTime | Should Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Test-TargetResource with Ensure as Present should return true after Set-TargetResource' {
+                Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $true
+            }
+
+            It 'Test-TargetResource with Ensure as Absent should return false after Set-TargetResource' {
+                Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $false
+            }
+
+            It 'File structure and contents of the destination should match the file structure and contents of the archive after Set-TargetResource' {
+                Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $true
+            }
+        }
+
+        Context "Expand an archive with an edited file, Validate specfied, Force not specified, and Checksum specified as $possibleChecksumValue" {
+            $zipFileName = 'ChecksumWithModifiedFile'
+            $fileToEditName = 'File1'
+            $fileNotToEditName = 'File2'
+
+            $zipFileStructure = @{
+                $fileToEditName = 'Fake file contents'
+                $fileNotToEditName = 'Fake file contents'
+            }
+
+            $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+            $destinationDirectoryName = 'ExpandModifiedArchiveWithCheckFail'
+            $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+            $null = Expand-Archive -Path $zipFilePath -DestinationPath $destinationDirectoryPath -Force
+
+            $fileToEditPath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileToEditName
+
+            It 'File to edit should exist at the destination before Set-TargetResource' {
+                Test-Path -Path $fileToEditPath | Should Be $true
+            }
+
+            $fileBeforeEdit = Get-Item -Path $fileToEditPath
+            $lastWriteTimeBeforeEdit = $fileBeforeEdit.LastWriteTime
+            $creationTimeBeforeEdit = $fileBeforeEdit.CreationTime
+
+            $null = Set-Content -Path $fileToEditPath -Value 'Different false text' -Force
+            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([DateTime]::MaxValue)
+
+            $fileAfterEdit = Get-Item -Path $fileToEditPath
+
+            It 'Edited file at the destination should have different content than the same file in the archive before Set-TargetResource' {
+                Get-Content -Path $fileToEditPath -Raw | Should Not Be ($zipFileStructure[$fileToEditName] + "`r`n")
+            }
+
+            It 'Edited file at the destination should have different last write time than the same file in the archive before Set-TargetResource' {
+                $fileAfterEdit.LastWriteTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Edited file at the destination should have different creation time than the last write time of the the same file in the archive before Set-TargetResource' {
+                $fileAfterEdit.CreationTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Test-TargetResource with Ensure as Present should return false before Set-TargetResource' {
+                Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $false
+            }
+
+            It 'Test-TargetResource with Ensure as Absent should return true before Set-TargetResource' {
+                Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $true
+            }
+
+            It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+                Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+            }
+
+            { Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue } | Should Throw
+        }
+
+        Context "Remove an archive with an edited file, Validate specified, and Checksum specified as $possibleChecksumValue" {
+            $zipFileName = 'ChecksumWithModifiedFile'
+            $fileToEditName = 'File1'
+            $fileNotToEditName = 'File2'
+
+            $zipFileStructure = @{
+                $fileToEditName = 'Fake file contents'
+                $fileNotToEditName = 'Fake file contents'
+            }
+
+            $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+            $destinationDirectoryName = 'RemoveModifiedArchiveWithCheck'
+            $destinationDirectoryPath = Join-Path -Path $TestDrive -ChildPath $destinationDirectoryName
+
+            $null = Expand-Archive -Path $zipFilePath -DestinationPath $destinationDirectoryPath -Force
+
+            $fileToEditPath = Join-Path -Path $destinationDirectoryPath -ChildPath $fileToEditName
+
+            It 'File to edit should exist at the destination before Set-TargetResource' {
+                Test-Path -Path $fileToEditPath | Should Be $true
+            }
+
+            $fileBeforeEdit = Get-Item -Path $fileToEditPath
+            $lastWriteTimeBeforeEdit = $fileBeforeEdit.LastWriteTime
+            $creationTimeBeforeEdit = $fileBeforeEdit.CreationTime
+
+            $null = Set-Content -Path $fileToEditPath -Value 'Different false text' -Force
+            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([DateTime]::MaxValue)
+
+            $fileAfterEdit = Get-Item -Path $fileToEditPath
+
+            It 'Edited file at the destination should have the edited content' {
+                Get-Content -Path $fileToEditPath -Raw | Should Be ('Different false text' + "`r`n")
+            }
+
+            It 'Edited file at the destination should have different last write time than the same file in the archive before Set-TargetResource' {
+                $fileAfterEdit.LastWriteTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Edited file at the destination should have different creation time than the last write time of the the same file in the archive before Set-TargetResource' {
+                $fileAfterEdit.CreationTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Test-TargetResource with Ensure as Present should return false before Set-TargetResource' {
+                Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $false
+            }
+
+            It 'Test-TargetResource with Ensure as Absent should return true before Set-TargetResource' {
+                Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $true
+            }
+
+            It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+                Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+            }
+
+            Set-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue
+
+            $fileAfterSetTargetResource = Get-Item -Path $fileToEditPath
+
+            It 'Edited file should exist at the destination after Set-TargetResource' {
+                Test-Path -Path $fileToEditPath | Should Be $true
+            }
+
+            It 'Edited file at the destination should have the edited content' {
+                Get-Content -Path $fileToEditPath -Raw | Should Be ('Different false text' + "`r`n")
+            }
+
+            It 'Edited file at the destination should have different last write time than the same file in the archive after Set-TargetResource' {
+                $fileAfterEdit.LastWriteTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Edited file at the destination should have different creation time than the last write time of the the same file in the archive after Set-TargetResource' {
+                $fileAfterEdit.CreationTime | Should Not Be $lastWriteTimeBeforeEdit
+            }
+
+            It 'Test-TargetResource with Ensure as Present should return false after Set-TargetResource' {
+                Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $false
+            }
+
+            It 'Test-TargetResource with Ensure as Absent should return true after Set-TargetResource' {
+                Test-TargetResource -Ensure 'Absent' -Path $zipFilePath -Destination $destinationDirectoryPath -Validate $true -Checksum $possibleChecksumValue | Should Be $true
+            }
+
+            It 'File structure and contents of the destination should not match the file structure and contents of the archive before Set-TargetResource' {
+                Test-FileStructuresMatch -SourcePath $zipFilePath.Replace('.zip', '') -DestinationPath $destinationDirectoryPath -CheckContents | Should Be $false
+            }
+        }
+    }
+
+    Context 'Archive name contains a bracket' {
+        $zipFileName = 'ReturnCorrectValue['
+
+        $zipFileStructure = @{
+            Folder1 = @{
+                File1 = 'Fake file contents'
+            }
+        }
+
+        $zipFilePath = New-ZipFileFromHashtable -Name $zipFileName -ParentPath $TestDrive -ZipFileStructure $zipFileStructure
+
+        $destination = Join-Path -Path $TestDrive -ChildPath 'ArchiveNameWithBracket'
+
+        It 'Set-TargetResource should not throw' {
+            { Set-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destination } | Should Not Throw
+        }
+
+        It 'Get-TargetResource should not throw' {
+            { $null = Get-TargetResource -Path $zipFilePath -Destination $destination } | Should Not Throw
+        }
+
+        It 'Test-TargetResource should not throw' {
+            { $null = Test-TargetResource -Ensure 'Present' -Path $zipFilePath -Destination $destination } | Should Not Throw
+        }
+    }
 }
