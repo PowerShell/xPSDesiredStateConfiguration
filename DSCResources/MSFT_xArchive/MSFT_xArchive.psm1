@@ -1,7 +1,13 @@
 $errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
-# Import CommonResourceHelper for Get-LocalizedData, Test-IsNanoServer
+<#
+    Import CommonResourceHelper for:
+        Get-LocalizedData,
+        Test-IsNanoServer,
+        New-InvalidOperationException,
+        New-InvalidArgumentException
+#>
 $script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
 Import-Module -Name $script:commonResourceHelperFilePath
@@ -9,6 +15,7 @@ Import-Module -Name $script:commonResourceHelperFilePath
 # Localized messages for verbose and error statements in this resource
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xArchive'
 
+# This resource has not yet been tested on a Nano server.
 if (Test-IsNanoServer)
 {
     Add-Type -AssemblyName 'System.IO.Compression'
@@ -21,25 +28,48 @@ else
 
 <#
     .SYNOPSIS
-        Retrieves the current state of the archive resource with the specified path and destination.
+        Retrieves the current state of the archive resource with the specified path and
+        destination.
+
+        The returned object provides the following properties:
+            Path: The specified path.
+            Destination: The specified destination.
+            Ensure: Present if the archive at the specified path is expanded at the specified
+                destination. Absent the archive at the specified path is not expanded at the
+                specified destination.
 
     .PARAMETER Path
-        The path to the archive file that should be decompressed at the specified destination.
+        The path to the archive file that should or should not be expanded at the specified
+        destination.
 
     .PARAMETER Destination
-        The path where the archive file at the specified path should be decompressed.
+        The path where the archive file should or should not be expanded.
 
     .PARAMETER Validate
-        Specifies whether or not to validate that files in the archive at the specified path match
-        the files at the specified destination using the specified Checksum method.
+        Specifies whether or not to validate that a file at the destination with the same name as a
+        file in the archive actually matches that corresponding file in the archive by the
+        specified checksum method.
+        
+        If a file does not match it will be considered not present.
+
+        The default Checksum method is ModifiedDate.
 
         The default value is false.
 
     .PARAMETER Checksum
-        The Checksum method to use to validate whether or not the archive file at the given path
-        has been decompressed at the given destination.
+        The Checksum method to use to validate whether or not a file at the destination with the
+        same name as a file in the archive actually matches that corresponding file in the archive.
 
-        This parameter should only be specified if Validate is specified as true.
+        An invalid argument exception will be thrown if Checksum is specified while Validate is
+        specified as false.
+
+        ModifiedDate will check that the LastWriteTime property of the file at the destination
+        matches the LastWriteTime property of the file in the archive.
+        CreatedDate will check that the CreationTime property of the file at the destination
+        matches the CreationTime property of the file in the archive.
+        SHA-1, SHA-256, and SHA-512 will check that the hash of the file at the destination by the
+        specified SHA method matches the hash of the file in the archive by the specified SHA
+        method.
 
         The default value is ModifiedDate.
 
@@ -80,25 +110,16 @@ function Get-TargetResource
 
     Write-Verbose -Message ($script:localizedData.RetrievingArchiveState -f $Path, $Destination)
 
-    # Initialize the state of the archive resource with the specified path and destination
     $archiveState = @{
         Path = $Path
         Destination = $Destination
     }
 
-    <#
-        Initialize the required parameters for testing if the archive resource exists in the
-        specified state
-    #>
     $testTargetResourceParameters = @{
         Path = $Path
         Destination = $Destination
     }
 
-    <#
-        Add any specified optional parameters for testing if the archive resource exists in the
-        specified state
-    #>
     $optionalTestTargetResourceParameters = @( 'Validate', 'Checksum', 'Credential' )
 
     foreach ($optionalTestTargetResourceParameter in $optionalTestTargetResourceParameters)
@@ -109,21 +130,14 @@ function Get-TargetResource
         }
     }
 
-    # Test if the archive resource exists in the specified state
     $archiveResourceExists = Test-TargetResource @testTargetResourceParameters
 
-    <#
-        Populate the Ensure property of the state of the archive resource based on whether the
-        archive resource exists in the specified state or not
-    #>
     if ($archiveResourceExists)
     {
-        Write-Verbose -Message ($script:localizedData.ArchiveExistsAtDestination -f $Path, $Destination)
         $archiveState['Ensure'] = 'Present'
     }
     else
     {
-        Write-Verbose -Message ($script:localizedData.ArchiveDoesNotExistAtDestination -f $Path, $Destination)
         $archiveState['Ensure'] = 'Absent'
     }
 
@@ -132,39 +146,58 @@ function Get-TargetResource
 
 <#
     .SYNOPSIS
-        Sets the state of the archive resource with the specified path and destination.
+        Expands the archive (.zip) file at the specified path to the specified destination or
+        removes the expanded archive (.zip) file at the specified path from the specified
+        destination. 
 
     .PARAMETER Path
-        The path to the archive file whose content should or should not exist at the specified
+        The path to the archive file that should be expanded to or removed from the specified
         destination.
 
     .PARAMETER Destination
-        The destination path where the content of the archive file at the specified path should or
-        should not exist.
+        The path where the specified archive file should be expanded to or removed from.
 
     .PARAMETER Ensure
-        Specifies whether or not the content of the archive file at the specified path should exist
-        at the specified destination.
+        Specifies whether or not the expanded content of the archive file at the specified path
+        should exist at the specified destination.
 
-        To update the specified destination to have the content of the archive file at the
+        To update the specified destination to have the expanded content of the archive file at the
         specified path, specify this property as Present.
-        To remove the content of the archive file at the specified path from the specified
+        To remove the expanded content of the archive file at the specified path from the specified
         destination, specify this property as Absent.
 
         The default value is Present.
 
     .PARAMETER Validate
-        Specifies whether or not to validate that the content of the archive at the specified path
-        matches files at the specified destination using the specified Checksum method.
+        Specifies whether or not to validate that a file at the destination with the same name as a
+        file in the archive actually matches that corresponding file in the archive by the
+        specified checksum method.
+        
+        If the file does not match and Ensure is specified as Present and Force is not specified,
+        the resource will throw an error that the file at the desintation cannot be overwritten.
+        If the file does not match and Ensure is specified as Present and Force is specified, the
+        file at the desintation will be overwritten.
+        If the file does not match and Ensure is specified as Absent, the file at the desintation
+        will not be removed.
+
+        The default Checksum method is ModifiedDate.
 
         The default value is false.
 
     .PARAMETER Checksum
-        The Checksum method to use to validate whether or not the content of thearchive file at the
-        specified path matches files at the specified destination.
+        The Checksum method to use to validate whether or not a file at the destination with the
+        same name as a file in the archive actually matches that corresponding file in the archive.
 
-        An invalid argument exception will be thrown if the this parameter is specified while the
-        Validate parameter is false.
+        An invalid argument exception will be thrown if Checksum is specified while Validate is
+        specified as false.
+
+        ModifiedDate will check that the LastWriteTime property of the file at the destination
+        matches the LastWriteTime property of the file in the archive.
+        CreatedDate will check that the CreationTime property of the file at the destination
+        matches the CreationTime property of the file in the archive.
+        SHA-1, SHA-256, and SHA-512 will check that the hash of the file at the destination by the
+        specified SHA method matches the hash of the file in the archive by the specified SHA
+        method.
 
         The default value is ModifiedDate.
 
@@ -173,8 +206,12 @@ function Get-TargetResource
         destination if needed.
 
     .PARAMETER Force
-        Specifies whether or not existing files or directories at the specified destination should
-        be overwritten to match the content of the archive at the specified path.
+        Specifies whether or not any existing files or directories at the destination with the same
+        name as a file or directory in the archive should be overwritten to match the file or
+        directory in the archive.
+
+        When this property is false, an error will be thrown if an item at the destination needs to
+        be overwritten.
 
         The default value is false.
 #>
@@ -217,70 +254,53 @@ function Set-TargetResource
         $Force = $false
     )
 
-    # Check if Checksum is specified and Validate is false
     if ($PSBoundParameters.ContainsKey('Checksum') -and -not $Validate)
     {
-        # If Checksum is specified and Validate is false, throw an error
         $errorMessage = $script:localizedData.ChecksumSpecifiedAndValidateFalse -f $Checksum, $Path, $Destination
         New-InvalidArgumentException -ArgumentName 'Checksum or Validate' -Message $errorMessage 
     }
 
     $psDrive = $null
 
-    # Check if Credential is specified
     if ($PSBoundParameters.ContainsKey('Credential'))
     {
-        # If Credential is specified, mount the drive to the specified path with the specified credential
         $psDrive = Mount-PSDriveWithCredential -Path $Path -Credential $Credential
     }
 
     try
     {
-        # Assert that the path exists as a leaf
         Assert-PathExistsAsLeaf -Path $Path
-
-        # Assert that the destination does not exist or if it does that it is not a file
         Assert-DestinationDoesNotExistAsFile -Destination $Destination
 
         Write-Verbose -Message ($script:localizedData.SettingArchiveState -f $Path, $Destination)
         
-        # Initialize the parameters to update the archive
         $expandArchiveToDestinationParameters = @{
             ArchiveSourcePath = $Path
             Destination = $Destination
             Force = $Force
         }
 
-        # Initilize the parameter to remove the archive
         $removeArchiveFromDestinationParameters = @{
             ArchiveSourcePath = $Path
             Destination = $Destination
         }
 
-        # Test if the user wants to validate that the files at the destination match the archive files
         if ($Validate)
         {
-            # If the user wants to validate that the files at the destination match the archive files, add the specified Checksum method to the parameters to update the archive
             $expandArchiveToDestinationParameters['Checksum'] = $Checksum
-
-            # If the user wants to validate that the files at the destination match the archive files, add the specified Checksum method to the parameters to remove the archive
             $removeArchiveFromDestinationParameters['Checksum'] = $Checksum
         }
 
-        # Test if the destination exists or not
         if (Test-Path -LiteralPath $Destination)
         {
             Write-Verbose -Message ($script:localizedData.DestinationExists -f $Destination)
 
-            # If the destination exists, check if the user wants the archive present at the destination or not
             if ($Ensure -eq 'Present')
             {
-                # If the user wants the archive present at the destination, update it
                 Expand-ArchiveToDestination @expandArchiveToDestinationParameters
             }
             else
             {
-                # If the user does not want the archive present at the destination, remove it
                 Remove-ArchiveFromDestination @removeArchiveFromDestinationParameters
             }
         }
@@ -288,15 +308,11 @@ function Set-TargetResource
         {
             Write-Verbose -Message ($script:localizedData.DestinationDoesNotExist -f $Destination)
 
-            # If the destination does not exist, check if the user wants the archive present at the destination or not
             if ($Ensure -eq 'Present')
             {
                 Write-Verbose -Message ($script:localizedData.CreatingDirectoryAtDestination -f $Destination)
 
-                # If the user wants the archive present at the destination, create a directory at the destination
                 $null = New-Item -Path $Destination -ItemType 'Directory'
-
-                # Update the archive at the destination
                 Expand-ArchiveToDestination @expandArchiveToDestinationParameters
             }
         }
@@ -305,12 +321,10 @@ function Set-TargetResource
     }
     finally
     {
-        # Test if a PSDrive was mounted
         if ($null -ne $psDrive)
         {
             Write-Verbose -Message ($script:localizedData.RemovingPSDrive -f $psDrive.Root)
 
-            # If a PSDrive was mounted, remove it
             $null = Remove-PSDrive -Name $psDrive -Force -ErrorAction 'SilentlyContinue'
         }
     }
@@ -318,39 +332,51 @@ function Set-TargetResource
 
 <#
     .SYNOPSIS
-        Tests whether or not the archive resource with the specified path and destination is in the desired state.
+        Tests whether or not the archive (.zip) file at the specified path is expanded at the
+        specified destination.
 
     .PARAMETER Path
-        The path to the archive file whose content should or should not exist at the specified
+        The path to the archive file that should or should not be expanded at the specified
         destination.
 
     .PARAMETER Destination
-        The destination path where the content of the archive file at the specified path should or
-        should not exist.
+        The path where the archive file should or should not be expanded.
 
     .PARAMETER Ensure
-        Specifies whether or not the content of the archive file at the specified path should exist
-        at the specified destination.
+        Specifies whether or not the archive file should be expanded to the specified destination.
 
-        To test whether the content of the archive file at the specified path exists at the
-        specified destination, specify this property as Present.
-        To test whether the content of the archive file at the specified path does not exist at the
-        specified destination, specify this property as Absent.
+        To test whether the archive file is expanded at the specified destination, specify this
+        property as Present.
+        To test whether the archive file is not expanded at the specified destination, specify this
+        property as Absent.
 
         The default value is Present.
 
     .PARAMETER Validate
-        Specifies whether or not to validate that the content of the archive at the specified path
-        matches files at the specified destination using the specified Checksum method.
+        Specifies whether or not to validate that a file at the destination with the same name as a
+        file in the archive actually matches that corresponding file in the archive by the
+        specified checksum method.
+        
+        If a file does not match it will be considered not present.
+
+        The default Checksum method is ModifiedDate.
 
         The default value is false.
 
     .PARAMETER Checksum
-        The Checksum method to use to validate whether or not the content of thearchive file at the
-        specified path matches files at the specified destination.
+        The Checksum method to use to validate whether or not a file at the destination with the
+        same name as a file in the archive actually matches that corresponding file in the archive.
 
-        An invalid argument exception will be thrown if the this parameter is specified while the
-        Validate parameter is false.
+        An invalid argument exception will be thrown if Checksum is specified while Validate is
+        specified as false.
+
+        ModifiedDate will check that the LastWriteTime property of the file at the destination
+        matches the LastWriteTime property of the file in the archive.
+        CreatedDate will check that the CreationTime property of the file at the destination
+        matches the CreationTime property of the file in the archive.
+        SHA-1, SHA-256, and SHA-512 will check that the hash of the file at the destination by the
+        specified SHA method matches the hash of the file in the archive by the specified SHA
+        method.
 
         The default value is ModifiedDate.
 
@@ -359,10 +385,7 @@ function Set-TargetResource
         destination if needed.
 
     .PARAMETER Force
-        Specifies whether or not existing files or directories at the specified destination should
-        be overwritten to match the content of the archive at the specified path.
-
-        The default value is false.
+        Not used in Test-TargetResource.
 #>
 function Test-TargetResource
 {
@@ -404,76 +427,59 @@ function Test-TargetResource
         $Force = $false
     )
 
-    # Check if Checksum is specified and Validate is false
     if ($PSBoundParameters.ContainsKey('Checksum') -and -not $Validate)
     {
-        # If Checksum is specified and Validate is false, throw an error
         $errorMessage = $script:localizedData.ChecksumSpecifiedAndValidateFalse -f $Checksum, $Path, $Destination
         New-InvalidArgumentException -ArgumentName 'Checksum or Validate' -Message $errorMessage 
     }
 
-    # Initialize whether or not the archive is in the desired state by assuming the archive is present at the destination
-    $archiveInDesiredState = $Ensure -eq 'Present'
+    # In case an error occurs, we assume that the archive is absent
+    $archiveInDesiredState = $Ensure -eq 'Absent'
 
     $psDrive = $null
 
-    # Check if Credential is specified
     if ($PSBoundParameters.ContainsKey('Credential'))
     {
-        # If Credential is specified, mount the drive to the specified path with the specified credential
         $psDrive = Mount-PSDriveWithCredential -Path $Path -Credential $Credential
     }
 
     try
     {
-        # Assert that the path exists as a leaf
         Assert-PathExistsAsLeaf -Path $Path
-
-        # Assert that the destination does not exist or if it does that it is not a file
         Assert-DestinationDoesNotExistAsFile -Destination $Destination
 
         Write-Verbose -Message ($script:localizedData.TestingArchiveState -f $Path, $Destination)
 
-        # Initilize the parameters to test if the archive exists at the destination
         $testArchiveExistsAtDestinationParameters = @{
             ArchiveSourcePath = $Path
             Destination = $Destination
         }
 
-        # Test if the user wants to validate that the files at the destination match the archive files
         if ($Validate)
         {
-            # If the user wants to validate that the files at the destination match the archive files, add the specified Checksum method to the parameters to test if the archive exists at the destination
             $testArchiveExistsAtDestinationParameters['Checksum'] = $Checksum
         }
 
-        # Test if the destination exists or not
         if (Test-Path -LiteralPath $Destination)
         {
             Write-Verbose -Message ($script:localizedData.DestinationExists -f $Destination)
 
-            # If the destination exists, test if the archive exists at the destination
             $archiveExists = Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters
-
-            # Set whether or not the archive is in the desired state by checking if the archive's existence at the destination matches the provided Ensure value
             $archiveInDesiredState = $archiveExists -eq ($Ensure -eq 'Present')
         }
         else
         {
             Write-Verbose -Message ($script:localizedData.DestinationDoesNotExist -f $Destination)
 
-            # If the destination does not exist, set whether or not the archive is in the desired state by checking if the destination's existence matches the provided Ensure value
             $archiveInDesiredState = $Ensure -eq 'Absent'
         }
     }
     finally
     {
-        # Test if a PSDrive was mounted
         if ($null -ne $psDrive)
         {
             Write-Verbose -Message ($script:localizedData.RemovingPSDrive -f $psDrive.Root)
 
-            # If a PSDrive was mounted, remove it
             $null = Remove-PSDrive -Name $psDrive -Force -ErrorAction 'SilentlyContinue'
         }
     }
@@ -1100,33 +1106,36 @@ function Test-FileMatchesArchiveEntryByChecksum
 
     $fileMatchesArchiveEntry = $false
 
-    # If the user wants to validate the file, test whether the specified checksum method is a SHA method
     if (Test-ChecksumIsSha -Checksum $Checksum)
     {
-        # If the checksum method is a SHA method, retrieve whether or not the files match using the specified SHA checksum method
         $fileHashMatchesArchiveEntryHash = Test-FileHashMatchesArchiveEntryHash -FilePath $File.FullName -ArchiveEntry $ArchiveEntry -HashAlgorithmName $Checksum
 
-        # Test if the files match using the specified SHA checksum method
         if ($fileHashMatchesArchiveEntryHash)
         {
-            # If the files match using the specified SHA checksum method, write a verbose message and continue
             Write-Verbose -Message ($script:localizedData.FilesMatchesArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
+
             $fileMatchesArchiveEntry = $true
+        }
+        else
+        {
+            Write-Verbose -Message ($script:localizedData.FilesDoesNotMatchArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
         }
     }
     else
     {
-        # If the specified Checksum is not a SHA method, retrieve the relevant timestamp of the file at the destination based on the specified checksum method
         $fileTimestampForChecksum = Get-TimestampForChecksum -File $File -Checksum $Checksum
 
         $archiveEntryLastWriteTime = Get-ArchiveEntryLastWriteTime -ArchiveEntry $ArchiveEntry
 
-        # Test if the relevant timestamp matches the timestamp of the archive file
         if ($fileTimestampForChecksum.Equals($archiveEntryLastWriteTime))
         {
-            # If the relevant timestamp matches the timestamp of the archive file, write a verbose message and continue
             Write-Verbose -Message ($script:localizedData.FilesMatchesArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
+
             $fileMatchesArchiveEntry = $true
+        }
+        else
+        {
+            Write-Verbose -Message ($script:localizedData.FilesDoesNotMatchArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
         }
     }
 
@@ -1171,7 +1180,7 @@ function Get-ArchiveEntries
         in the archive.
 
     .PARAMETER Force
-        Specified whether or not to overwrite files that exist at the destination but do not match
+        Specifies whether or not to overwrite files that exist at the destination but do not match
         the file of the same name in the archive based on the specified checksum method.
 #>
 function Expand-ArchiveToDestination
@@ -1201,51 +1210,41 @@ function Expand-ArchiveToDestination
 
     Write-Verbose -Message ($script:localizedData.ExpandingArchiveToDestination -f $ArchiveSourcePath, $Destination)
 
-    # Open the archive
     $archive = Open-Archive -Path $ArchiveSourcePath
 
     try
     {
         $archiveEntries = Get-ArchiveEntries -Archive $archive
 
-        # For each file in the archive...
         foreach ($archiveEntry in $archiveEntries)
         {
             $archivEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
-
-            # Find the full path the file should have at the destination
             $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archivEntryFullName
 
-            # Retrieve the archive entry item at the destination
             $archiveEntryItemAtDestination = Get-Item -LiteralPath $archiveEntryPathAtDestination -ErrorAction 'SilentlyContinue'
 
-            # Test if the archive entry item exists at the destination or not
             if ($null -eq $archiveEntryItemAtDestination)
             {
                 Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameDoesNotExist -f $archiveEntryPathAtDestination)
 
-                # If the archive entry item does not exist at the destination, test if the archive entry is a directory or not
                 if (-not $archivEntryFullName.EndsWith('\'))
                 {
-                    # If the archive entry is a file, find the path to the parent directory of the file
                     $parentDirectory = Split-Path -Path $archiveEntryPathAtDestination -Parent
 
-                    # Test if the parent directory of the file does not exist
                     if (-not (Test-Path -Path $parentDirectory))
                     {
                         Write-Verbose -Message ($script:localizedData.CreatingDirectory -f $parentDirectory)
 
-                        # If the parent directory of the file does not exist, create it
                         $null = New-Item -Path $parentDirectory -ItemType 'Directory'
                     }
                 }
 
-                # Copy the file to the destination
                 Copy-ArchiveEntryToDestination -ArchiveEntry $archiveEntry -DestinationPath $archiveEntryPathAtDestination
             }
             else
             {
                 Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameExists -f $archiveEntryPathAtDestination)
+
                 $overwriteArchiveEntry = $true
 
                 if ($archivEntryFullName.EndsWith('\'))
@@ -1266,19 +1265,15 @@ function Expand-ArchiveToDestination
    
                 if ($overwriteArchiveEntry)
                 {
-                    # If the item at the destination is not a file, test if the user wants to forcibly overwrite the item
                     if ($Force)
                     {
-                        # If the user wants to forcibly overwrite the item, remove it
                         Write-Verbose -Message ($script:localizedData.OverwritingFile -f $archiveEntryPathAtDestination)
-                        $null = Remove-Item -LiteralPath $archiveEntryPathAtDestination
 
-                        # Copy the file to the destination
+                        $null = Remove-Item -LiteralPath $archiveEntryPathAtDestination
                         Copy-ArchiveEntryToDestination -ArchiveEntry $archiveEntry -DestinationPath $archiveEntryPathAtDestination
                     }
                     else
                     {
-                        # If the user does not want to forcibly overwrite the item, throw an error
                         New-InvalidOperationException -Message ($script:localizedData.ForceNotSpecifiedToOverwriteItem -f $archiveEntryPathAtDestination, $archivEntryFullName)
                     }
                 }
@@ -1287,7 +1282,6 @@ function Expand-ArchiveToDestination
     }
     finally
     {
-        # Close the archive
         Close-Archive -Archive $archive
     }
 }
@@ -1318,32 +1312,27 @@ function Remove-DirectoryFromDestination
         $Destination
     )
 
-    # Sort the array of directories so that child directories appear first - Sort-Object requires the use of a pipe to function properly
+    # Sort-Object requires the use of a pipe to function properly
     $Directory = $Directory | Sort-Object -Descending -Unique
 
     foreach ($directoryToRemove in $Directory)
     {
-        # Find the full path to the directory at the destination
         $directoryPathAtDestination = Join-Path -Path $Destination -ChildPath $directoryToRemove
-
         $directoryExists = Test-Path -LiteralPath $directoryPathAtDestination -PathType 'Container'
 
-        # Test if the item exists as a directory
         if ($directoryExists)
         {
-            $directoryIsEmpty = $null -eq (Get-ChildItem -LiteralPath $directoryPathAtDestination -ErrorAction 'SilentlyContinue')
+            $directoryChildItems = Get-ChildItem -LiteralPath $directoryPathAtDestination -ErrorAction 'SilentlyContinue'
+            $directoryIsEmpty = $null -eq $directoryChildItems
 
-            # If the item exists as a directory, test if it is empty or not 
             if ($directoryIsEmpty)
             {
                 Write-Verbose -Message ($script:localizedData.RemovingDirectory -f $directoryPathAtDestination)
 
-                # If the directory is empty, remove the item
                 $null = Remove-Item -LiteralPath $directoryPathAtDestination
             }
             else
             {
-                # If the directory is not empty, write a verbose message and continue
                 Write-Verbose -Message ($script:localizedData.DirectoryIsNotEmpty -f $directoryPathAtDestination)
             }
         }
@@ -1361,7 +1350,9 @@ function Remove-DirectoryFromDestination
         The path to the destination to remove the specified archive from.
 
     .PARAMETER Checksum
-        The checksum method to use to determine whether a file in the archive matches a file at the destination.
+        The checksum method to use to determine whether a file in the archive matches a file at the
+        destination.
+
         If not provided, only the existence of the items in the archive will be checked.
 #>
 function Remove-ArchiveFromDestination
@@ -1387,30 +1378,23 @@ function Remove-ArchiveFromDestination
 
     Write-Verbose -Message ($script:localizedData.RemovingArchiveFromDestination -f $Destination)
 
-    # Open the archive
     $archive = Open-Archive -Path $ArchiveSourcePath
 
     try
     {
-        # Initialize an empty array of the relative paths to directories in the archive
         $directoriesToRemove = @()
 
         $archiveEntries = Get-ArchiveEntries -Archive $archive
 
-        # For every entry in the archive...
         foreach ($archiveEntry in $archiveEntries)
         {
             $archivEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
-
             $archiveEntryIsDirectory = $archivEntryFullName.EndsWith('\')
 
-            # Find the full path the file should have at the destination
             $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archivEntryFullName
 
-            # Retrieve the archive entry item at the destination
             $itemAtDestination = Get-Item -LiteralPath $archiveEntryPathAtDestination -ErrorAction 'SilentlyContinue'
 
-            # Test if the archive entry item exists at the destination or not
             if ($null -eq $itemAtDestination)
             {
                 Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameDoesNotExist -f $archiveEntryPathAtDestination)
@@ -1427,8 +1411,6 @@ function Remove-ArchiveFromDestination
                 if ($archiveEntryIsDirectory -and $itemAtDestinationIsDirectory)
                 {
                     $removeArchiveEntry = $true
-
-                    # Add directory to list of those to be removed
                     $directoriesToRemove += $archivEntryFullName
 
                 }
@@ -1454,16 +1436,11 @@ function Remove-ArchiveFromDestination
 
                 if ($removeArchiveEntry)
                 {
-                    # Find the path to the parent directory of this file
                     $parentDirectory = Split-Path -Path $archivEntryFullName -Parent
 
-                    # Until we reach the root archive directory...
                     while (-not [String]::IsNullOrEmpty($parentDirectory))
                     {
-                        # Add the parent of this file to the list of directories
                         $directoriesToRemove += $parentDirectory
-
-                        # Find the parent of that file
                         $parentDirectory = Split-Path -Path $parentDirectory -Parent
                     }
                 }
@@ -1480,7 +1457,6 @@ function Remove-ArchiveFromDestination
     }
     finally
     {
-        # Close the archive
         Close-Archive -Archive $archive
     }
 }
@@ -1497,7 +1473,9 @@ function Remove-ArchiveFromDestination
         archive.
 
     .PARAMETER Checksum
-        The checksum method to use to determine whether a file in the archive matches a file at the destination.
+        The checksum method to use to determine whether a file in the archive matches a file at the
+        destination.
+
         If not provided, only the existence of the items in the archive will be checked.
 #>
 function Test-ArchiveExistsAtDestination
@@ -1526,25 +1504,19 @@ function Test-ArchiveExistsAtDestination
 
     $archiveExistsAtDestination = $true
 
-    # Open the archive
     $archive = Open-Archive -Path $ArchiveSourcePath
 
     try
     {
         $archiveEntries = Get-ArchiveEntries -Archive $archive
 
-        # For each file in the archive...
         foreach ($archiveEntry in $archiveEntries)
         {
             $archivEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
-
-            # Find the full path the file should have at the destination
             $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archivEntryFullName
 
-            # Retrieve the archive entry item at the destination
             $archiveEntryItemAtDestination = Get-Item -LiteralPath $archiveEntryPathAtDestination -ErrorAction 'SilentlyContinue'
 
-            # Test if the archive entry item exists at the destination or not
             if ($null -eq $archiveEntryItemAtDestination)
             {
                 Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameDoesNotExist -f $archiveEntryPathAtDestination)
@@ -1556,22 +1528,20 @@ function Test-ArchiveExistsAtDestination
             {
                 Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameExists -f $archiveEntryPathAtDestination)
 
-                # If the archive entry item exists at the destination, test if the archive entry item is a directory or not
                 if ($archivEntryFullName.EndsWith('\'))
                 {
-                    # If the archive entry item is a directory, test if the item at the destination is not a directory
                     if (-not ($archiveEntryItemAtDestination -is [System.IO.DirectoryInfo]))
                     {
+                        Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameIsNotDirectory -f $archiveEntryPathAtDestination)
+
                         $archiveExistsAtDestination = $false
                         break
                     }
                 }
                 else
                 {
-                    # If the archive entry item is not a directroy, test if the item at the destination is a file
                     if ($archiveEntryItemAtDestination -is [System.IO.FileInfo])
                     {
-                        # If the item at the destination is a file, test if the user wants to validate the file
                         if ($PSBoundParameters.ContainsKey('Checksum'))
                         {
                             if (-not (Test-FileMatchesArchiveEntryByChecksum -File $archiveEntryItemAtDestination -ArchiveEntry $archiveEntry -Checksum $Checksum))
@@ -1583,6 +1553,8 @@ function Test-ArchiveExistsAtDestination
                     }
                     else
                     {
+                        Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameIsNotFile -f $archiveEntryPathAtDestination)
+
                         $archiveExistsAtDestination = $false
                         break
                     }
@@ -1593,6 +1565,15 @@ function Test-ArchiveExistsAtDestination
     finally
     {
         Close-Archive -Archive $archive
+    }
+
+    if ($archiveExistsAtDestination)
+    {
+        Write-Verbose -Message ($script:localizedData.ArchiveExistsAtDestination -f $ArchiveSourcePath, $Destination)
+    }
+    else
+    {
+        Write-Verbose -Message ($script:localizedData.ArchiveDoesNotExistAtDestination -f $ArchiveSourcePath, $Destination)
     }
 
     return $archiveExistsAtDestination

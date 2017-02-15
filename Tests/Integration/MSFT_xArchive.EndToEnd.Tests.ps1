@@ -4,8 +4,8 @@ Set-StrictMode -Version 'Latest'
 Describe 'xArchive End to End Tests' {
     BeforeAll {
         # Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
-        $script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
-        $script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
+        $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
+        $commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
         Import-Module -Name $commonTestHelperFilePath
 
         $script:testEnvironment = Enter-DscResourceTestEnvironment `
@@ -13,23 +13,23 @@ Describe 'xArchive End to End Tests' {
             -DscResourceName 'MSFT_xArchive' `
             -TestType 'Integration'
 
-        # Import Archive resource module for Get-TargetResource, Test-TargetResource, Set-TargetResource
-        $moduleRootFilePath = Split-Path -Path $script:testsFolderFilePath -Parent
+        # Import xArchive resource module for Test-TargetResource
+        $moduleRootFilePath = Split-Path -Path $testsFolderFilePath -Parent
         $dscResourcesFolderFilePath = Join-Path -Path $moduleRootFilePath -ChildPath 'DscResources'
         $archiveResourceFolderFilePath = Join-Path -Path $dscResourcesFolderFilePath -ChildPath 'MSFT_xArchive'
         $archiveResourceModuleFilePath = Join-Path -Path $archiveResourceFolderFilePath -ChildPath 'MSFT_xArchive.psm1'
         Import-Module -Name $archiveResourceModuleFilePath -Force
 
-        # Force is specified as true for both of these configurations
+        # Import the xArchive test helper for New-ZipFileFromHashtable and Test-FileStructuresMatch
+        $archiveTestHelperFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xArchive.TestHelper.psm1'
+        Import-Module -Name $archiveTestHelperFilePath -Force
+
+        # Set up the paths to the test configurations
         $script:confgurationFilePathValidateOnly = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xArchive_ValidateOnly.config.ps1'
         $script:confgurationFilePathValidateAndChecksum = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xArchive_ValidateAndChecksum.config.ps1'
         $script:confgurationFilePathCredentialOnly = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xArchive_CredentialOnly.config.ps1'
 
-        # Import the Archive test helper for New-ZipFileFromHashtable and Test-FileStructuresMatch
-        $archiveTestHelperFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xArchive.TestHelper.psm1'
-        Import-Module -Name $archiveTestHelperFilePath -Force
-
-        # Create the test source archive
+        # Create the test archive
         $script:testArchiveName = 'TestArchive1'
 
         $testArchiveFileStructure = @{
@@ -65,9 +65,16 @@ Describe 'xArchive End to End Tests' {
             File2 = 'Fake file contents'
         }
 
-        $script:testArchiveFilePath = New-ZipFileFromHashtable -Name $script:testArchiveName -ParentPath $TestDrive -ZipFileStructure $testArchiveFileStructure
+        $newZipFileFromHashtableParameters = @{
+            Name = $script:testArchiveName
+            ParentPath = $TestDrive
+            ZipFileStructure = $testArchiveFileStructure
+        }
+
+        $script:testArchiveFilePath = New-ZipFileFromHashtable @newZipFileFromHashtableParameters
         $script:testArchiveFilePathWithoutExtension = $script:testArchiveFilePath.Replace('.zip', '')
 
+        # Create another test archive with the same name and file structure but different file content
         $script:testArchiveWithDifferentFileContentName = $script:testArchiveName
 
         $testArchiveFileWithDifferentFileContentStructure = @{
@@ -106,7 +113,13 @@ Describe 'xArchive End to End Tests' {
         $testArchiveFileWithDifferentFileContentParentPath = Join-Path -Path $TestDrive -ChildPath 'MismatchingArchive'
         $null = New-Item -Path $testArchiveFileWithDifferentFileContentParentPath -ItemType 'Directory'
 
-        $script:testArchiveFileWithDifferentFileContentPath = New-ZipFileFromHashtable -Name $script:testArchiveWithDifferentFileContentName -ParentPath $testArchiveFileWithDifferentFileContentParentPath -ZipFileStructure $testArchiveFileWithDifferentFileContentStructure
+        $newZipFileFromHashtableParameters = @{
+            Name = $script:testArchiveWithDifferentFileContentName
+            ParentPath = $testArchiveFileWithDifferentFileContentParentPath
+            ZipFileStructure = $testArchiveFileWithDifferentFileContentStructure
+        }
+
+        $script:testArchiveFileWithDifferentFileContentPath = New-ZipFileFromHashtable @newZipFileFromHashtableParameters
         $script:testArchiveFileWithDifferentFileContentPathWithoutExtension = $script:testArchiveFileWithDifferentFileContentPath.Replace('.zip', '')
     }
 
@@ -115,17 +128,17 @@ Describe 'xArchive End to End Tests' {
     }
 
     Context 'Expand an archive to a destination that does not yet exist' {
-        $configurationName = 'ExpandArchiveToEmptyDestination'
+        $configurationName = 'ExpandArchiveToNonExistentDestination'
 
-        $emptyDestination = Join-Path -Path $TestDrive -ChildPath 'NonExistantDestination'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'NonExistentDestinationForExpand'
 
         It 'Destination should not exist before configuration' {
-            Test-Path -Path $emptyDestination | Should Be $false
+            Test-Path -Path $destination | Should Be $false
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $emptyDestination
+            Destination = $destination
             Ensure = 'Present'
         }
 
@@ -142,11 +155,11 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $emptyDestination | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -157,13 +170,13 @@ Describe 'xArchive End to End Tests' {
     Context 'Expand an archive to an existing destination with items that are not in the archive' {
         $configurationName = 'ExpandArchiveToDestinationWithOtherItems'
 
-        $destinationWithOtherItems = Join-Path -Path $TestDrive -ChildPath 'DestinationWithOtherItems'
-        $null = New-Item -Path $destinationWithOtherItems -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithOtherItemsForExpand'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
         # Keys are the paths to the items. Values are the items' contents with an empty string denoting a directory
         $otherItems = @{}
 
-        $otherDirectoryPath = Join-Path -Path $destinationWithOtherItems -ChildPath 'OtherDirectory'
+        $otherDirectoryPath = Join-Path -Path $destination -ChildPath 'OtherDirectory'
         $null = New-Item -Path $otherDirectoryPath -ItemType 'Directory'
         $otherItems[$otherDirectoryPath] = ''
 
@@ -178,7 +191,7 @@ Describe 'xArchive End to End Tests' {
         $otherItems[$otherFilePath] = $otherFileContent
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithOtherItems | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         foreach ($otherItemPath in $otherItems.Keys)
@@ -207,7 +220,7 @@ Describe 'xArchive End to End Tests' {
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithOtherItems
+            Destination = $destination
             Ensure = 'Present'
         }
 
@@ -224,11 +237,11 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithOtherItems | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithOtherItems | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         foreach ($otherItemPath in $otherItems.Keys)
@@ -263,22 +276,22 @@ Describe 'xArchive End to End Tests' {
     Context 'Expand an archive to an existing destination that already contains the same archive files' {
         $configurationName = 'ExpandArchiveToDestinationWithArchive'
 
-        $destinationWithArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithOtherItems'
-        $null = New-Item -Path $destinationWithArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMatchingArchiveForExpand'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destinationWithArchive -Force
+        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destination -Force
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithArchive
+            Destination = $destination
             Ensure = 'Present'
         }
 
@@ -295,11 +308,11 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -310,26 +323,26 @@ Describe 'xArchive End to End Tests' {
     Context 'Expand an archive to a destination that contains archive files that do not match by the specified SHA Checksum without Force specified' {
         $configurationName = 'ExpandArchiveToDestinationWithMismatchingArchive'
 
-        $destinationWithMismatchingArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMismatchingArchive'
-        $null = New-Item -Path $destinationWithMismatchingArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMismatchingArchiveWithSHANoForceForExpand'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFileWithDifferentFileContentPath -DestinationPath $destinationWithMismatchingArchive -Force
+        $null = Expand-Archive -Path $script:testArchiveFileWithDifferentFileContentPath -DestinationPath $destination -Force
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithMismatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should not match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive -CheckContents | Should Be $false
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithMismatchingArchive
+            Destination = $destination
             Ensure = 'Present'
             Validate = $true
             Checksum = 'SHA-256'
@@ -350,15 +363,15 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithMismatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should not match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive -CheckContents | Should Be $false
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
         It 'Should return false from Test-TargetResource with the same parameters after configuration' {
@@ -369,26 +382,26 @@ Describe 'xArchive End to End Tests' {
     Context 'Expand an archive to a destination that contains archive files that do not match by the specified SHA Checksum with Force specified' {
         $configurationName = 'ExpandArchiveToDestinationWithMismatchingArchive'
 
-        $destinationWithMismatchingArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMismatchingArchive'
-        $null = New-Item -Path $destinationWithMismatchingArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMismatchingArchiveWithSHAAndForceForExpand'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFileWithDifferentFileContentPath -DestinationPath $destinationWithMismatchingArchive -Force
+        $null = Expand-Archive -Path $script:testArchiveFileWithDifferentFileContentPath -DestinationPath $destination -Force
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithMismatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should not match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive -CheckContents | Should Be $false
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithMismatchingArchive
+            Destination = $destination
             Ensure = 'Present'
             Validate = $true
             Checksum = 'SHA-256'
@@ -408,15 +421,15 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithMismatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive -CheckContents | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -427,26 +440,26 @@ Describe 'xArchive End to End Tests' {
     Context 'Expand an archive to a destination that contains archive files that match by the specified SHA Checksum' {
         $configurationName = 'ExpandArchiveToDestinationWithMatchingArchive'
 
-        $destinationWithMatchingArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMatchingArchive'
-        $null = New-Item -Path $destinationWithMatchingArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMatchingArchiveWithSHAForExpand'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destinationWithMatchingArchive -Force
+        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destination -Force
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithMatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMatchingArchive -CheckContents | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithMatchingArchive
+            Destination = $destination
             Ensure = 'Present'
             Validate = $true
             Checksum = 'SHA-256'
@@ -466,15 +479,15 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithMatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMatchingArchive -CheckContents | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -485,22 +498,22 @@ Describe 'xArchive End to End Tests' {
     Context 'Remove an expanded archive from an existing destination that contains only the expanded archive' {
         $configurationName = 'RemoveArchiveAtDestinationWithArchive'
 
-        $destinationWithArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithArchiveForRemove'
-        $null = New-Item -Path $destinationWithArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMatchingArchiveForRemove'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destinationWithArchive -Force
+        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destination -Force
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithArchive
+            Destination = $destination
             Ensure = 'Absent'
         }
 
@@ -517,11 +530,11 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should not match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithArchive | Should Be $false
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $false
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -532,15 +545,15 @@ Describe 'xArchive End to End Tests' {
     Context 'Remove an expanded archive from an existing destination that contains the expanded archive and other files' {
         $configurationName = 'RemoveArchiveAtDestinationWithArchiveAndOtherFiles'
 
-        $destinationWithArchiveAndOtherFiles = Join-Path -Path $TestDrive -ChildPath 'DestinationWithArchiveAndOtherFilesForRemove'
-        $null = New-Item -Path $destinationWithArchiveAndOtherFiles -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMatchingArchiveAndOtherFilesForRemove'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destinationWithArchiveAndOtherFiles -Force
+        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destination -Force
 
         # Keys are the paths to the items. Values are the items' contents with an empty string denoting a directory
         $otherItems = @{}
 
-        $otherDirectoryPath = Join-Path -Path $destinationWithArchiveAndOtherFiles -ChildPath 'OtherDirectory'
+        $otherDirectoryPath = Join-Path -Path $destination -ChildPath 'OtherDirectory'
         $null = New-Item -Path $otherDirectoryPath -ItemType 'Directory'
         $otherItems[$otherDirectoryPath] = ''
 
@@ -555,7 +568,7 @@ Describe 'xArchive End to End Tests' {
         $otherItems[$otherFilePath] = $otherFileContent
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithArchiveAndOtherFiles | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         foreach ($otherItemPath in $otherItems.Keys)
@@ -586,7 +599,7 @@ Describe 'xArchive End to End Tests' {
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithArchiveAndOtherFiles
+            Destination = $destination
             Ensure = 'Absent'
         }
 
@@ -603,7 +616,7 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithArchiveAndOtherFiles | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         foreach ($otherItemPath in $otherItems.Keys)
@@ -640,18 +653,18 @@ Describe 'xArchive End to End Tests' {
     Context 'Remove an expanded archive from an existing destination that does not contain any archive files' {
         $configurationName = 'RemoveArchiveAtDestinationWithoutArchive'
 
-        $destinationWithoutArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithoutArchiveForRemove'
-        $null = New-Item -Path $destinationWithoutArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'EmptyDestinationForRemove'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithoutArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithoutArchive
+            Destination = $destination
             Ensure = 'Absent'
         }
 
@@ -668,7 +681,7 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithoutArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
@@ -681,17 +694,15 @@ Describe 'xArchive End to End Tests' {
     Context 'Remove an expanded archive from a destination that does not exist' {
         $configurationName = 'RemoveArchiveFromMissingDestination'
 
-        $destinationMissing = Join-Path -Path $TestDrive -ChildPath 'MissingDestinationForRemove'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'NonexistentDestinationForRemove'
 
         It 'Destination should not exist before configuration' {
-            Test-Path -Path $destinationMissing | Should Be $false
+            Test-Path -Path $destination | Should Be $false
         }
-
-        # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationMissing
+            Destination = $destination
             Ensure = 'Absent'
         }
 
@@ -708,10 +719,8 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should not exist after configuration' {
-            Test-Path -Path $destinationMissing | Should Be $false
+            Test-Path -Path $destination | Should Be $false
         }
-
-        # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
             MSFT_xArchive\Test-TargetResource @archiveParameters | Should Be $true
@@ -721,26 +730,26 @@ Describe 'xArchive End to End Tests' {
     Context 'Remove an archive from a destination that contains archive files that do not match by the specified SHA Checksum' {
         $configurationName = 'RemoveArchiveFromDestinationWithMismatchingArchiveWithSHA'
 
-        $destinationWithMismatchingArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMismatchingArchive'
-        $null = New-Item -Path $destinationWithMismatchingArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMismatchingArchiveWithSHAForRemove'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFileWithDifferentFileContentPath -DestinationPath $destinationWithMismatchingArchive -Force
+        $null = Expand-Archive -Path $script:testArchiveFileWithDifferentFileContentPath -DestinationPath $destination -Force
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithMismatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should not match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive -CheckContents | Should Be $false
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithMismatchingArchive
+            Destination = $destination
             Ensure = 'Absent'
             Validate = $true
             Checksum = 'SHA-256'
@@ -760,15 +769,15 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithMismatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
         It 'File contents of destination should not match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMismatchingArchive -CheckContents | Should Be $false
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -779,22 +788,22 @@ Describe 'xArchive End to End Tests' {
     Context 'Remove an archive from a destination that contains archive files that match by the specified SHA Checksum' {
         $configurationName = 'RemoveArchiveFromDestinationWithMatchingArchiveWithSHA'
 
-        $destinationWithMatchingArchive = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMatchingArchive'
-        $null = New-Item -Path $destinationWithMatchingArchive -ItemType 'Directory'
+        $destination = Join-Path -Path $TestDrive -ChildPath 'DestinationWithMatchingArchiveWithSHAForRemove'
+        $null = New-Item -Path $destination -ItemType 'Directory'
 
-        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destinationWithMatchingArchive -Force
+        $null = Expand-Archive -Path $script:testArchiveFilePath -DestinationPath $destination -Force
 
         It 'Destination should exist before configuration' {
-            Test-Path -Path $destinationWithMatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure and contents of destination should match the file contents of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMatchingArchive -CheckContents | Should Be $true
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
-            Destination = $destinationWithMatchingArchive
+            Destination = $destination
             Ensure = 'Absent'
             Validate = $true
             Checksum = 'SHA-256'
@@ -814,11 +823,11 @@ Describe 'xArchive End to End Tests' {
         }
 
         It 'Destination should exist after configuration' {
-            Test-Path -Path $destinationWithMatchingArchive | Should Be $true
+            Test-Path -Path $destination | Should Be $true
         }
 
         It 'File structure of destination should not match the file structure of the archive' {
-            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destinationWithMatchingArchive | Should Be $false
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $false
         }
 
         It 'Should return false from Test-TargetResource with the same parameters after configuration' {

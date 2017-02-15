@@ -5,21 +5,21 @@ dev : [![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8y
 
 The **xPSDesiredStateConfiguration** module is a more recent, experimental version of the PSDesiredStateConfiguration module that ships in Windows as part of PowerShell 4.0.
 
-**This module is currently in the process of becoming one of our first experimental High Quality Resource Modules (HQRMs). The plan for updating this module is available [here](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/HighQualityResourceModulePlan.md). Any comments or questions about this process/plan can be submitted under issue [#160](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/160).**
+The high quality, supported version of this module is available as [PSDscResources](https://github.com/PowerShell/PSDscResources).
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ## Contributing
 
-Please check out common DSC Resources [contributing guidelines](https://github.com/PowerShell/DscResource.Kit/blob/master/CONTRIBUTING.md).
+If you qould like to contribute to this module, please review the common DSC Resources [contributing guidelines](https://github.com/PowerShell/DscResource.Kit/blob/master/CONTRIBUTING.md).
 
 ## Resources
 
-* **xArchive** provides a mechanism to unpack archive (.zip) files or removed unpacked archive (.zip) files at a specific path.
+* **xArchive** provides a mechanism to expand an archive (.zip) file to a specific path or remove an expanded archive (.zip) file from a specific path on a target node.
 * **xDscWebService** configures an OData endpoint for DSC service to make a node a DSC pull server.
 * **xEnvironment** provides a mechanism to configure and manage environment variables for a machine or process.
-* **xGroup** provides a mechanism to manage local groups on the target node.
+* **xGroup** provides a mechanism to manage local groups on a target node.
 * **xGroupSet** provides a mechanism to configure and manage multiple xGroup resources with common settings but different names.
 * **xFileUpload** is a composite resource which ensures that local files exist on an SMB share.
 * **xPackage** manages the installation of .msi and .exe packages.
@@ -49,20 +49,35 @@ Resources that work on Nano Server:
 
 ### xArchive
 
-* **Destination**: (Key) Specifies the location where you want to ensure the archive contents are extracted.
-* **Path**: (Key) Specifies the source path of the archive file.
-* **Ensure**: Determines whether to check if the content of the archive exists at the Destination. Set this property to Present to ensure the contents exist. Set it to Absent to ensure they do not exist.
-   - Supported values: Present, Absent
-   - Default Value: Present
-* **Validate**: Uses the Checksum property to determine if the archive matches the signature. If Validate is false, only the file or directory name is used for comparison. If you specify Checksum without Validate, the configuration will fail. If you specify Validate without Checksum, a SHA-256 checksum is used by default.
-   - Supported values: true, false
-   - Default Value: false
-* **Checksum**: Defines the type to use when determining whether two files are the same. If you specify Checksum without Validate, the configuration will fail.
-   - Suported values: CreatedDate, ModifiedDate, SHA-1, SHA-256, SHA-512
-   - Default value: SHA-256
-* **Force**: Setting Force to true with override certain file operations (such as overwriting a file or deleting a directory that is not empty) that would normally result in an error.
-   - Supported values: true, false
-   - Default Value: false
+Provides a mechanism to expand an archive (.zip) file to a specific path or remove an expanded archive (.zip) file from a specific path on a target node.
+
+#### Requirements
+
+* The System.IO.Compression type assembly must be available on the machine.
+* The System.IO.Compression.FileSystem type assembly must be available on the machine.
+
+#### Parameters
+
+* **[String] Path** _(Key)_: The path to the archive file that should be expanded to or removed from the specified destination.
+* **[String] Destination** _(Key)_: The path where the specified archive file should be expanded to or removed from.
+* **[String] Ensure** _(Write)_: Specifies whether or not the expanded content of the archive file at the specified path should exist at the specified destination. To update the specified destination to have the expanded content of the archive file at the specified path, specify this property as Present. To remove the expanded content of the archive file at the specified path from the specified destination, specify this property as Absent. The default value is Present. { *Present* | Absent }.
+* **[Boolean] Validate** _(Write)_: Specifies whether or not to validate that a file at the destination with the same name as a file in the archive actually matches that corresponding file in the archive by the specified checksum method. If the file does not match and Ensure is specified as Present and Force is not specified, the resource will throw an error that the file at the desintation cannot be overwritten. If the file does not match and Ensure is specified as Present and Force is specified, the file at the desintation will be overwritten. If the file does not match and Ensure is specified as Absent, the file at the desintation will not be removed. The default Checksum method is ModifiedDate. The default value is false.
+* **[String] Checksum** _(Write)_: The Checksum method to use to validate whether or not a file at the destination with the same name as a file in the archive actually matches that corresponding file in the archive. An invalid argument exception will be thrown if Checksum is specified while Validate is specified as false. ModifiedDate will check that the LastWriteTime property of the file at the destination matches the LastWriteTime property of the file in the archive. CreatedDate will check that the CreationTime property of the file at the destination matches the CreationTime property of the file in the archive. SHA-1, SHA-256, and SHA-512 will check that the hash of the file at the destination by the specified SHA method matches the hash of the file in the archive by the specified SHA method. The default value is ModifiedDate. { *ModifiedDate* | CreatedDate | SHA-1 | SHA-256 | SHA-512 }
+* **[System.Management.Automation.PSCredential] Credential** _(Write)_: The credential of a user account with permissions to access the specified archive path and destination if needed.
+* **[Boolean] Force** _(Write)_: Specifies whether or not any existing files or directories at the destination with the same name as a file or directory in the archive should be overwritten to match the file or directory in the archive. When this property is false, an error will be thrown if an item at the destination needs to be overwritten. The default value is false.
+
+#### Read-Only Properties from Get-TargetResource
+
+None
+
+#### Examples
+
+* [Expand an archive without file validation](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xArchive_ExpandArchiveNoValidation.ps1)
+* [Expand an archive under a credential without file validation](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xArchive_ExpandArchiveNoValidationCredential.ps1)
+* [Expand an archive with default file validation and file overwrite allowed](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xArchive_ExpandArchiveDefaultValidationAndForce.ps1)
+* [Expand an archive with SHA-256 file validation and file overwrite allowed](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xArchive_ExpandArchiveChecksumAndForce.ps1)
+* [Remove an archive without file validation](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xArchive_RemoveArchiveNoValidation.ps1)
+* [Remove an archive with SHA-256 file validation](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xArchive_RemoveArchiveChecksum.ps1)
 
 ### xDscWebService
 
@@ -81,6 +96,7 @@ Caution: Setting this property to $true will reset registry values under "HKLM:\
 * **DisableSecurityBestPractices**: The items that are excepted from following best practice security settings.
 
 ### xGroup
+
 Provides a mechanism to manage local groups on the target node.
 This resource works on Nano Server.
 
@@ -89,6 +105,7 @@ This resource works on Nano Server.
 None
 
 #### Parameters
+
 * **[String] GroupName** _(Key)_: The name of the group to create, modify, or remove.
 * **[String] Ensure** _(Write)_: Indicates if the group should exist or not. To add a group or modify an existing group, set this property to Present. To remove a group, set this property to Absent. The default value is Present. { *Present* | Absent }.
 * **[String] Description** _(Write)_: The description the group should have.
@@ -204,6 +221,7 @@ The following parameters will be the same for each process in the set:
 * [Stop multiple processes](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xProcessSet_Stop.ps1)
 
 ### xService
+
 Provides a mechanism to configure and manage Windows services.
 This resource works on Nano Server.
 
@@ -314,6 +332,7 @@ None
 * **CertificateThumbprint**: Thumbprint of the certificate which should be used for encryption/decryption.
 
 ### xEnvironment
+
 Provides a mechanism to configure and manage environment variables for a machine or process.
 
 #### Requirements
@@ -339,6 +358,7 @@ None
 * [Remove an environment variable](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xEnvironment_Remove.ps1)
 
 ### xScript
+
 Provides a mechanism to run PowerShell script blocks on a target node.
 This resource works on Nano Server.
 
@@ -362,6 +382,7 @@ None
 * [Create a file with content through xScript](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xScript.ps1)
 
 ### xRegistry
+
 Provides a mechanism to manage registry keys and values on a target node.
 
 #### Requirements
@@ -390,6 +411,7 @@ None
 * [Remove a registry key](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/Sample_xRegistryResource_RemoveKey.ps1)
 
 ### xUser
+
 Provides a mechanism to manage local users on a target node.
 
 #### Requirements
@@ -561,16 +583,23 @@ None
 ## Functions
 
 ### Publish-ModuleToPullServer
-    Publishes a 'ModuleInfo' object(s) to the pullserver module repository or user provided path. It accepts its input from a pipeline so it can be used in conjunction with Get-Module as Get-Module <ModuleName> | Publish-Module
+
+Publishes a 'ModuleInfo' object(s) to the pullserver module repository or user provided path. It accepts its input from a pipeline so it can be used in conjunction with Get-Module as Get-Module <ModuleName> | Publish-Module
 
 ### Publish-MOFToPullServer
-    Publishes a 'FileInfo' object(s) to the pullserver configuration repository. Its accepts FileInfo input from a pipeline so it can be used in conjunction with Get-ChildItem .*.mof | Publish-MOFToPullServer
+
+Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It accepts FileInfo input from a pipeline so it can be used in conjunction with Get-ChildItem .*.mof | Publish-MOFToPullServer
 
 ## Versions
 
 ### Unreleased
 
 * Moved DSC pull server setup tests to DSCPullServerSetup folder for new common tests
+* xArchive:
+    * Updated the resource to be a high quality resource
+    * Transferred the existing "unit" tests to integration tests
+    * Added unit and end-to-end tests
+    * Updated documentation and examples
 
 ### 6.0.0.0
 
@@ -832,6 +861,7 @@ because they were unavailable to Get-DscResource and Import-DscResource.
 * Added xRegistry resource
 
 ### 3.6.0.0
+
 * Added CreateCheckRegValue parameter to xPackage resource
 * Added MatchSource parameter to xRemoteFile resource
 
@@ -903,6 +933,7 @@ because they were unavailable to Get-DscResource and Import-DscResource.
     * DscWebService
 
 ## Examples
+
 ### Change the name and the workgroup name
 
 This configuration will set a machine name and change its workgroup.
@@ -944,7 +975,7 @@ This configuration will install a .exe package, verifying the package using the 
 
 This configuration will install a .exe package and verify the package using the product ID and package name.
 
-### Sample1.ps3 installs a package that uses an .msi file.
+### Sample1.ps3 installs a package that uses an .msi file
 
 This configuration will install a .msi package and verify the package using the product ID and package name and requires credentials to read the share and install the package.
 
@@ -952,7 +983,8 @@ This configuration will install a .msi package and verify the package using the 
 
 This configuration will install a .exe package and verify the package using the product ID and package name and requires credentials to read the share and install the package. It also uses custom registry values to check for the package presence.
 
-### Validate pullserver deployement.
+### Validate pullserver deployement
+
 If Sample_xDscWebService.ps1 is used to setup a DSC pull and reporting endpoint, the service endpoint can be validated by performing Invoke-WebRequest -URI http://localhost:8080/PSDSCPullServer.svc/$metadata in PowerShell or http://localhost:8080/PSDSCPullServer.svc/ when using InternetExplorer.
 
 [Pullserver Validation Pester Tests](DSCPullServerSetup/PullServerDeploymentVerificationTest)
