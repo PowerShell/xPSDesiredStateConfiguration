@@ -1,4 +1,4 @@
-# Suppress Global Vars PSSA Error because $global:DSCMachineStatus must be allowed
+﻿# Suppress Global Vars PSSA Error because $global:DSCMachineStatus must be allowed
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', '')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
 param()
@@ -11,10 +11,14 @@ $script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
 Import-Module -Name $script:commonResourceHelperFilePath
 
-# Localized messages for verbose and error statements in this resource
-$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xPackageResource'
+# Import PackageHelper
+$script:packageHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'PackageHelper.psm1'
+Import-Module -Name $script:packageHelperFilePath
 
-$script:packageCacheLocation = "$env:programData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xPackageResource"
+# Localized messages for verbose and error statements in this resource
+$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xExePackage'
+
+$script:packageCacheLocation = "$env:programData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xExePackage"
 $script:msiTools = $null
 
 function Get-TargetResource

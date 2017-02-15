@@ -6,7 +6,7 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -TestType 'Integration'
 try
 {
-    Describe "xPackage Integration Tests" {
+    Describe 'xPackage Integration Tests' {
         BeforeAll {
             Import-Module "$PSScriptRoot\..\Unit\MSFT_xPackageResource.TestHelper.psm1" -Force
 
@@ -65,11 +65,11 @@ try
             }
         }
 
-        It "Install a .msi package" {
-            $configurationName = "EnsurePackageIsPresent"
+        It 'Install a .msi package' {
+            $configurationName = 'EnsurePackageIsPresent'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
-            $errorPath = Join-Path -Path $TestDrive -ChildPath "StdErrorPath.txt"
-            $outputPath = Join-Path -Path $TestDrive -ChildPath "StdOutputPath.txt"
+            $errorPath = Join-Path -Path $TestDrive -ChildPath 'StdErrorPath.txt'
+            $outputPath = Join-Path -Path $TestDrive -ChildPath 'StdOutputPath.txt'
 
             try
             {
@@ -80,10 +80,10 @@ try
 
                     xPackage Package1
                     {
-                        Path = '$script:msiLocation'
-                        Ensure = "Present"
-                        Name = '$script:packageName'
-                        ProductId = '$script:packageId'
+                        Path = $script:msiLocation
+                        Ensure = 'Present'
+                        Name = $script:packageName
+                        ProductId = $script:packageId
                     }
                 }
 "@

@@ -1,0 +1,22 @@
+[ClassVersion("1.0.0"),FriendlyName("xMsiPackage")] 
+class MSFT_xMsiPackage : OMI_BaseResource
+{
+  [Key] String ProductId;
+  [Required] String Path;
+  [Write, ValueMap{"Present", "Absent"}, Values{"Present", "Absent"}] String Ensure;
+  [Write] String Arguments;
+  [Write, EmbeddedInstance("MSFT_Credential")] String Credential;
+  [Write] String LogPath;
+  [Write] String FileHash;
+  [Write, ValueMap{"SHA1","SHA256","SHA384","SHA512","MD5","RIPEMD160"}, Values{"SHA1","SHA256","SHA384","SHA512","MD5","RIPEMD160"}] String HashAlgorithm;
+  [Write] String SignerSubject;
+  [Write] String SignerThumbprint;
+  [Write] String ServerCertificateValidationCallback;
+  [Write, EmbeddedInstance("MSFT_Credential")] String RunAsCredential;
+  [Read] String PackageDescription;
+  [Read] String Publisher;
+  [Read] String InstalledOn;
+  [Read] UInt32 Size;
+  [Read] String Version;
+  [Read] Boolean Installed;
+};

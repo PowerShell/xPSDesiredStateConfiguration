@@ -1,4 +1,4 @@
-# Suppress Global Vars PSSA Error because $global:DSCMachineStatus must be allowed
+﻿# Suppress Global Vars PSSA Error because $global:DSCMachineStatus must be allowed
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', '')]
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
 param()
@@ -11,10 +11,14 @@ $script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
 Import-Module -Name $script:commonResourceHelperFilePath
 
-# Localized messages for verbose and error statements in this resource
-$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xPackageResource'
+# Import PackageHelper
+$script:packageHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'PackageHelper.psm1'
+Import-Module -Name $script:packageHelperFilePath
 
-$script:packageCacheLocation = "$env:programData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xPackageResource"
+# Localized messages for verbose and error statements in this resource
+$script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xMsiPackage'
+
+$script:packageCacheLocation = "$env:programData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xMsiPackage"
 $script:msiTools = $null
 
 function Get-TargetResource
@@ -24,145 +28,86 @@ function Get-TargetResource
     param
     (
         [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [String]
-        $Name,
-
-        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
-        $Path,
-
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
         [String]
         $ProductId,
 
-        [Boolean]
-        $CreateCheckRegValue = $false,
-
-        [ValidateSet('LocalMachine','CurrentUser')]
         [String]
-        $InstalledCheckRegHive = 'LocalMachine',
-
-        [String]
-        $InstalledCheckRegKey,
-
-        [String]
-        $InstalledCheckRegValueName,
-
-        [String]
-        $InstalledCheckRegValueData
+        $Path ### Get rid of Path in Get-TargetResource?
     )
 
-    Assert-PathExtensionValid -Path $Path
-    $uri = Convert-PathToUri -Path $Path
-    $identifyingNumber = [String]::Empty
-
-    if (-not [String]::IsNullOrEmpty($ProductId))
+    if ($PSBoundParameters -contains 'Path')
     {
-        $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
+        Assert-PathExtensionValid -Path $Path
     }
+
+    $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
     $packageResourceResult = @{}
 
-    $getProductEntryParameters = @{
-        Name = $Name
-        IdentifyingNumber = $identifyingNumber
-    }
-
-    $checkRegistryValueParameters = @{
-        CreateCheckRegValue = $CreateCheckRegValue
-        InstalledCheckRegHive = $InstalledCheckRegHive
-        InstalledCheckRegKey = $InstalledCheckRegKey
-        InstalledCheckRegValueName = $InstalledCheckRegValueName
-        InstalledCheckRegValueData = $InstalledCheckRegValueData
-    }
-
-    if ($CreateCheckRegValue)
-    {
-        Assert-RegistryParametersValid -InstalledCheckRegKey $InstalledCheckRegKey -InstalledCheckRegValueName $InstalledCheckRegValueName -InstalledCheckRegValueData $InstalledCheckRegValueData
-
-        $getProductEntryParameters += $checkRegistryValueParameters
-        $packageResourceResult += $checkRegistryValueParameters
-    }
-
-    $productEntry = Get-ProductEntry @getProductEntryParameters
+    $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
     if ($null -eq $productEntry)
     {
-        $packageResourceResult += @{
+        $packageResourceResult = @{
             Ensure = 'Absent'
-            Name = $Name
             ProductId = $identifyingNumber
             Path = $Path
             Installed = $false
         }
-
-        return $packageResourceResult
     }
-    elseif ($CreateCheckRegValue)
+    else
     {
-        $packageResourceResult += @{
+        <#
+            Identifying number can still be null here (e.g. remote MSI with Name specified).
+            If the user gave a product ID just pass it through, otherwise get it from the product.
+        #>
+        if ($null -eq $identifyingNumber -and $null -ne $productEntry.Name)
+        {
+            $identifyingNumber = Split-Path -Path $productEntry.Name -Leaf
+        }
+
+        $installDate = $productEntry.GetValue('InstallDate')
+
+        if ($null -ne $installDate)
+        {
+            try
+            {
+                $installDate = '{0:d}' -f [DateTime]::ParseExact($installDate, 'yyyyMMdd',[System.Globalization.CultureInfo]::CurrentCulture).Date
+            }
+            catch
+            {
+                $installDate = $null
+            }
+        }
+
+        $publisher = $productEntry.GetValue('Publisher')
+
+        $estimatedSize = $productEntry.GetValue('EstimatedSize')
+
+        if ($null -ne $estimatedSize)
+        {
+            $estimatedSize = $estimatedSize / 1024
+        }
+
+        $displayVersion = $productEntry.GetValue('DisplayVersion')
+
+        $comments = $productEntry.GetValue('Comments')
+
+        $displayName = $productEntry.GetValue('DisplayName')
+
+        $packageResourceResult = @{
             Ensure = 'Present'
-            Name = $Name
-            ProductId = $identifyingNumber
+            Name = $displayName
             Path = $Path
+            InstalledOn = $installDate
+            ProductId = $identifyingNumber
+            Size = $estimatedSize
             Installed = $true
+            Version = $displayVersion
+            PackageDescription = $comments
+            Publisher = $publisher
         }
-
-        return $packageResourceResult
-    }
-
-    <#
-        Identifying number can still be null here (e.g. remote MSI with Name specified, local EXE).
-        If the user gave a product ID just pass it through, otherwise get it from the product.
-    #>
-    if ($null -eq $identifyingNumber -and $null -ne $productEntry.Name)
-    {
-        $identifyingNumber = Split-Path -Path $productEntry.Name -Leaf
-    }
-
-    $installDate = $productEntry.GetValue('InstallDate')
-
-    if ($null -ne $installDate)
-    {
-        try
-        {
-            $installDate = '{0:d}' -f [DateTime]::ParseExact($installDate, 'yyyyMMdd',[System.Globalization.CultureInfo]::CurrentCulture).Date
-        }
-        catch
-        {
-            $installDate = $null
-        }
-    }
-
-    $publisher = Get-LocalizedRegistryKeyValue -RegistryKey $productEntry -ValueName 'Publisher'
-
-    $estimatedSize = $productEntry.GetValue('EstimatedSize')
-
-    if ($null -ne $estimatedSize)
-    {
-        $estimatedSize = $estimatedSize / 1024
-    }
-
-    $displayVersion = $productEntry.GetValue('DisplayVersion')
-
-    $comments = $productEntry.GetValue('Comments')
-
-    $displayName = Get-LocalizedRegistryKeyValue -RegistryKey $productEntry -ValueName 'DisplayName'
-
-    $packageResourceResult += @{
-        Ensure = 'Present'
-        Name = $displayName
-        Path = $Path
-        InstalledOn = $installDate
-        ProductId = $identifyingNumber
-        Size = $estimatedSize
-        Installed = $true
-        Version = $displayVersion
-        PackageDescription = $comments
-        Publisher = $publisher
     }
 
     return $packageResourceResult
@@ -173,24 +118,19 @@ function Set-TargetResource
     [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
-        [ValidateSet('Present', 'Absent')]
-        [String]
-        $Ensure = 'Present',
-
         [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
+        [ValidateNotNullOrEmpty()]
         [String]
-        $Name,
+        $ProductId,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $Path,
 
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
+        [ValidateSet('Present', 'Absent')]
         [String]
-        $ProductId,
+        $Ensure = 'Present',
 
         [String]
         $Arguments,
@@ -198,11 +138,6 @@ function Set-TargetResource
         [PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
-
-        # Return codes 1641 and 3010 indicate success when a restart is requested per installation
-        [ValidateNotNullOrEmpty()]
-        [UInt32[]]
-        $ReturnCode = @( 0, 1641, 3010 ),
 
         [String]
         $LogPath,
@@ -223,28 +158,10 @@ function Set-TargetResource
         [String]
         $ServerCertificateValidationCallback,
 
-        [Boolean]
-        $CreateCheckRegValue = $false,
-
-        [ValidateSet('LocalMachine','CurrentUser')]
-        [String]
-        $InstalledCheckRegHive = 'LocalMachine',
-
-        [String]
-        $InstalledCheckRegKey,
-
-        [String]
-        $InstalledCheckRegValueName,
-
-        [String]
-        $InstalledCheckRegValueData,
-
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.CredentialAttribute()]
         $RunAsCredential
     )
-
-    $ErrorActionPreference = 'Stop'
 
     if (Test-TargetResource @PSBoundParameters)
     {
@@ -254,16 +171,9 @@ function Set-TargetResource
     Assert-PathExtensionValid -Path $Path
     $uri = Convert-PathToUri -Path $Path
 
-    if (-not [String]::IsNullOrEmpty($ProductId))
-    {
-        $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
-    }
-    else
-    {
-        $identifyingNumber = $ProductId
-    }
+    $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
-    $productEntry = Get-ProductEntry -Name $Name -IdentifyingNumber $identifyingNumber
+    $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
     <#
         Path gets overwritten in the download code path. Retain the user's original Path in case
@@ -280,31 +190,23 @@ function Set-TargetResource
 
     try
     {
-        $fileExtension = [System.IO.Path]::GetExtension($Path).ToLower()
         if (-not [String]::IsNullOrEmpty($LogPath))
         {
             try
             {
-                if ($fileExtension -eq '.msi')
+                <#
+                    We want to pre-verify the log path exists and is writable ahead of time
+                    even in the MSI case, as detecting WHY the MSI log path doesn't exist would
+                    be rather problematic for the user.
+                #>
+                if ((Test-Path -Path $LogPath) -and $PSCmdlet.ShouldProcess($script:localizedData.RemoveExistingLogFile, $null, $null))
                 {
-                    <#
-                        We want to pre-verify the log path exists and is writable ahead of time
-                        even in the MSI case, as detecting WHY the MSI log path doesn't exist would
-                        be rather problematic for the user.
-                    #>
-                    if ((Test-Path -Path $LogPath) -and $PSCmdlet.ShouldProcess($script:localizedData.RemoveExistingLogFile, $null, $null))
-                    {
-                        Remove-Item -Path $LogPath
-                    }
-
-                    if ($PSCmdlet.ShouldProcess($script:localizedData.CreateLogFile, $null, $null))
-                    {
-                        New-Item -Path $LogPath -Type 'File' | Out-Null
-                    }
+                    Remove-Item -Path $LogPath
                 }
-                elseif ($PSCmdlet.ShouldProcess($script:localizedData.CreateLogFile, $null, $null))
+
+                if ($PSCmdlet.ShouldProcess($script:localizedData.CreateLogFile, $null, $null))
                 {
-                    $logStream = New-Object -TypeName 'System.IO.StreamWriter' -ArgumentList @( $LogPath, $false )
+                    New-Item -Path $LogPath -Type 'File' | Out-Null
                 }
             }
             catch
@@ -314,9 +216,9 @@ function Set-TargetResource
         }
 
         # Download or mount file as necessary
-        if (-not ($fileExtension -eq '.msi' -and $Ensure -eq 'Absent'))
+        if ($Ensure -eq 'Present')
         {
-            if ($uri.IsUnc -and $PSCmdlet.ShouldProcess($script:localizedData.MountSharePath, $null, $null))
+            if ($uri.IsUnc)
             {
                 $psDriveArgs = @{
                     Name = [Guid]::NewGuid()
@@ -333,7 +235,7 @@ function Set-TargetResource
                 $psDrive = New-PSDrive @psDriveArgs
                 $Path = Join-Path -Path $psDrive.Root -ChildPath (Split-Path -Path $uri.LocalPath -Leaf)
             }
-            elseif (@( 'http', 'https' ) -contains $uri.Scheme -and $Ensure -eq 'Present' -and $PSCmdlet.ShouldProcess($script:localizedData.DownloadHTTPFile, $null, $null))
+            elseif (@( 'http', 'https' ) -contains $uri.Scheme)
             {
                 $uriScheme = $uri.Scheme
                 $outStream = $null
@@ -443,155 +345,82 @@ function Set-TargetResource
         # Concept only, will never touch disk
         $errorLogPath = $LogPath + '.err'
 
-        if ($fileExtension -eq '.msi')
+        $startInfo.FileName = "$env:winDir\system32\msiexec.exe"
+
+        if ($Ensure -eq 'Present')
         {
-            $startInfo.FileName = "$env:winDir\system32\msiexec.exe"
+            # Check if the MSI package specifies the ProductCode
+            $productCode = Get-MsiProductCode -Path $Path
 
-            if ($Ensure -eq 'Present')
+            if ((-not [String]::IsNullOrEmpty($identifyingNumber)) -and ($identifyingNumber -ne $productCode))
             {
-                # Check if the MSI package specifies the ProductName and Code
-                $productName = Get-MsiProductName -Path $Path
-                $productCode = Get-MsiProductCode -Path $Path
-
-                if ((-not [String]::IsNullOrEmpty($Name)) -and ($productName -ne $Name))
-                {
-                    New-InvalidArgumentException -ArgumentName 'Name' -Message ($script:localizedData.InvalidNameOrId -f $Name, $identifyingNumber, $productName, $productCode)
-                }
-
-                if ((-not [String]::IsNullOrEmpty($identifyingNumber)) -and ($identifyingNumber -ne $productCode))
-                {
-                    New-InvalidArgumentException -ArgumentName 'ProductId' -Message ($script:localizedData.InvalidNameOrId -f $Name, $identifyingNumber, $productName, $productCode)
-                }
-
-                $startInfo.Arguments = '/i "{0}"' -f $Path
-            }
-            else
-            {
-                $productEntry = Get-ProductEntry -Name $Name -IdentifyingNumber $identifyingNumber
-
-                # We may have used the Name earlier, now we need the actual ID
-                $id = Split-Path -Path $productEntry.Name -Leaf
-                $startInfo.Arguments = '/x{0}' -f $id
+                New-InvalidArgumentException -ArgumentName 'ProductId' -Message ($script:localizedData.InvalidId -f $identifyingNumber, $productCode)
             }
 
-            if ($LogPath)
-            {
-                $startInfo.Arguments += ' /log "{0}"' -f $LogPath
-            }
-
-            $startInfo.Arguments += ' /quiet /norestart'
-
-            if ($Arguments)
-            {
-                # Append any specified arguments with a space (#195)
-                $startInfo.Arguments += ' {0}' -f $Arguments
-            }
+            $startInfo.Arguments = '/i "{0}"' -f $Path
         }
         else
         {
-            # EXE
-            Write-Verbose -Message $script:localizedData.TheBinaryIsAnExe
+            $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
-            if ($Ensure -eq 'Present')
-            {
-                $startInfo.FileName = $Path
-                $startInfo.Arguments = $Arguments
+            # We may have used the Name earlier, now we need the actual ID
+            $id = Split-Path -Path $productEntry.Name -Leaf
+            $startInfo.Arguments = '/x{0}' -f $id
+        }
 
-                if ($LogPath)
-                {
-                    Write-Verbose -Message ($script:localizedData.UserHasRequestedLoggingNeedToAttachEventHandlersToTheProcess)
-                    $startInfo.RedirectStandardError = $true
-                    $startInfo.RedirectStandardOutput = $true
+        if ($LogPath)
+        {
+            $startInfo.Arguments += ' /log "{0}"' -f $LogPath
+        }
 
-                    Register-ObjectEvent -InputObject $process -EventName 'OutputDataReceived' -SourceIdentifier $LogPath
-                    Register-ObjectEvent -InputObject $process -EventName 'ErrorDataReceived' -SourceIdentifier $errorLogPath
-                }
-            }
-            else
-            {
-                # Absent case
-                $startInfo.FileName = "$env:winDir\system32\msiexec.exe"
+        $startInfo.Arguments += ' /quiet /norestart'
 
-                # We may have used the Name earlier, now we need the actual ID
-                if ($null -eq $productEntry -or $null -eq $productEntry.Name)
-                {
-                    $id = $Path
-                }
-                else
-                {
-                    $id = Split-Path -Path $productEntry.Name -Leaf
-                }
-
-                $startInfo.Arguments = "/x $id /quiet /norestart"
-
-                if ($LogPath)
-                {
-                    $startInfo.Arguments += ' /log "{0}"' -f $LogPath
-                }
-
-                if ($Arguments)
-                {
-                    # Append the specified arguments with a space (#195)
-                    $startInfo.Arguments += ' {0}' -f $Arguments
-                }
-            }
+        if ($Arguments)
+        {
+            # Append any specified arguments with a space (#195)
+            $startInfo.Arguments += ' {0}' -f $Arguments
         }
 
         Write-Verbose -Message ($script:localizedData.StartingWithStartInfoFileNameStartInfoArguments -f $startInfo.FileName, $startInfo.Arguments)
 
-        if ($PSCmdlet.ShouldProcess(($script:localizedData.StartingProcessMessage -f $startInfo.FileName, $startInfo.Arguments), $null, $null))
+        $exitCode = 0
+
+        try
         {
-            try
+            if($PSBoundParameters.ContainsKey('RunAsCredential'))
             {
-                [int] $exitCode = 0
-                if($PSBoundParameters.ContainsKey('RunAsCredential'))
-                {
-                    $commandLine = '"{0}" {1}' -f $startInfo.FileName, $startInfo.Arguments
-                    $exitCode = Invoke-PInvoke -CommandLine $commandLine -Credential $RunAsCredential
-                }
-                else
-                {
-                   $process = Invoke-Process -Process $process -LogStream ($null -ne $logStream)
-                   $exitCode = $process.ExitCode
-                }
+                $commandLine = '"{0}" {1}' -f $startInfo.FileName, $startInfo.Arguments
+                $exitCode = Invoke-PInvoke -CommandLine $commandLine -RunAsCredential $RunAsCredential
             }
-            catch
+            else
             {
-                New-InvalidOperationException -Message ($script:localizedData.CouldNotStartProcess -f $Path) -ErrorRecord $_
+               $process = Invoke-Process -Process $process -LogStream ($null -ne $logStream)
+               $exitCode = $process.ExitCode
             }
+        }
+        catch
+        {
+            New-InvalidOperationException -Message ($script:localizedData.CouldNotStartProcess -f $Path) -ErrorRecord $_
+        }
 
-            if ($logStream)
+        if ($logStream)
+        {
+            #We have to re-mux these since they appear to us as different streams
+            #The underlying Win32 APIs prevent this problem, as would constructing a script
+            #on the fly and executing it, but the former is highly problematic from PowerShell
+            #and the latter doesn't let us get the return code for UI-based EXEs
+            $outputEvents = Get-Event -SourceIdentifier $LogPath
+            $errorEvents = Get-Event -SourceIdentifier $errorLogPath
+            $masterEvents = @() + $outputEvents + $errorEvents
+            $masterEvents = $masterEvents | Sort-Object -Property TimeGenerated
+
+            foreach($event in $masterEvents)
             {
-                #We have to re-mux these since they appear to us as different streams
-                #The underlying Win32 APIs prevent this problem, as would constructing a script
-                #on the fly and executing it, but the former is highly problematic from PowerShell
-                #and the latter doesn't let us get the return code for UI-based EXEs
-                $outputEvents = Get-Event -SourceIdentifier $LogPath
-                $errorEvents = Get-Event -SourceIdentifier $errorLogPath
-                $masterEvents = @() + $outputEvents + $errorEvents
-                $masterEvents = $masterEvents | Sort-Object -Property TimeGenerated
-
-                foreach($event in $masterEvents)
-                {
-                    $logStream.Write($event.SourceEventArgs.Data);
-                }
-
-                Remove-Event -SourceIdentifier $LogPath
-                Remove-Event -SourceIdentifier $errorLogPath
+                $logStream.Write($event.SourceEventArgs.Data);
             }
 
-            if (-not ($ReturnCode -contains $exitCode))
-            {
-                # Some .exe files do not support uninstall
-                if ($Ensure -eq 'Absent' -and $fileExtension -eq '.exe' -and $exitCode -eq '1620')
-                {
-                    Write-Warning -Message ($script:localizedData.ExeCouldNotBeUninstalled -f $Path)
-                }
-                else
-                {
-                    New-InvalidOperationException ($script:localizedData.UnexpectedReturnCode -f $exitCode.ToString())
-                }
-            }
+            Remove-Event -SourceIdentifier $LogPath
+            Remove-Event -SourceIdentifier $errorLogPath
         }
     }
     finally
@@ -607,7 +436,7 @@ function Set-TargetResource
         }
     }
 
-    if ($downloadedFileName -and $PSCmdlet.ShouldProcess($script:localizedData.RemoveDownloadedFile, $null, $null))
+    if ($downloadedFileName)
     {
         <#
             This is deliberately not in the finally block because we want to leave the downloaded
@@ -617,24 +446,10 @@ function Set-TargetResource
     }
 
     $operationMessageString = $script:localizedData.PackageUninstalled
+
     if ($Ensure -eq 'Present')
     {
         $operationMessageString = $script:localizedData.PackageInstalled
-    }
-
-    if ($CreateCheckRegValue)
-    {
-        $registryValueString = '{0}\{1}\{2}' -f $InstalledCheckRegHive, $InstalledCheckRegKey, $InstalledCheckRegValueName
-        if ($Ensure -eq 'Present')
-        {
-            Write-Verbose -Message ($script:localizedData.CreatingRegistryValue -f $registryValueString)
-            Set-RegistryValue -RegistryHive $InstalledCheckRegHive -Key $InstalledCheckRegKey -Value $InstalledCheckRegValueName -Data $InstalledCheckRegValueData
-        }
-        else
-        {
-            Write-Verbose ($script:localizedData.RemovingRegistryValue -f $registryValueString)
-            Remove-RegistryValue -RegistryHive $InstalledCheckRegHive -Key $InstalledCheckRegKey -Value $InstalledCheckRegValueName
-        }
     }
 
     <#
@@ -642,7 +457,12 @@ function Set-TargetResource
         missing on some client SKUs (worked on both Server and Client Skus in Windows 10).
     #>
 
-    $serverFeatureData = Invoke-CimMethod -Name 'GetServerFeature' -Namespace 'root\microsoft\windows\servermanager' -Class 'MSFT_ServerManagerTasks' -Arguments @{ BatchSize = 256 } -ErrorAction 'Ignore'
+    $serverFeatureData = Invoke-CimMethod -Name 'GetServerFeature' `
+                                          -Namespace 'root\microsoft\windows\servermanager' `
+                                          -Class 'MSFT_ServerManagerTasks' `
+                                          -Arguments @{ BatchSize = 256 } `
+                                          -ErrorAction 'Ignore'
+
     $registryData = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name 'PendingFileRenameOperations' -ErrorAction 'Ignore'
 
     if (($serverFeatureData -and $serverFeatureData.RequiresReboot) -or $registryData -or $exitcode -eq 3010 -or $exitcode -eq 1641)
@@ -652,25 +472,7 @@ function Set-TargetResource
     }
     elseif ($Ensure -eq 'Present')
     {
-        $getProductEntryParameters = @{
-            Name = $Name
-            IdentifyingNumber = $identifyingNumber
-        }
-
-        $checkRegistryValueParameters = @{
-            CreateCheckRegValue = $CreateCheckRegValue
-            InstalledCheckRegHive = $InstalledCheckRegHive
-            InstalledCheckRegKey = $InstalledCheckRegKey
-            InstalledCheckRegValueName = $InstalledCheckRegValueName
-            InstalledCheckRegValueData = $InstalledCheckRegValueData
-        }
-
-        if ($CreateCheckRegValue)
-        {
-            $getProductEntryParameters += $checkRegistryValueParameters
-        }
-
-        $productEntry = Get-ProductEntry @getProductEntryParameters
+        $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
         if ($null -eq $productEntry)
         {
@@ -688,24 +490,19 @@ function Test-TargetResource
     [CmdletBinding()]
     param
     (
-        [ValidateSet('Present', 'Absent')]
-        [String]
-        $Ensure = 'Present',
-
         [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
+        [ValidateNotNullOrEmpty()]
         [String]
-        $Name,
+        $ProductId,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $Path,
 
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
+        [ValidateSet('Present', 'Absent')]
         [String]
-        $ProductId,
+        $Ensure = 'Present',
 
         [String]
         $Arguments,
@@ -713,11 +510,6 @@ function Test-TargetResource
         [PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
-
-        # Return codes 1641 and 3010 indicate success when a restart is requested per installation
-        [ValidateNotNullOrEmpty()]
-        [UInt32[]]
-        $ReturnCode = @( 0, 1641, 3010 ),
 
         [String]
         $LogPath,
@@ -738,103 +530,38 @@ function Test-TargetResource
         [String]
         $ServerCertificateValidationCallback,
 
-        [Boolean]
-        $CreateCheckRegValue = $false,
-
-        [ValidateSet('LocalMachine','CurrentUser')]
-        [String]
-        $InstalledCheckRegHive = 'LocalMachine',
-
-        [String]
-        $InstalledCheckRegKey,
-
-        [String]
-        $InstalledCheckRegValueName,
-
-        [String]
-        $InstalledCheckRegValueData,
-
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.CredentialAttribute()]
         $RunAsCredential
     )
 
     Assert-PathExtensionValid -Path $Path
     $uri = Convert-PathToUri -Path $Path
-    $identifyingNumber = $null
 
-    if (-not [String]::IsNullOrEmpty($ProductId))
-    {
-        $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
-    }
+    $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
-    $getProductEntryParameters = @{
-        Name = $Name
-        IdentifyingNumber = $identifyingNumber
-    }
-
-    $checkRegistryValueParameters = @{
-        CreateCheckRegValue = $CreateCheckRegValue
-        InstalledCheckRegHive = $InstalledCheckRegHive
-        InstalledCheckRegKey = $InstalledCheckRegKey
-        InstalledCheckRegValueName = $InstalledCheckRegValueName
-        InstalledCheckRegValueData = $InstalledCheckRegValueData
-    }
-
-    if ($CreateCheckRegValue)
-    {
-        Assert-RegistryParametersValid -InstalledCheckRegKey $InstalledCheckRegKey -InstalledCheckRegValueName $InstalledCheckRegValueName -InstalledCheckRegValueData $InstalledCheckRegValueData
-        $getProductEntryParameters += $checkRegistryValueParameters
-    }
-
-    $productEntry = Get-ProductEntry @getProductEntryParameters
+    $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
     Write-Verbose -Message ($script:localizedData.EnsureIsEnsure -f $Ensure)
 
-    if ($null -eq $productEntry)
+    if ($null -ne $productEntry)
     {
-        Write-Verbose -Message ($script:localizedData.ProductIsProduct -f $productEntry)
+        $displayName = $productEntry.GetValue('DisplayName')
+        Write-Verbose -Message ($script:localizedData.PackageAppearsInstalled -f $displayName)
     }
     else
     {
-        Write-Verbose -Message 'Product installation cannot be determined'
+        Write-Verbose -Message ($script:localizedData.PackageDoesNotAppearInstalled -f $ProductId)
     }
 
     Write-Verbose -Message ($script:localizedData.ProductAsBooleanIs -f [Boolean]$productEntry)
 
-    if ($null -ne $productEntry)
-    {
-        if ($CreateCheckRegValue)
-        {
-            Write-Verbose -Message ($script:localizedData.PackageAppearsInstalled -f $Name)
-        }
-        else
-        {
-            $displayName = Get-LocalizedRegistryKeyValue -RegistryKey $productEntry -ValueName 'DisplayName'
-            Write-Verbose -Message ($script:localizedData.PackageAppearsInstalled -f $displayName)
-        }
-    }
-    else
-    {
-        $displayName = $null
-
-        if (-not [String]::IsNullOrEmpty($Name))
-        {
-            $displayName = $Name
-        }
-        else
-        {
-            $displayName = $ProductId
-        }
-
-        Write-Verbose -Message ($script:localizedData.PackageDoesNotAppearInstalled -f $displayName)
-    }
-
-    return ($null -ne $productEntry -and $Ensure -eq 'Present') -or ($null -eq $productEntry -and $Ensure -eq 'Absent')
+    return (($null -ne $productEntry -and $Ensure -eq 'Present') -or ($null -eq $productEntry -and $Ensure -eq 'Absent'))
 }
 
 <#
     .SYNOPSIS
-        Asserts that the path extension is valid - either .msi or .exe.
+        Asserts that the path extension is '.msi'
 
     .PARAMETER Path
         The path to validate the extension of.
@@ -853,9 +580,7 @@ function Assert-PathExtensionValid
     $pathExtension = [System.IO.Path]::GetExtension($Path)
     Write-Verbose -Message ($script:localizedData.ThePathExtensionWasPathExt -f $pathExtension)
 
-    $validPathExtensions = @( '.msi', '.exe' )
-
-    if ($validPathExtensions -notcontains $pathExtension.ToLower())
+    if ($pathExtension.ToLower() -ne '.msi')
     {
         New-InvalidArgumentException -ArgumentName 'Path' -Message ($script:localizedData.InvalidBinaryType -f $Path)
     }
@@ -934,100 +659,22 @@ function Convert-ProductIdToIdentifyingNumber
     }
 }
 
-<#
-    .SYNOPSIS
-        Asserts that the InstalledCheckRegKey, InstalledCheckRegValueName, and
-        InstalledCheckRegValueData parameter required for retrieving package installation status
-        from a registry are not null or empty.
-
-    .PARAMETER InstalledCheckRegKey
-        The InstalledCheckRegKey parameter to check.
-
-    .PARAMETER InstalledCheckRegValueName
-        The InstalledCheckRegValueName parameter to check.
-
-    .PARAMETER InstalledCheckRegValueData
-        The InstalledCheckRegValueData parameter to check.
-
-    .NOTES
-        This could be done with parameter validation.
-        It is implemented this way to provide a clearer error message.
-#>
-function Assert-RegistryParametersValid
-{
-    [CmdletBinding()]
-    param
-    (
-        [String]
-        $InstalledCheckRegKey,
-
-        [String]
-        $InstalledCheckRegValueName,
-
-        [String]
-        $InstalledCheckRegValueData
-    )
-
-    foreach ($parameter in $PSBoundParameters.Keys)
-    {
-        if ([String]::IsNullOrEmpty($PSBoundParameters[$parameter]))
-        {
-            New-InvalidArgumentException -ArgumentName $parameter -Message ($script:localizedData.ProvideParameterForRegistryCheck -f $parameter)
-        }
-    }
-}
 
 <#
     .SYNOPSIS
-        Retrieves the product entry for the package with the given name and/or identifying number.
-
-    .PARAMETER Name
-        The name of the product entry to retrieve.
-
-    .PARAMETER CreateCheckRegValue
-        Indicates whether or not to retrieve the package installation status from a registry.
+        Retrieves the product entry for the package with the given identifying number.
 
     .PARAMETER IdentifyingNumber
         The identifying number of the product entry to retrieve.
-
-    .PARAMETER InstalledCheckRegHive
-        The registry hive to check for package installation status.
-
-    .PARAMETER InstalledCheckRegKey
-        The registry key to open to check for package installation status.
-
-    .PARAMETER InstalledCheckRegValueName
-        The registry value name to check for package installation status.
-
-    .PARAMETER InstalledCheckRegValueData
-        The value to compare against the retrieved registry value to check for package installation.
 #>
 function Get-ProductEntry
 {
     [CmdletBinding()]
     param
     (
+        [Parameter(Mandatory = $true)]
         [String]
-        $Name,
-
-        [String]
-        $IdentifyingNumber,
-
-        [Switch]
-        $CreateCheckRegValue,
-
-        [ValidateSet('LocalMachine', 'CurrentUser')]
-        [String]
-        $InstalledCheckRegHive = 'LocalMachine',
-
-        [String]
-        $InstalledCheckRegKey,
-
-        [String]
-        $InstalledCheckRegValueName,
-
-        [String]
-        $InstalledCheckRegValueData
+        $IdentifyingNumber
     )
 
     $uninstallRegistryKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
@@ -1046,143 +693,8 @@ function Get-ProductEntry
             $productEntry = Get-Item $productEntryKeyLocation -ErrorAction 'SilentlyContinue'
         }
     }
-    else
-    {
-        foreach ($registryKeyEntry in (Get-ChildItem -Path @( $uninstallRegistryKey, $uninstallRegistryKeyWow64) -ErrorAction 'Ignore' ))
-        {
-            if ($Name -eq (Get-LocalizedRegistryKeyValue -RegistryKey $registryKeyEntry -ValueName 'DisplayName'))
-            {
-                $productEntry = $registryKeyEntry
-                break
-            }
-        }
-    }
-
-    if ($null -eq $productEntry)
-    {
-        if ($CreateCheckRegValue)
-        {
-            $installValue = $null
-
-            $win32OperatingSystem = Get-CimInstance -ClassName 'Win32_OperatingSystem' -ErrorAction 'SilentlyContinue'
-
-            # If 64-bit OS, check 64-bit registry view first
-            if ($win32OperatingSystem.OSArchitecture -ieq '64-bit')
-            {
-                $installValue = Get-RegistryValueWithErrorsIgnored -Key $InstalledCheckRegKey -Value $InstalledCheckRegValueName -RegistryHive $InstalledCheckRegHive -RegistryView 'Registry64'
-            }
-
-            if ($null -eq $installValue)
-            {
-                $installValue = Get-RegistryValueWithErrorsIgnored -Key $InstalledCheckRegKey -Value $InstalledCheckRegValueName -RegistryHive $InstalledCheckRegHive -RegistryView 'Registry32'
-            }
-
-            if ($null -ne $installValue)
-            {
-                if ($InstalledCheckRegValueData -and $installValue -eq $InstalledCheckRegValueData)
-                {
-                    $productEntry = @{
-                        Installed = $true
-                    }
-                }
-            }
-        }
-    }
 
     return $productEntry
-}
-
-<#
-    .SYNOPSIS
-        Retrieves a value from a registry without throwing errors.
-
-    .PARAMETER Key
-        The key of the registry to get the value from.
-
-    .PARAMETER Value
-        The name of the value to retrieve.
-
-    .PARAMETER RegistryHive
-        The registry hive to retrieve the value from.
-
-    .PARAMETER RegistyView
-        The registry view to retrieve the value from.
-#>
-function Get-RegistryValueWithErrorsIgnored
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [String]
-        $Key,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $Value,
-
-        [Parameter(Mandatory = $true)]
-        [Microsoft.Win32.RegistryHive]
-        $RegistryHive,
-
-        [Parameter(Mandatory = $true)]
-        [Microsoft.Win32.RegistryView]
-        $RegistryView
-    )
-
-    $registryValue = $null
-
-    try
-    {
-        $baseRegistryKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey($RegistryHive, $RegistryView)
-        $subRegistryKey =  $baseRegistryKey.OpenSubKey($Key)
-
-        if ($null -ne $subRegistryKey)
-        {
-            $registryValue = $subRegistryKey.GetValue($Value)
-        }
-    }
-    catch
-    {
-        $exceptionText = ($_ | Out-String).Trim()
-        Write-Verbose -Message "An exception occured while attempting to retrieve a registry value: $exceptionText"
-    }
-
-    return $registryValue
-}
-
-<#
-    .SYNOPSIS
-        Retrieves a localized registry key value.
-
-    .PARAMETER RegistryKey
-        The registry key to retrieve the value from.
-
-    .PARAMETER ValueName
-        The name of the value to retrieve.
-#>
-function Get-LocalizedRegistryKeyValue
-{
-    [CmdletBinding()]
-    param
-    (
-        [Object]
-        $RegistryKey,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $ValueName
-    )
-
-    $localizedRegistryKeyValue = $RegistryKey.GetValue('{0}_Localized' -f $ValueName)
-
-    if ($null -eq $localizedRegistryKeyValue)
-    {
-        $localizedRegistryKeyValue = $RegistryKey.GetValue($ValueName)
-    }
-
-    return $localizedRegistryKeyValue
 }
 
 <#
@@ -1259,7 +771,7 @@ function Assert-FileHashValid
         [String]
         $Path,
 
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [String]
         $Hash,
 
@@ -1471,7 +983,7 @@ function Get-MsiTool
     .PARAMETER CommandLine
         The command line (including arguments) of the process to start.
 
-    .PARAMETER Credential
+    .PARAMETER RunAsCredential
         The user credential to start the process as.
 #>
 function Invoke-PInvoke
@@ -1484,10 +996,10 @@ function Invoke-PInvoke
         [String]
         $CommandLine,
 
-        [Parameter(Mandatory)]
-        [PSCredential]
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.PSCredential]
         [System.Management.Automation.CredentialAttribute()]
-        $Credential
+        $RunAsCredential
     )
 
     Register-PInvoke
@@ -1540,112 +1052,6 @@ function Invoke-Process
 
     $Process.WaitForExit()
     return $Process
-}
-
-<#
-    .SYNOPSIS
-        Sets the value of a registry key to the specified data.
-
-    .PARAMETER Key
-        The registry key that contains the value to set.
-
-    .PARAMETER Value
-        The value name of the registry key value to set.
-
-    .PARAMETER RegistryHive
-        The registry hive that contains the registry key to set.
-
-    .PARAMETER Data
-        The data to set the registry key value to.
-#>
-function Set-RegistryValue
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [String]
-        $Key,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $Value,
-
-        [Parameter(Mandatory = $true)]
-        [Microsoft.Win32.RegistryHive]
-        $RegistryHive,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Data
-    )
-
-    try
-    {
-        $baseRegistryKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey($RegistryHive, [Microsoft.Win32.RegistryView]::Default)
-
-        # Opens the subkey with write access
-        $subRegistryKey = $baseRegistryKey.OpenSubKey($Key, $true)
-
-        if ($null -eq $subRegistryKey)
-        {
-            Write-Verbose "Key: '$Key'"
-            $subRegistryKey = $baseRegistryKey.CreateSubKey($Key)
-        }
-
-        $subRegistryKey.SetValue($Value, $Data)
-        $subRegistryKey.Close()
-    }
-    catch
-    {
-        New-InvalidOperationException -Message ($script:localizedData.ErrorSettingRegistryValue -f $Key, $Value, $Data) -ErrorRecord $_
-    }
-}
-
-<#
-    .SYNOPSIS
-        Removes the specified value of a registry key.
-
-    .PARAMETER Key
-        The registry key that contains the value to remove.
-
-    .PARAMETER Value
-        The value name of the registry key value to remove.
-
-    .PARAMETER RegistryHive
-        The registry hive that contains the registry key to remove.
-#>
-function Remove-RegistryValue
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [String]
-        $Key,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $Value,
-
-        [Parameter(Mandatory = $true)]
-        [Microsoft.Win32.RegistryHive]
-        $RegistryHive
-    )
-
-    try
-    {
-        $baseRegistryKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey($RegistryHive, [Microsoft.Win32.RegistryView]::Default)
-
-        $subRegistryKey =  $baseRegistryKey.OpenSubKey($Key, $true)
-        $subRegistryKey.DeleteValue($Value)
-        $subRegistryKey.Close()
-    }
-    catch
-    {
-        New-InvalidOperationException -Message ($script:localizedData.ErrorRemovingRegistryValue -f $Key, $Value) -ErrorRecord $_
-    }
 }
 
 <#

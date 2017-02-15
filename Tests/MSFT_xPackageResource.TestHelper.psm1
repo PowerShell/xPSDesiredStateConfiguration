@@ -49,6 +49,28 @@ function Test-PackageInstalledByName
 
 <#
     .SYNOPSIS
+        Tests if the package with the given Id is installed.
+
+    .PARAMETER ProductId
+        The id of the package to test for.
+#>
+function Test-PackageInstalledById
+{
+    [OutputType([Boolean])]
+    [CmdletBinding()]
+    param
+    (
+        [String]
+        $ProductId
+    )
+
+    $getTargetResourceResult = Get-TargetResource -ProductId $ProductId
+
+    return ($getTargetResourceResult.Installed)
+}
+
+<#
+    .SYNOPSIS
         Mimics a simple http or https file server.
 
     .PARAMETER FilePath
@@ -103,51 +125,62 @@ function New-MockFileServer
         # Start listening endpoints
         $httpListener = New-Object -TypeName 'System.Net.HttpListener'
 
-        if ($Https)
+        try
         {
-            $httpListener.Prefixes.Add([Uri]'https://localhost:1243')
-        }
-        else
-        {
-            $httpListener.Prefixes.Add([Uri]'http://localhost:1242')
-        }
+            if ($Https)
+            {
+                $httpListener.Prefixes.Add([Uri]'https://localhost:1243')
+            }
+            else
+            {
+                $httpListener.Prefixes.Add([Uri]'http://localhost:1242')
+            }
 
-        $httpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate
-        $httpListener.Start()
+            $httpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate
+            $httpListener.Start()
 
-        # Create a pipe to flag http/https client
-        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( '\\.\pipe\dsctest1' )
-        $pipe.Connect()
-        $pipe.Dispose()
+            # Create a pipe to flag http/https client
+            $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( '\\.\pipe\dsctest1' )
+            $pipe.Connect()
+            $pipe.Dispose()
         
-        # Prepare binary buffer for http/https response
-        $fileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $args[0] )
-        $numBytes = $fileInfo.Length
-        $fileStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @(  $args[0], 'Open' )
-        $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
-        [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
-        $fileStream.Close()
+            # Prepare binary buffer for http/https response
+            $fileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $args[0] )
+            $numBytes = $fileInfo.Length
+            $fileStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @(  $args[0], 'Open' )
+            $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
+            [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
+            $fileStream.Close()
 
-        # Send response
-        $response = ($httpListener.GetContext()).Response
-        $response.ContentType = 'application/octet-stream'
-        $response.ContentLength64 = $buf.Length
-        $response.OutputStream.Write($buf, 0, $buf.Length)
-        $response.OutputStream.Flush()
+            # Send response
+            $response = ($httpListener.GetContext()).Response
+            try
+            {
+                $response.ContentType = 'application/octet-stream'
+                $response.ContentLength64 = $buf.Length
+                $response.OutputStream.Write($buf, 0, $buf.Length)
+                $response.OutputStream.Flush()
 
-        # Wait for client to finish downloading
-        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest2' )
-        $pipe.WaitForConnection()
-        $pipe.Dispose()
+                # Wait for client to finish downloading
+                $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest2' )
+                $pipe.WaitForConnection()
+                $pipe.Dispose()
+            }
+            finally
+            {
+                $response.Dispose()
+            }
+        }
+        finally
+        {
+            $httpListener.Stop()
+            $httpListener.Close()
 
-        $response.Dispose()
-        $httpListener.Stop()
-        $httpListener.Close()
-
-        # Close pipe
+            # Close pipe
     
-        # Use net shell command to clean up the certificate binding
-        netsh http delete sslcert ipport=0.0.0.0:1243
+            # Use net shell command to clean up the certificate binding
+            netsh http delete sslcert ipport=0.0.0.0:1243
+        }
     }
 
     netsh advfirewall set allprofiles state on
@@ -792,4 +825,5 @@ Export-ModuleMember -Function `
     Clear-xPackageCache, `
     New-MockFileServer, `
     New-TestExecutable, `
-    Test-PackageInstalledByName
+    Test-PackageInstalledByName, `
+    Test-PackageInstalledById
