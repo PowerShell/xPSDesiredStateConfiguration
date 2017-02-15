@@ -32,14 +32,12 @@ function Get-TargetResource
         [String]
         $ProductId,
 
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [String]
-        $Path ### Get rid of Path in Get-TargetResource?
+        $Path
+        ######## not used in Get-TargetResource
     )
-
-    if ($PSBoundParameters -contains 'Path')
-    {
-        Assert-PathExtensionValid -Path $Path
-    }
 
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
@@ -52,8 +50,6 @@ function Get-TargetResource
         $packageResourceResult = @{
             Ensure = 'Absent'
             ProductId = $identifyingNumber
-            Path = $Path
-            Installed = $false
         }
     }
     else
@@ -96,14 +92,15 @@ function Get-TargetResource
 
         $displayName = $productEntry.GetValue('DisplayName')
 
+        $installSource = $productEntry.GetValue('InstallSource')
+
         $packageResourceResult = @{
             Ensure = 'Present'
             Name = $displayName
-            Path = $Path
+            InstallSource = $installSource
             InstalledOn = $installDate
             ProductId = $identifyingNumber
             Size = $estimatedSize
-            Installed = $true
             Version = $displayVersion
             PackageDescription = $comments
             Publisher = $publisher

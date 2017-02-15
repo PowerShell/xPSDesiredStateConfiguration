@@ -13,10 +13,11 @@ class MSFT_xMsiPackage : OMI_BaseResource
   [Write] String SignerThumbprint;
   [Write] String ServerCertificateValidationCallback;
   [Write, EmbeddedInstance("MSFT_Credential")] String RunAsCredential;
-  [Read] String PackageDescription;
-  [Read] String Publisher;
+  [Read] String Name;
+  [Read] String InstallSource;
   [Read] String InstalledOn;
   [Read] UInt32 Size;
   [Read] String Version;
-  [Read] Boolean Installed;
+  [Read] String PackageDescription;
+  [Read] String Publisher;
 };
