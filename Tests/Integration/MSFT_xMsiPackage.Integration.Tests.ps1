@@ -23,7 +23,7 @@ try
                 Import-Module -Name $msiPackageModuleFilePath -Force
             #>
 
-                $script:skipHttpsTest = $true
+                $script:skipHttpsTest = $false
 
                 $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
 
