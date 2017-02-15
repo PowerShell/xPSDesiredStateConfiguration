@@ -18,6 +18,8 @@ param
     [parameter(Mandatory = $true)]
     [ValidateNotNull()]
     [String] $ProductId,
+ 
+    [boolean] $CreateCheckRegValue = $false,
 
     [parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
@@ -51,12 +53,13 @@ Configuration Sample
     xPackage t1
     {
         Ensure="Present"
-     Name = $Package
+        Name = $Package
         Path = $Source
         Arguments = $Arguments
         RunAsCredential = $RunAsCredential
         Credential = $Credential
         ProductId = $ProductId
+        CreateCheckRegValue = $CreateCheckRegValue
         InstalledCheckRegKey = $InstalledCheckRegKey
         InstalledCheckRegValueName = $InstalledCheckRegValueName
         InstalledCheckRegValueData = $InstalledCheckRegValueData
@@ -75,11 +78,13 @@ $Global:AllNodes=
 
 <# 
 Sample use (parameter values need to be changed according to your scenario):
+The reg key and value is created by xPacakage.
 
 # Create the MOF file using the configuration data
 Sample -OutputPath $OutputPath -ConfigurationData $Global:AllNodes -Package "Package Name" -Source "\\software\installer.exe" `
     -InstalledCheckRegKey "SOFTWARE\Microsoft\DevDiv\winexpress\Servicing\12.0\coremsi" `
     -InstalledCheckRegValueName "Install" -InstalledCheckRegValueData "1" `
+    -CreateCheckRegValue $true
     -Credential $Credential -RunAsCredential $RunAsCredential `
     -Arguments "/q" -ProductId ""
 
