@@ -298,7 +298,7 @@ try
                     $getTargetResourceResult = Get-TargetResource -Path $script:msiLocation -ProductId $script:packageId -Name ([String]::Empty)
 
                     $getTargetResourceResult.Version | Should Be '1.2.3.4'
-                    $getTargetResourceResult.InstalledOn | Should Be ("{0:d}" -f [DateTime]::Now.Date)
+                    $getTargetResourceResult.InstalledOn | Should Be ('{0:d}' -f [DateTime]::Now.Date)
                     $getTargetResourceResult.Installed | Should Be $true
                     $getTargetResourceResult.ProductId | Should Be $script:packageId
                     $getTargetResourceResult.Path | Should Be $script:msiLocation
@@ -409,7 +409,7 @@ try
 
                 It 'Should correctly install and remove a package from a HTTP URL' {
                     $baseUrl = 'http://localhost:1242/'
-                    $msiUrl = "$baseUrl" + "package.msi"
+                    $msiUrl = "$baseUrl" + 'package.msi'
                     New-MockFileServer -FilePath $script:msiLocation
 
                     # Test pipe connection as testing server readiness
@@ -432,7 +432,7 @@ try
 
                 It 'Should correctly install and remove a package from a HTTPS URL' -Skip:$script:skipHttpsTest {
                     $baseUrl = 'https://localhost:1243/'
-                    $msiUrl = "$baseUrl" + "package.msi"
+                    $msiUrl = "$baseUrl" + 'package.msi'
                     New-MockFileServer -FilePath $script:msiLocation -Https
 
                     # Test pipe connection as testing server reasdiness
