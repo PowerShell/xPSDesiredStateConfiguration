@@ -570,6 +570,8 @@ None
 
 ### Unreleased
 
+* Moved DSC pull server setup tests to DSCPullServerSetup folder for new common tests
+
 ### 6.0.0.0
 
 * xEnvironment
@@ -953,4 +955,4 @@ This configuration will install a .exe package and verify the package using the 
 ### Validate pullserver deployement.
 If Sample_xDscWebService.ps1 is used to setup a DSC pull and reporting endpoint, the service endpoint can be validated by performing Invoke-WebRequest -URI http://localhost:8080/PSDSCPullServer.svc/$metadata in PowerShell or http://localhost:8080/PSDSCPullServer.svc/ when using InternetExplorer.
 
-[Pullserver Validation Pester Tests](Examples/PullServerDeploymentVerificationTest)
+[Pullserver Validation Pester Tests](DSCPullServerSetup/PullServerDeploymentVerificationTest)
