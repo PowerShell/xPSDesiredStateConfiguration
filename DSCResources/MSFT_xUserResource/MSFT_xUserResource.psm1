@@ -379,7 +379,15 @@ function Set-TargetResourceOnFullSKU
 
     try
     {
-        $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName)
+        try
+        {
+            $user = [System.DirectoryServices.AccountManagement.UserPrincipal]::FindByIdentity($principalContext, $UserName)
+        }
+        catch
+        {
+             New-InvalidOperationException -Message ($script:localizedData.MultipleMatches + $_)
+        }
+
         if ($Ensure -eq 'Present')
         {
             $whatIfShouldProcess = $true
@@ -511,7 +519,7 @@ function Set-TargetResourceOnFullSKU
     }
     catch
     {
-         New-InvalidOperationException -Message ($script:localizedData.MultipleMatches + $_)
+         New-InvalidOperationException -Message $_
     }
     finally
     {
