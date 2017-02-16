@@ -66,7 +66,7 @@ function Test-PackageInstalledById
 
     $getTargetResourceResult = Get-TargetResource -ProductId $ProductId -Path 'notUsed'
 
-    return ($getTargetResourceResult.Installed)
+    return ($getTargetResourceResult.Ensure -eq 'Present')
 }
 
 <#
