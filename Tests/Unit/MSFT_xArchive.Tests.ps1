@@ -1859,7 +1859,7 @@ Describe 'xArchive Unit Tests' {
                 }
             }
 
-            $expectedPSDrive = 'Test PSDrive'
+            $expectedPSDrive = New-MockObject -Type 'System.Management.Automation.PSDriveInfo'
             Mock -CommandName 'New-PSDrive' -MockWith { return $expectedPSDrive }
 
             Context 'Specified path is not accessible, path contains a backslash but does not end with a backslash, and new PSDrive creation succeeds' {
