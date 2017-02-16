@@ -570,7 +570,11 @@ None
 
 ### Unreleased
 
+
 * Moved DSC pull server setup tests to DSCPullServerSetup folder for new common tests
+
+* xUser
+    * Fixed error handling in xUser
 
 ### 6.0.0.0
 
