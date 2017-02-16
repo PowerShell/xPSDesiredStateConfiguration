@@ -92,7 +92,7 @@ try
                     }
 
                     $getTargetResourceResult = Get-TargetResource @packageParameters
-                    $getTargetResourceResultProperties = @( 'Ensure', 'ProductId', 'Installed' )
+                    $getTargetResourceResultProperties = @( 'Ensure', 'ProductId' )
 
                     Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargetResourceResultProperties
                 }
@@ -109,7 +109,7 @@ try
                     Clear-xPackageCache
 
                     $getTargetResourceResult = Get-TargetResource @packageParameters
-                    $getTargetResourceResultProperties = @( 'Ensure', 'Name', 'ProductId', 'Installed', 'Path', 'InstalledOn', 'Size', 'Version', 'PackageDescription', 'Publisher' )
+                    $getTargetResourceResultProperties = @( 'Ensure', 'Name', 'InstallSource', 'InstalledOn', 'ProductId', 'Size', 'Version', 'PackageDescription', 'Publisher' )
 
                     Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargetResourceResultProperties
                 }
@@ -165,9 +165,7 @@ try
 
                     $getTargetResourceResult.Version | Should Be '1.2.3.4'
                     $getTargetResourceResult.InstalledOn | Should Be ('{0:d}' -f [DateTime]::Now.Date)
-                    $getTargetResourceResult.Installed | Should Be $true
                     $getTargetResourceResult.ProductId | Should Be $script:packageId
-                    $getTargetResourceResult.Path | Should Be $script:msiLocation
 
                     # Can't figure out how to set this within the MSI.
                     # $getTargetResourceResult.PackageDescription | Should Be 'A package for unit testing'

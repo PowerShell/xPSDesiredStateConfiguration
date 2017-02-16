@@ -94,6 +94,8 @@ function Get-TargetResource
 
         $installSource = $productEntry.GetValue('InstallSource')
 
+        Write-Verbose -Message ($script:localizedData.GetTargetResourceFound -f $ProductId)
+
         $packageResourceResult = @{
             Ensure = 'Present'
             Name = $displayName
@@ -495,7 +497,7 @@ function Test-TargetResource
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Path,
+        $Path, # not used in Test-TargetResource
 
         [ValidateSet('Present', 'Absent')]
         [String]
@@ -531,9 +533,6 @@ function Test-TargetResource
         [System.Management.Automation.CredentialAttribute()]
         $RunAsCredential
     )
-
-    Assert-PathExtensionValid -Path $Path
-    $uri = Convert-PathToUri -Path $Path
 
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
