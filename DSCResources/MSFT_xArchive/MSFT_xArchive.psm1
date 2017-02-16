@@ -503,6 +503,30 @@ function New-Guid
 
 <#
     .SYNOPSIS
+        Invokes the cmdlet New-PSDrive with the specified parameters.
+        This is a wrapper function for unit testing due to a bug in Pester.
+        Issue has been filed here: https://github.com/pester/Pester/issues/728
+
+    .PARAMETER Parameters
+        A hashtable of parameters to splat to New-PSDrive.
+#>
+function Invoke-NewPSDrive
+{
+    [OutputType([System.Management.Automation.PSDriveInfo])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [Hashtable]
+        $Parameters
+    )
+
+    return New-PSDrive @Parameters
+}
+
+<#
+    .SYNOPSIS
         Mounts a PSDrive to access the specified path with the permissions granted by the specified
         credential.
 
@@ -570,7 +594,7 @@ function Mount-PSDriveWithCredential
         try
         {
             Write-Verbose -Message ($script:localizedData.CreatingPSDrive -f $pathToPSDriveRoot, $Credential.UserName)
-            $newPSDrive = New-PSDrive @newPSDriveParameters
+            $newPSDrive = Invoke-NewPSDrive -Parameters $newPSDriveParameters
         }
         catch
         {

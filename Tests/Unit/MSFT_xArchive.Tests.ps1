@@ -1808,7 +1808,7 @@ Describe 'xArchive Unit Tests' {
         Describe 'Mount-PSDriveWithCredential' {
             Mock -CommandName 'Test-Path' -MockWith { return $true }
             Mock -CommandName 'New-Guid' -MockWith { return $script:testGuid }
-            Mock -CommandName 'New-PSDrive' -MockWith { throw 'Test error from New-PSDrive' }
+            Mock -CommandName 'Invoke-NewPSDrive' -MockWith { throw 'Test error from New-PSDrive' }
 
             Context 'Specified path is already accessible' {
                 $mountPSDriveWithCredentialParameters = @{
@@ -1834,7 +1834,7 @@ Describe 'xArchive Unit Tests' {
                 }
 
                 It 'Should not attempt to create a new PSDrive' {
-                    Assert-MockCalled -CommandName 'New-PSDrive' -Exactly 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Invoke-NewPSDrive' -Exactly 0 -Scope 'Context'
                 }
 
                 $mountPSDriveWithCredentialResult = Mount-PSDriveWithCredential @mountPSDriveWithCredentialParameters
@@ -1860,7 +1860,7 @@ Describe 'xArchive Unit Tests' {
             }
 
             $expectedPSDrive = New-MockObject -Type 'System.Management.Automation.PSDriveInfo'
-            Mock -CommandName 'New-PSDrive' -MockWith { return $expectedPSDrive }
+            Mock -CommandName 'Invoke-NewPSDrive' -MockWith { return $expectedPSDrive }
 
             Context 'Specified path is not accessible, path contains a backslash but does not end with a backslash, and new PSDrive creation succeeds' {
                 $mountPSDriveWithCredentialParameters = @{
@@ -1889,16 +1889,16 @@ Describe 'xArchive Unit Tests' {
 
                 It 'Should create a new PSDrive' {
                     $newPSDriveParameterFilter = {
-                        $nameParameterCorrect = $Name -eq $script:testGuid
-                        $psProviderParameterCorrect = $PSProvider -eq 'FileSystem'
-                        $rootParameterCorrect = $Root -eq $expectedPSDrivePath
-                        $scopeParameterCorrect = $Scope -eq 'Script'
-                        $credentialParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mountPSDriveWithCredentialParameters.Credential -DifferenceObject $Credential)
+                        $nameParameterCorrect = $Parameters.Name -eq $script:testGuid
+                        $psProviderParameterCorrect = $Parameters.PSProvider -eq 'FileSystem'
+                        $rootParameterCorrect = $Parameters.Root -eq $expectedPSDrivePath
+                        $scopeParameterCorrect = $Parameters.Scope -eq 'Script'
+                        $credentialParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mountPSDriveWithCredentialParameters.Credential -DifferenceObject $Parameters.Credential)
 
                         return $nameParameterCorrect -and $psProviderParameterCorrect -and $rootParameterCorrect -and $scopeParameterCorrect -and $credentialParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'New-PSDrive' -ParameterFilter $newPSDriveParameterFilter -Exactly 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Invoke-NewPSDrive' -ParameterFilter $newPSDriveParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 $mountPSDriveWithCredentialResult = Mount-PSDriveWithCredential @mountPSDriveWithCredentialParameters
@@ -1933,16 +1933,16 @@ Describe 'xArchive Unit Tests' {
 
                 It 'Should create a new PSDrive' {
                     $newPSDriveParameterFilter = {
-                        $nameParameterCorrect = $Name -eq $script:testGuid
-                        $psProviderParameterCorrect = $PSProvider -eq 'FileSystem'
-                        $rootParameterCorrect = $Root -eq $mountPSDriveWithCredentialParameters.Path
-                        $scopeParameterCorrect = $Scope -eq 'Script'
-                        $credentialParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mountPSDriveWithCredentialParameters.Credential -DifferenceObject $Credential)
+                        $nameParameterCorrect = $Parameters.Name -eq $script:testGuid
+                        $psProviderParameterCorrect = $Parameters.PSProvider -eq 'FileSystem'
+                        $rootParameterCorrect = $Parameters.Root -eq $mountPSDriveWithCredentialParameters.Path
+                        $scopeParameterCorrect = $Parameters.Scope -eq 'Script'
+                        $credentialParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mountPSDriveWithCredentialParameters.Credential -DifferenceObject $Parameters.Credential)
 
                         return $nameParameterCorrect -and $psProviderParameterCorrect -and $rootParameterCorrect -and $scopeParameterCorrect -and $credentialParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'New-PSDrive' -ParameterFilter $newPSDriveParameterFilter -Exactly 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Invoke-NewPSDrive' -ParameterFilter $newPSDriveParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 $mountPSDriveWithCredentialResult = Mount-PSDriveWithCredential @mountPSDriveWithCredentialParameters
