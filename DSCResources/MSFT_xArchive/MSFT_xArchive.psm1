@@ -15,14 +15,11 @@ Import-Module -Name $script:commonResourceHelperFilePath
 # Localized messages for verbose and error statements in this resource
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xArchive'
 
+Add-Type -AssemblyName 'System.IO.Compression'
+
 # This resource has not yet been tested on a Nano server.
-if (Test-IsNanoServer)
+if (-not (Test-IsNanoServer))
 {
-    Add-Type -AssemblyName 'System.IO.Compression'
-}
-else
-{
-    Add-Type -AssemblyName 'System.IO.Compression'
     Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
 }
 
@@ -35,7 +32,7 @@ else
             Path: The specified path.
             Destination: The specified destination.
             Ensure: Present if the archive at the specified path is expanded at the specified
-                destination. Absent the archive at the specified path is not expanded at the
+                destination. Absent if the archive at the specified path is not expanded at the
                 specified destination.
 
     .PARAMETER Path
@@ -51,8 +48,6 @@ else
         specified checksum method.
         
         If a file does not match it will be considered not present.
-
-        The default Checksum method is ModifiedDate.
 
         The default value is false.
 
@@ -108,31 +103,66 @@ function Get-TargetResource
         $Credential
     )
 
-    Write-Verbose -Message ($script:localizedData.RetrievingArchiveState -f $Path, $Destination)
+    if ($PSBoundParameters.ContainsKey('Checksum') -and -not $Validate)
+    {
+        $errorMessage = $script:localizedData.ChecksumSpecifiedAndValidateFalse -f $Checksum, $Path, $Destination
+        New-InvalidArgumentException -ArgumentName 'Checksum or Validate' -Message $errorMessage 
+    }
 
     $archiveState = @{
         Path = $Path
         Destination = $Destination
     }
 
-    $testTargetResourceParameters = @{
-        Path = $Path
-        Destination = $Destination
+    # In case an error occurs, we assume that the archive is not expanded at the destination
+    $archiveExpandedAtDestination = $false
+
+    $psDrive = $null
+
+    if ($PSBoundParameters.ContainsKey('Credential'))
+    {
+        $psDrive = Mount-PSDriveWithCredential -Path $Path -Credential $Credential
     }
 
-    $optionalTestTargetResourceParameters = @( 'Validate', 'Checksum', 'Credential' )
-
-    foreach ($optionalTestTargetResourceParameter in $optionalTestTargetResourceParameters)
+    try
     {
-        if ($PSBoundParameters.ContainsKey($optionalTestTargetResourceParameter))
+        Assert-PathExistsAsLeaf -Path $Path
+        Assert-DestinationDoesNotExistAsFile -Destination $Destination
+
+        Write-Verbose -Message ($script:localizedData.RetrievingArchiveState -f $Path, $Destination)
+
+        $testArchiveExistsAtDestinationParameters = @{
+            ArchiveSourcePath = $Path
+            Destination = $Destination
+        }
+
+        if ($Validate)
         {
-            $testTargetResourceParameters[$optionalTestTargetResourceParameter] = $PSBoundParameters.$optionalTestTargetResourceParameter
+            $testArchiveExistsAtDestinationParameters['Checksum'] = $Checksum
+        }
+
+        if (Test-Path -LiteralPath $Destination)
+        {
+            Write-Verbose -Message ($script:localizedData.DestinationExists -f $Destination)
+
+            $archiveExpandedAtDestination = Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters
+        }
+        else
+        {
+            Write-Verbose -Message ($script:localizedData.DestinationDoesNotExist -f $Destination)
+        }
+    }
+    finally
+    {
+        if ($null -ne $psDrive)
+        {
+            Write-Verbose -Message ($script:localizedData.RemovingPSDrive -f $psDrive.Root)
+
+            $null = Remove-PSDrive -Name $psDrive -Force -ErrorAction 'SilentlyContinue'
         }
     }
 
-    $archiveResourceExists = Test-TargetResource @testTargetResourceParameters
-
-    if ($archiveResourceExists)
+    if ($archiveExpandedAtDestination)
     {
         $archiveState['Ensure'] = 'Present'
     }
@@ -177,10 +207,8 @@ function Get-TargetResource
         the resource will throw an error that the file at the desintation cannot be overwritten.
         If the file does not match and Ensure is specified as Present and Force is specified, the
         file at the desintation will be overwritten.
-        If the file does not match and Ensure is specified as Absent, the file at the desintation
+        If the file does not match and Ensure is specified as Absent, the file at the destination
         will not be removed.
-
-        The default Checksum method is ModifiedDate.
 
         The default value is false.
 
@@ -359,8 +387,6 @@ function Set-TargetResource
         
         If a file does not match it will be considered not present.
 
-        The default Checksum method is ModifiedDate.
-
         The default value is false.
 
     .PARAMETER Checksum
@@ -427,62 +453,26 @@ function Test-TargetResource
         $Force = $false
     )
 
-    if ($PSBoundParameters.ContainsKey('Checksum') -and -not $Validate)
-    {
-        $errorMessage = $script:localizedData.ChecksumSpecifiedAndValidateFalse -f $Checksum, $Path, $Destination
-        New-InvalidArgumentException -ArgumentName 'Checksum or Validate' -Message $errorMessage 
+    $getTargetResourceParameters = @{
+        Path = $Path
+        Destination = $Destination
     }
 
-    # In case an error occurs, we assume that the archive is absent
-    $archiveInDesiredState = $Ensure -eq 'Absent'
+    $optionalGetTargetResourceParameters = @( 'Validate', 'Checksum', 'Credential' )
 
-    $psDrive = $null
-
-    if ($PSBoundParameters.ContainsKey('Credential'))
+    foreach ($optionalGetTargetResourceParameter in $optionalGetTargetResourceParameters)
     {
-        $psDrive = Mount-PSDriveWithCredential -Path $Path -Credential $Credential
+        if ($PSBoundParameters.ContainsKey($optionalGetTargetResourceParameter))
+        {
+            $getTargetResourceParameters[$optionalGetTargetResourceParameter] = $PSBoundParameters[$optionalGetTargetResourceParameter]
+        }
     }
 
-    try
-    {
-        Assert-PathExistsAsLeaf -Path $Path
-        Assert-DestinationDoesNotExistAsFile -Destination $Destination
+    $archiveResourceState = Get-TargetResource @getTargetResourceParameters
 
-        Write-Verbose -Message ($script:localizedData.TestingArchiveState -f $Path, $Destination)
+    Write-Verbose -Message ($script:localizedData.TestingArchiveState -f $Path, $Destination)
 
-        $testArchiveExistsAtDestinationParameters = @{
-            ArchiveSourcePath = $Path
-            Destination = $Destination
-        }
-
-        if ($Validate)
-        {
-            $testArchiveExistsAtDestinationParameters['Checksum'] = $Checksum
-        }
-
-        if (Test-Path -LiteralPath $Destination)
-        {
-            Write-Verbose -Message ($script:localizedData.DestinationExists -f $Destination)
-
-            $archiveExists = Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters
-            $archiveInDesiredState = $archiveExists -eq ($Ensure -eq 'Present')
-        }
-        else
-        {
-            Write-Verbose -Message ($script:localizedData.DestinationDoesNotExist -f $Destination)
-
-            $archiveInDesiredState = $Ensure -eq 'Absent'
-        }
-    }
-    finally
-    {
-        if ($null -ne $psDrive)
-        {
-            Write-Verbose -Message ($script:localizedData.RemovingPSDrive -f $psDrive.Root)
-
-            $null = Remove-PSDrive -Name $psDrive -Force -ErrorAction 'SilentlyContinue'
-        }
-    }
+    $archiveInDesiredState = $archiveResourceState.Ensure -ieq $Ensure
 
     return $archiveInDesiredState
 }
@@ -725,6 +715,29 @@ function Close-Archive
 
 <#
     .SYNOPSIS
+        Retrieves the archive entries from the specified archive.
+        This is a wrapper function for unit testing.
+
+    .PARAMETER Archive
+        The archive of which to retrieve the archive entries.
+#>
+function Get-ArchiveEntries
+{
+    [OutputType([System.IO.Compression.ZipArchiveEntry[]])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.IO.Compression.ZipArchive]
+        $Archive
+    )
+
+    return $Archive.Entries
+}
+
+<#
+    .SYNOPSIS
         Retrieves the full name of the specified archive entry.
         This is a wrapper function for unit testing.
 
@@ -772,36 +785,6 @@ function Open-ArchiveEntry
 
 <#
     .SYNOPSIS
-        Copies the contents of the specified source stream to the specified destination stream.
-        This is a wrapper function for unit testing.
-
-    .PARAMETER SourceStream
-        The stream to copy from.
-
-    .PARAMETER DestinationStream
-        The stream to copy to.
-#>
-function Copy-FromStreamToStream
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.IO.Stream]
-        $SourceStream,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.IO.Stream]
-        $DestinationStream
-    )
-
-    $null = $SourceStream.CopyTo($DestinationStream)
-}
-
-<#
-    .SYNOPSIS
         Closes the specified stream.
         This is a wrapper function for unit testing.
 
@@ -820,103 +803,6 @@ function Close-Stream
     )
 
     $null = $Stream.Dispose()
-}
-
-<#
-    .SYNOPSIS
-        Retrieves the last write time of the specified archive entry.
-        This is a wrapper function for unit testing.
-
-    .PARAMETER ArchiveEntry
-        The archive entry to retrieve the last write time of.
-#>
-function Get-ArchiveEntryLastWriteTime
-{
-    [OutputType([DateTime])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.IO.Compression.ZipArchiveEntry]
-        $ArchiveEntry
-    )
-
-    return $ArchiveEntry.LastWriteTime.DateTime
-}
-
-<#
-    .SYNOPSIS
-        Copies the specified archive entry to the specified destination path.
-
-    .PARAMETER ArchiveEntry
-        The archive entry to copy to the destination.
-
-    .PARAMETER DestinationPath
-        The destination file path to copy the archive entry to.
-#>
-function Copy-ArchiveEntryToDestination
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [System.IO.Compression.ZipArchiveEntry]
-        $ArchiveEntry,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $DestinationPath
-    )
-
-    Write-Verbose -Message ($script:localizedData.CopyingArchiveEntryToDestination -f $DestinationPath)
-
-    $archiveEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $ArchiveEntry
-
-    if ($archiveEntryFullName.EndsWith('\'))
-    {
-        $null = New-Item -Path $DestinationPath -ItemType 'Directory'
-    }
-    else
-    {
-        $openStreams = @()
-
-        try
-        {
-            $archiveEntryStream = Open-ArchiveEntry -ArchiveEntry $ArchiveEntry
-            $openStreams += $archiveEntryStream
-
-            # The Create mode will create a new file if it does not exist or overwrite the file if it already exists
-            $destinationStreamMode = [System.IO.FileMode]::Create
-
-            $destinationStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @( $DestinationPath, $destinationStreamMode )
-            $openStreams += $destinationStream
-
-            Copy-FromStreamToStream -SourceStream $archiveEntryStream -DestinationStream $destinationStream
-        }
-        catch
-        {
-            $errorMessage = $script:localizedData.ErrorCopyingFromArchiveToDestination -f $DestinationPath
-            New-InvalidOperationException -Message $errorMessage -ErrorRecord $_
-        }
-        finally
-        {
-            foreach ($openStream in $openStreams)
-            {
-                Close-Stream -Stream $openStream
-            }
-        }
-
-        $newArchiveFileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $DestinationPath )
-
-        $updatedTimestamp = Get-ArchiveEntryLastWriteTime -ArchiveEntry $ArchiveEntry
-
-        $null = Set-ItemProperty -LiteralPath $DestinationPath -Name 'LastWriteTime' -Value $updatedTimestamp
-        $null = Set-ItemProperty -LiteralPath $DestinationPath -Name 'LastAccessTime' -Value $updatedTimestamp
-        $null = Set-ItemProperty -LiteralPath $DestinationPath -Name 'CreationTime' -Value $updatedTimestamp
-    }
 }
 
 <#
@@ -1089,6 +975,29 @@ function Get-TimestampForChecksum
 
 <#
     .SYNOPSIS
+        Retrieves the last write time of the specified archive entry.
+        This is a wrapper function for unit testing.
+
+    .PARAMETER ArchiveEntry
+        The archive entry to retrieve the last write time of.
+#>
+function Get-ArchiveEntryLastWriteTime
+{
+    [OutputType([DateTime])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.IO.Compression.ZipArchiveEntry]
+        $ArchiveEntry
+    )
+
+    return $ArchiveEntry.LastWriteTime.DateTime
+}
+
+<#
+    .SYNOPSIS
         Tests if the specified file matches the specified archive entry based on the specified
         checksum method.
 
@@ -1168,25 +1077,224 @@ function Test-FileMatchesArchiveEntryByChecksum
 
 <#
     .SYNOPSIS
-        Retrieves the archive entries from the specified archive.
-        This is a wrapper function for unit testing.
+        Tests if the specified archive exists in its expanded form at the destination.
 
     .PARAMETER Archive
-        The archive of which to retrieve the archive entries.
+        The archive to test for existence at the specified destination.
+
+    .PARAMETER Destination
+        The path to the destination to check for the presence of the expanded form of the specified
+        archive.
+
+    .PARAMETER Checksum
+        The checksum method to use to determine whether a file in the archive matches a file at the
+        destination.
+
+        If not provided, only the existence of the items in the archive will be checked.
 #>
-function Get-ArchiveEntries
+function Test-ArchiveExistsAtDestination
 {
-    [OutputType([System.IO.Compression.ZipArchiveEntry[]])]
+    [OutputType([Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [System.IO.Compression.ZipArchive]
-        $Archive
+        [String]
+        $ArchiveSourcePath,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Destination,
+
+        [Parameter()]
+        [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
+        [String]
+        $Checksum
     )
 
-    return $Archive.Entries
+    Write-Verbose -Message ($script:localizedData.TestingIfArchiveExistsAtDestination -f $Destination)
+
+    $archiveExistsAtDestination = $true
+
+    $archive = Open-Archive -Path $ArchiveSourcePath
+
+    try
+    {
+        $archiveEntries = Get-ArchiveEntries -Archive $archive
+
+        foreach ($archiveEntry in $archiveEntries)
+        {
+            $archiveEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
+            $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archiveEntryFullName
+
+            $archiveEntryItemAtDestination = Get-Item -LiteralPath $archiveEntryPathAtDestination -ErrorAction 'SilentlyContinue'
+
+            if ($null -eq $archiveEntryItemAtDestination)
+            {
+                Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameDoesNotExist -f $archiveEntryPathAtDestination)
+
+                $archiveExistsAtDestination = $false
+                break
+            }
+            else
+            {
+                Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameExists -f $archiveEntryPathAtDestination)
+
+                if ($archiveEntryFullName.EndsWith('\'))
+                {
+                    if (-not ($archiveEntryItemAtDestination -is [System.IO.DirectoryInfo]))
+                    {
+                        Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameIsNotDirectory -f $archiveEntryPathAtDestination)
+
+                        $archiveExistsAtDestination = $false
+                        break
+                    }
+                }
+                else
+                {
+                    if ($archiveEntryItemAtDestination -is [System.IO.FileInfo])
+                    {
+                        if ($PSBoundParameters.ContainsKey('Checksum'))
+                        {
+                            if (-not (Test-FileMatchesArchiveEntryByChecksum -File $archiveEntryItemAtDestination -ArchiveEntry $archiveEntry -Checksum $Checksum))
+                            {
+                                $archiveExistsAtDestination = $false
+                                break
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameIsNotFile -f $archiveEntryPathAtDestination)
+
+                        $archiveExistsAtDestination = $false
+                        break
+                    }
+                }
+            }
+        }
+    }
+    finally
+    {
+        Close-Archive -Archive $archive
+    }
+
+    if ($archiveExistsAtDestination)
+    {
+        Write-Verbose -Message ($script:localizedData.ArchiveExistsAtDestination -f $ArchiveSourcePath, $Destination)
+    }
+    else
+    {
+        Write-Verbose -Message ($script:localizedData.ArchiveDoesNotExistAtDestination -f $ArchiveSourcePath, $Destination)
+    }
+
+    return $archiveExistsAtDestination
+}
+
+<#
+    .SYNOPSIS
+        Copies the contents of the specified source stream to the specified destination stream.
+        This is a wrapper function for unit testing.
+
+    .PARAMETER SourceStream
+        The stream to copy from.
+
+    .PARAMETER DestinationStream
+        The stream to copy to.
+#>
+function Copy-FromStreamToStream
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.IO.Stream]
+        $SourceStream,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.IO.Stream]
+        $DestinationStream
+    )
+
+    $null = $SourceStream.CopyTo($DestinationStream)
+}
+
+<#
+    .SYNOPSIS
+        Copies the specified archive entry to the specified destination path.
+
+    .PARAMETER ArchiveEntry
+        The archive entry to copy to the destination.
+
+    .PARAMETER DestinationPath
+        The destination file path to copy the archive entry to.
+#>
+function Copy-ArchiveEntryToDestination
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.IO.Compression.ZipArchiveEntry]
+        $ArchiveEntry,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $DestinationPath
+    )
+
+    Write-Verbose -Message ($script:localizedData.CopyingArchiveEntryToDestination -f $DestinationPath)
+
+    $archiveEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $ArchiveEntry
+
+    if ($archiveEntryFullName.EndsWith('\'))
+    {
+        $null = New-Item -Path $DestinationPath -ItemType 'Directory'
+    }
+    else
+    {
+        $openStreams = @()
+
+        try
+        {
+            $archiveEntryStream = Open-ArchiveEntry -ArchiveEntry $ArchiveEntry
+            $openStreams += $archiveEntryStream
+
+            # The Create mode will create a new file if it does not exist or overwrite the file if it already exists
+            $destinationStreamMode = [System.IO.FileMode]::Create
+
+            $destinationStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @( $DestinationPath, $destinationStreamMode )
+            $openStreams += $destinationStream
+
+            Copy-FromStreamToStream -SourceStream $archiveEntryStream -DestinationStream $destinationStream
+        }
+        catch
+        {
+            $errorMessage = $script:localizedData.ErrorCopyingFromArchiveToDestination -f $DestinationPath
+            New-InvalidOperationException -Message $errorMessage -ErrorRecord $_
+        }
+        finally
+        {
+            foreach ($openStream in $openStreams)
+            {
+                Close-Stream -Stream $openStream
+            }
+        }
+
+        $newArchiveFileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $DestinationPath )
+
+        $updatedTimestamp = Get-ArchiveEntryLastWriteTime -ArchiveEntry $ArchiveEntry
+
+        $null = Set-ItemProperty -LiteralPath $DestinationPath -Name 'LastWriteTime' -Value $updatedTimestamp
+        $null = Set-ItemProperty -LiteralPath $DestinationPath -Name 'LastAccessTime' -Value $updatedTimestamp
+        $null = Set-ItemProperty -LiteralPath $DestinationPath -Name 'CreationTime' -Value $updatedTimestamp
+    }
 }
 
 <#
@@ -1200,7 +1308,7 @@ function Get-ArchiveEntries
         The destination path at which to expand the archive at the specified source path.
 
     .PARAMETER Checksum
-        The checksum method to use to determin if a file at the destination already matches a file
+        The checksum method to use to determine if a file at the destination already matches a file
         in the archive.
 
     .PARAMETER Force
@@ -1242,8 +1350,10 @@ function Expand-ArchiveToDestination
 
         foreach ($archiveEntry in $archiveEntries)
         {
-            $archivEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
-            $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archivEntryFullName
+            $archiveEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
+            $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archiveEntryFullName
+
+            $archiveEntryIsDirectory = $archiveEntryFullName.EndsWith('\')
 
             $archiveEntryItemAtDestination = Get-Item -LiteralPath $archiveEntryPathAtDestination -ErrorAction 'SilentlyContinue'
 
@@ -1251,13 +1361,13 @@ function Expand-ArchiveToDestination
             {
                 Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameDoesNotExist -f $archiveEntryPathAtDestination)
 
-                if (-not $archivEntryFullName.EndsWith('\'))
+                if (-not $archiveEntryIsDirectory)
                 {
                     $parentDirectory = Split-Path -Path $archiveEntryPathAtDestination -Parent
 
                     if (-not (Test-Path -Path $parentDirectory))
                     {
-                        Write-Verbose -Message ($script:localizedData.CreatingDirectory -f $parentDirectory)
+                        Write-Verbose -Message ($script:localizedData.CreatingParentDirectory -f $parentDirectory)
 
                         $null = New-Item -Path $parentDirectory -ItemType 'Directory'
                     }
@@ -1271,7 +1381,7 @@ function Expand-ArchiveToDestination
 
                 $overwriteArchiveEntry = $true
 
-                if ($archivEntryFullName.EndsWith('\'))
+                if ($archiveEntryIsDirectory)
                 {
                     $overwriteArchiveEntry = -not ($archiveEntryItemAtDestination -is [System.IO.DirectoryInfo])
                 }
@@ -1291,14 +1401,14 @@ function Expand-ArchiveToDestination
                 {
                     if ($Force)
                     {
-                        Write-Verbose -Message ($script:localizedData.OverwritingFile -f $archiveEntryPathAtDestination)
+                        Write-Verbose -Message ($script:localizedData.OverwritingItem -f $archiveEntryPathAtDestination)
 
                         $null = Remove-Item -LiteralPath $archiveEntryPathAtDestination
                         Copy-ArchiveEntryToDestination -ArchiveEntry $archiveEntry -DestinationPath $archiveEntryPathAtDestination
                     }
                     else
                     {
-                        New-InvalidOperationException -Message ($script:localizedData.ForceNotSpecifiedToOverwriteItem -f $archiveEntryPathAtDestination, $archivEntryFullName)
+                        New-InvalidOperationException -Message ($script:localizedData.ForceNotSpecifiedToOverwriteItem -f $archiveEntryPathAtDestination, $archiveEntryFullName)
                     }
                 }
             }
@@ -1412,10 +1522,10 @@ function Remove-ArchiveFromDestination
 
         foreach ($archiveEntry in $archiveEntries)
         {
-            $archivEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
-            $archiveEntryIsDirectory = $archivEntryFullName.EndsWith('\')
+            $archiveEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
+            $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archiveEntryFullName
 
-            $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archivEntryFullName
+            $archiveEntryIsDirectory = $archiveEntryFullName.EndsWith('\')
 
             $itemAtDestination = Get-Item -LiteralPath $archiveEntryPathAtDestination -ErrorAction 'SilentlyContinue'
 
@@ -1435,7 +1545,7 @@ function Remove-ArchiveFromDestination
                 if ($archiveEntryIsDirectory -and $itemAtDestinationIsDirectory)
                 {
                     $removeArchiveEntry = $true
-                    $directoriesToRemove += $archivEntryFullName
+                    $directoriesToRemove += $archiveEntryFullName
 
                 }
                 elseif ((-not $archiveEntryIsDirectory) -and $itemAtDestinationIsFile)
@@ -1455,12 +1565,12 @@ function Remove-ArchiveFromDestination
                 }
                 else
                 {
-                    Write-Verbose -Message ($script:localizedData.CouldNotRemoveItemOfIncorrectType -f $archiveEntryPathAtDestination, $archivEntryFullName)
+                    Write-Verbose -Message ($script:localizedData.CouldNotRemoveItemOfIncorrectType -f $archiveEntryPathAtDestination, $archiveEntryFullName)
                 }
 
                 if ($removeArchiveEntry)
                 {
-                    $parentDirectory = Split-Path -Path $archivEntryFullName -Parent
+                    $parentDirectory = Split-Path -Path $archiveEntryFullName -Parent
 
                     while (-not [String]::IsNullOrEmpty($parentDirectory))
                     {
@@ -1483,122 +1593,4 @@ function Remove-ArchiveFromDestination
     {
         Close-Archive -Archive $archive
     }
-}
-
-<#
-    .SYNOPSIS
-        Tests if the specified archive exists in its expanded form at the destination.
-
-    .PARAMETER Archive
-        The archive to test for existence at the specified destination.
-
-    .PARAMETER Destination
-        The path to the destination to check for the presence of the expanded form of the specified
-        archive.
-
-    .PARAMETER Checksum
-        The checksum method to use to determine whether a file in the archive matches a file at the
-        destination.
-
-        If not provided, only the existence of the items in the archive will be checked.
-#>
-function Test-ArchiveExistsAtDestination
-{
-    [OutputType([Boolean])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $ArchiveSourcePath,
-
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Destination,
-
-        [Parameter()]
-        [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
-        [String]
-        $Checksum
-    )
-
-    Write-Verbose -Message ($script:localizedData.TestingIfArchiveExistsAtDestination -f $Destination)
-
-    $archiveExistsAtDestination = $true
-
-    $archive = Open-Archive -Path $ArchiveSourcePath
-
-    try
-    {
-        $archiveEntries = Get-ArchiveEntries -Archive $archive
-
-        foreach ($archiveEntry in $archiveEntries)
-        {
-            $archivEntryFullName = Get-ArchiveEntryFullName -ArchiveEntry $archiveEntry
-            $archiveEntryPathAtDestination = Join-Path -Path $Destination -ChildPath $archivEntryFullName
-
-            $archiveEntryItemAtDestination = Get-Item -LiteralPath $archiveEntryPathAtDestination -ErrorAction 'SilentlyContinue'
-
-            if ($null -eq $archiveEntryItemAtDestination)
-            {
-                Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameDoesNotExist -f $archiveEntryPathAtDestination)
-
-                $archiveExistsAtDestination = $false
-                break
-            }
-            else
-            {
-                Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameExists -f $archiveEntryPathAtDestination)
-
-                if ($archivEntryFullName.EndsWith('\'))
-                {
-                    if (-not ($archiveEntryItemAtDestination -is [System.IO.DirectoryInfo]))
-                    {
-                        Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameIsNotDirectory -f $archiveEntryPathAtDestination)
-
-                        $archiveExistsAtDestination = $false
-                        break
-                    }
-                }
-                else
-                {
-                    if ($archiveEntryItemAtDestination -is [System.IO.FileInfo])
-                    {
-                        if ($PSBoundParameters.ContainsKey('Checksum'))
-                        {
-                            if (-not (Test-FileMatchesArchiveEntryByChecksum -File $archiveEntryItemAtDestination -ArchiveEntry $archiveEntry -Checksum $Checksum))
-                            {
-                                $archiveExistsAtDestination = $false
-                                break
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Write-Verbose -Message ($script:localizedData.ItemWithArchiveEntryNameIsNotFile -f $archiveEntryPathAtDestination)
-
-                        $archiveExistsAtDestination = $false
-                        break
-                    }
-                }
-            }
-        }
-    }
-    finally
-    {
-        Close-Archive -Archive $archive
-    }
-
-    if ($archiveExistsAtDestination)
-    {
-        Write-Verbose -Message ($script:localizedData.ArchiveExistsAtDestination -f $ArchiveSourcePath, $Destination)
-    }
-    else
-    {
-        Write-Verbose -Message ($script:localizedData.ArchiveDoesNotExistAtDestination -f $ArchiveSourcePath, $Destination)
-    }
-
-    return $archiveExistsAtDestination
 }

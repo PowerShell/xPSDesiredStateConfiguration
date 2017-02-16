@@ -30,9 +30,61 @@ Describe 'xArchive Unit Tests' {
         $script:testGuid = [Guid]::NewGuid()
 
         Describe 'Get-TargetResource' {
-            Mock -CommandName 'Test-TargetResource' -MockWith { return $false }
+            $testPSDrive = @{
+                Root = 'Test PSDrive Name'
+            }
+            Mock -CommandName 'Mount-PSDriveWithCredential' -MockWith { return $testPSDrive }
 
-            Context 'Archive with given path and destination does not exist' {
+            $testInvalidArchivePathErrorMessage = 'Test invalid archive path error message'
+            Mock -CommandName 'Assert-PathExistsAsLeaf' -MockWith { throw $testInvalidArchivePathErrorMessage }
+
+            $testInvalidDestinationErrorMessage = 'Test invalid destination error message'
+            Mock -CommandName 'Assert-DestinationDoesNotExistAsFile' -MockWith { throw $testInvalidDestinationErrorMessage }
+
+            Mock -CommandName 'Test-Path' -MockWith { return $false }
+            Mock -CommandName 'Test-ArchiveExistsAtDestination' -MockWith { return $false }
+            Mock -CommandName 'Remove-PSDrive' -MockWith { }
+
+            Context 'Checksum specified and Validate not specified' {
+                $getTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                    Checksum = 'ModifiedDate'
+                }
+
+                It 'Should throw an error for Checksum specified while Validate is false' {
+                    $errorMessage = $script:localizedData.ChecksumSpecifiedAndValidateFalse -f $getTargetResourceParameters.Checksum, $getTargetResourceParameters.Path, $getTargetResourceParameters.Destination
+                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Throw $errorMessage
+                }
+            }
+
+            Context 'Invalid archive path specified' {
+                $getTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should throw an error for invalid archive path' {
+                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Throw $testInvalidArchivePathErrorMessage
+                }
+            }
+
+            Mock -CommandName 'Assert-PathExistsAsLeaf' -MockWith { }
+
+            Context 'Invalid destination specified' {
+                $getTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should throw an error for invalid destination' {
+                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Throw $testInvalidDestinationErrorMessage
+                }
+            }
+
+            Mock -CommandName 'Assert-DestinationDoesNotExistAsFile' -MockWith { }
+
+            Context 'Valid archive path and destination specified and destination does not exist' {
                 $getTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
@@ -42,135 +94,469 @@ Describe 'xArchive Unit Tests' {
                     { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should test if the archive exists' {
-                    $testTargetResourceParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                It 'Should not attempt to mount a PSDrive' {
+                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
+                }
 
-                        return $pathParameterCorrect -and $destinationParameterCorrect
+                It 'Should assert that the specified archive path is valid' {
+                    $assertPathExistsAsLeafParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
+                        return $pathParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Test-TargetResource' -ParameterFilter $testTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified destination is valid' {
+                    $assertDestinationDoesNotExistAsFileParameterFilter = {
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        return $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified destination exists' {
+                    $testPathParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $getTargetResourceParameters.Destination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the specified archive exists at the specified destination' {
+                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -Exactly 0 -Scope 'Context'  
+                }
+
+                It 'Should not attempt to remove a mounted PSDrive' {
+                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
                 }
 
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
-                It 'Should return a hashtable' {
+                It 'Should return a Hashtable' {
                     $getTargetResourceResult -is [Hashtable] | Should Be $true
                 }
 
-                It 'Should return 3 properties' {
+                It 'Should return a Hashtable with 3 properties' {
                     $getTargetResourceResult.Keys.Count | Should Be 3
                 }
 
-                It 'Shoud return the Path property as the given path' {
+                It 'Should return a Hashtable with the Path property as the specified path' {
                     $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
                 }
 
-                It 'Should return the Destination property as the given destination' {
+                It 'Should return a Hashtable with the Destination property as the specified destination' {
                     $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
                 }
 
-                It 'Should return the Ensure property as Absent' {
+                It 'Should return a Hashtable with the Ensure property as Absent' {
                     $getTargetResourceResult.Ensure | Should Be 'Absent'
                 }
             }
 
-            Mock -CommandName 'Test-TargetResource' -MockWith { return $true }
-
-            Context 'Archive with given path and destination exists' {
-                $getTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should test if the archive exists' {
-                    $testTargetResourceParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
-
-                        return $pathParameterCorrect -and $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-TargetResource' -ParameterFilter $testTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
-
-                It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
-                }
-
-                It 'Should return 3 properties' {
-                    $getTargetResourceResult.Keys.Count | Should Be 3
-                }
-
-                It 'Shoud return the Path property as the given path' {
-                    $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
-                }
-
-                It 'Should return the Destination property as the given destination' {
-                    $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
-                }
-
-                It 'Should return the Ensure property as Present' {
-                    $getTargetResourceResult.Ensure | Should Be 'Present'
-                }
-            }
-
-            Context 'Archive with given path and destination exists and Validate and Checksum specified' {
+            Context 'Valid archive path and destination specified, destination does not exist, Validate specified as true, and Checksum specified' {
                 $getTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
                     Validate = $true
-                    Checksum = $script:validChecksumValues[0]
+                    Checksum = 'ModifiedDate'
                 }
 
                 It 'Should not throw' {
                     { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should test if the archive exists' {
-                    $testTargetResourceParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
-                        $validateParameterCorrect = $Validate -eq $getTargetResourceParameters.Validate
-                        $checksumParameterCorrect = $Checksum -eq $getTargetResourceParameters.Checksum
+                It 'Should not attempt to mount a PSDrive' {
+                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
+                }
 
-                        return $pathParameterCorrect -and $destinationParameterCorrect -and $validateParameterCorrect -and $checksumParameterCorrect
+                It 'Should assert that the specified archive path is valid' {
+                    $assertPathExistsAsLeafParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
+                        return $pathParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Test-TargetResource' -ParameterFilter $testTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified destination is valid' {
+                    $assertDestinationDoesNotExistAsFileParameterFilter = {
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        return $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified destination exists' {
+                    $testPathParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $getTargetResourceParameters.Destination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the specified archive exists at the specified destination' {
+                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -Exactly 0 -Scope 'Context'  
+                }
+
+                It 'Should not attempt to remove a mounted PSDrive' {
+                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
                 }
 
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
-                It 'Should return a hashtable' {
+                It 'Should return a Hashtable' {
                     $getTargetResourceResult -is [Hashtable] | Should Be $true
                 }
 
-                It 'Should return 3 properties' {
+                It 'Should return a Hashtable with 3 properties' {
                     $getTargetResourceResult.Keys.Count | Should Be 3
                 }
 
-                It 'Shoud return the Path property as the given path' {
+                It 'Should return a Hashtable with the Path property as the specified path' {
                     $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
                 }
 
-                It 'Should return the Destination property as the given destination' {
+                It 'Should return a Hashtable with the Destination property as the specified destination' {
                     $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
                 }
 
-                It 'Should return the Ensure property as Present' {
+                It 'Should return a Hashtable with the Ensure property as Absent' {
+                    $getTargetResourceResult.Ensure | Should Be 'Absent'
+                }
+            }
+
+            Mock -CommandName 'Test-Path' -MockWith { return $true }
+
+            Context 'Valid archive path and destination specified, destination exists, and archive is not expanded at destination' {
+                $getTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
+                }
+
+                It 'Should not attempt to mount a PSDrive' {
+                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified archive path is valid' {
+                    $assertPathExistsAsLeafParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified destination is valid' {
+                    $assertDestinationDoesNotExistAsFileParameterFilter = {
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        return $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified destination exists' {
+                    $testPathParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $getTargetResourceParameters.Destination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified archive exists at the specified destination' {
+                    $testArchiveExistsAtDestinationParameterFilter = {
+                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $getTargetResourceParameters.Path
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+
+                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
+                }
+
+                It 'Should not attempt to remove a mounted PSDrive' {
+                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                }
+
+                $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
+
+                It 'Should return a Hashtable' {
+                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                }
+
+                It 'Should return a Hashtable with 3 properties' {
+                    $getTargetResourceResult.Keys.Count | Should Be 3
+                }
+
+                It 'Should return a Hashtable with the Path property as the specified path' {
+                    $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
+                }
+
+                It 'Should return a Hashtable with the Destination property as the specified destination' {
+                    $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
+                }
+
+                It 'Should return a Hashtable with the Ensure property as Absent' {
+                    $getTargetResourceResult.Ensure | Should Be 'Absent'
+                }
+            }
+
+            Context 'Valid archive path and destination specified, destination exists, archive is not expanded at destination, Validate specified as true, and Checksum specified' {
+                $getTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                    Validate = $true
+                    Checksum = 'CreatedDate'
+                }
+
+                It 'Should not throw' {
+                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
+                }
+
+                It 'Should not attempt to mount a PSDrive' {
+                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified archive path is valid' {
+                    $assertPathExistsAsLeafParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified destination is valid' {
+                    $assertDestinationDoesNotExistAsFileParameterFilter = {
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        return $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified destination exists' {
+                    $testPathParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $getTargetResourceParameters.Destination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified archive exists at the specified destination' {
+                    $testArchiveExistsAtDestinationParameterFilter = {
+                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $getTargetResourceParameters.Path
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        $checksumParameterCorrect = $Checksum -eq $getTargetResourceParameters.Checksum
+
+                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect -and $checksumParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
+                }
+
+                It 'Should not attempt to remove a mounted PSDrive' {
+                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                }
+
+                $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
+
+                It 'Should return a Hashtable' {
+                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                }
+
+                It 'Should return a Hashtable with 3 properties' {
+                    $getTargetResourceResult.Keys.Count | Should Be 3
+                }
+
+                It 'Should return a Hashtable with the Path property as the specified path' {
+                    $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
+                }
+
+                It 'Should return a Hashtable with the Destination property as the specified destination' {
+                    $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
+                }
+
+                It 'Should return a Hashtable with the Ensure property as Absent' {
+                    $getTargetResourceResult.Ensure | Should Be 'Absent'
+                }
+            }
+
+            Mock -CommandName 'Test-ArchiveExistsAtDestination' -MockWith { return $true }
+
+            Context 'Valid archive path and destination specified, destination exists, and archive is expanded at destination' {
+                $getTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
+                }
+
+                It 'Should not attempt to mount a PSDrive' {
+                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified archive path is valid' {
+                    $assertPathExistsAsLeafParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified destination is valid' {
+                    $assertDestinationDoesNotExistAsFileParameterFilter = {
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        return $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified destination exists' {
+                    $testPathParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $getTargetResourceParameters.Destination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified archive exists at the specified destination' {
+                    $testArchiveExistsAtDestinationParameterFilter = {
+                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $getTargetResourceParameters.Path
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+
+                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
+                }
+
+                It 'Should not attempt to remove a mounted PSDrive' {
+                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                }
+
+                $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
+
+                It 'Should return a Hashtable' {
+                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                }
+
+                It 'Should return a Hashtable with 3 properties' {
+                    $getTargetResourceResult.Keys.Count | Should Be 3
+                }
+
+                It 'Should return a Hashtable with the Path property as the specified path' {
+                    $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
+                }
+
+                It 'Should return a Hashtable with the Destination property as the specified destination' {
+                    $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
+                }
+
+                It 'Should return a Hashtable with the Ensure property as Present' {
                     $getTargetResourceResult.Ensure | Should Be 'Present'
                 }
             }
 
-            Context 'Archive with given path and destination exists and Credential specified' {
+            Context 'Valid archive path and destination specified, destination exists, archive is expanded at destination, Validate specified as true, and Checksum specified' {
+                $getTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                    Validate = $true
+                    Checksum = 'CreatedDate'
+                }
+
+                It 'Should not throw' {
+                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
+                }
+
+                It 'Should not attempt to mount a PSDrive' {
+                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified archive path is valid' {
+                    $assertPathExistsAsLeafParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified destination is valid' {
+                    $assertDestinationDoesNotExistAsFileParameterFilter = {
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        return $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified destination exists' {
+                    $testPathParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $getTargetResourceParameters.Destination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified archive exists at the specified destination' {
+                    $testArchiveExistsAtDestinationParameterFilter = {
+                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $getTargetResourceParameters.Path
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        $checksumParameterCorrect = $Checksum -eq $getTargetResourceParameters.Checksum
+
+                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect -and $checksumParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
+                }
+
+                It 'Should not attempt to remove a mounted PSDrive' {
+                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                }
+
+                $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
+
+                It 'Should return a Hashtable' {
+                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                }
+
+                It 'Should return a Hashtable with 3 properties' {
+                    $getTargetResourceResult.Keys.Count | Should Be 3
+                }
+
+                It 'Should return a Hashtable with the Path property as the specified path' {
+                    $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
+                }
+
+                It 'Should return a Hashtable with the Destination property as the specified destination' {
+                    $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
+                }
+
+                It 'Should return a Hashtable with the Ensure property as Present' {
+                    $getTargetResourceResult.Ensure | Should Be 'Present'
+                }
+            }
+
+            Context 'Valid archive path and destination specified, destination exists, archive is expanded at destination, and credential specified' {
                 $getTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
@@ -181,37 +567,85 @@ Describe 'xArchive Unit Tests' {
                     { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should test if the archive exists' {
-                    $testTargetResourceParameterFilter = {
+                It 'Should mount a PSDrive' {
+                    $mountPSDriveParameterFilter = {
                         $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
                         $credentialParameterCorrect = $null -eq (Compare-Object -ReferenceObject $getTargetResourceParameters.Credential -DifferenceObject $Credential)
 
-                        return $pathParameterCorrect -and $destinationParameterCorrect -and $credentialParameterCorrect
+                        return $pathParameterCorrect -and $credentialParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Test-TargetResource' -ParameterFilter $testTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -ParameterFilter $mountPSDriveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified archive path is valid' {
+                    $assertPathExistsAsLeafParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $getTargetResourceParameters.Path
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should assert that the specified destination is valid' {
+                    $assertDestinationDoesNotExistAsFileParameterFilter = {
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+                        return $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified destination exists' {
+                    $testPathParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $getTargetResourceParameters.Destination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the specified archive exists at the specified destination' {
+                    $testArchiveExistsAtDestinationParameterFilter = {
+                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $getTargetResourceParameters.Path
+                        $destinationParameterCorrect = $Destination -eq $getTargetResourceParameters.Destination
+
+                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
+                }
+
+                It 'Should remove the mounted PSDrive' {
+                    $removePSDriveParameterFilter = {
+                        $nameParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testPSDrive -DifferenceObject $Name)
+                        $forceParameterCorrect = $Force -eq $true
+
+                        return $nameParameterCorrect -and $forceParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Remove-PSDrive' -ParameterFilter $removePSDriveParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
-                It 'Should return a hashtable' {
+                It 'Should return a Hashtable' {
                     $getTargetResourceResult -is [Hashtable] | Should Be $true
                 }
 
-                It 'Should return 3 properties' {
+                It 'Should return a Hashtable with 3 properties' {
                     $getTargetResourceResult.Keys.Count | Should Be 3
                 }
 
-                It 'Shoud return the Path property as the given path' {
+                It 'Should return a Hashtable with the Path property as the specified path' {
                     $getTargetResourceResult.Path | Should Be $getTargetResourceParameters.Path
                 }
 
-                It 'Should return the Destination property as the given destination' {
+                It 'Should return a Hashtable with the Destination property as the specified destination' {
                     $getTargetResourceResult.Destination | Should Be $getTargetResourceParameters.Destination
                 }
 
-                It 'Should return the Ensure property as Present' {
+                It 'Should return a Hashtable with the Ensure property as Present' {
                     $getTargetResourceResult.Ensure | Should Be 'Present'
                 }
             }
@@ -938,61 +1372,9 @@ Describe 'xArchive Unit Tests' {
         }
 
         Describe 'Test-TargetResource' {
-            $testPSDrive = @{
-                Root = 'Test PSDrive Name'
-            }
-            Mock -CommandName 'Mount-PSDriveWithCredential' -MockWith { return $testPSDrive }
+            Mock -CommandName 'Get-TargetResource' -MockWith { return @{ Ensure = 'Absent' } }
 
-            $testInvalidArchivePathErrorMessage = 'Test invalid archive path error message'
-            Mock -CommandName 'Assert-PathExistsAsLeaf' -MockWith { throw $testInvalidArchivePathErrorMessage }
-
-            $testInvalidDestinationErrorMessage = 'Test invalid destination error message'
-            Mock -CommandName 'Assert-DestinationDoesNotExistAsFile' -MockWith { throw $testInvalidDestinationErrorMessage }
-
-            Mock -CommandName 'Test-Path' -MockWith { return $false }
-            Mock -CommandName 'Test-ArchiveExistsAtDestination' -MockWith { return $false }
-            Mock -CommandName 'Remove-PSDrive' -MockWith { }
-
-            Context 'Checksum specified and Validate not specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Checksum = 'ModifiedDate'
-                }
-
-                It 'Should throw an error for Checksum specified while Validate is false' {
-                    $errorMessage = $script:localizedData.ChecksumSpecifiedAndValidateFalse -f $testTargetResourceParameters.Checksum, $testTargetResourceParameters.Path, $testTargetResourceParameters.Destination
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Throw $errorMessage
-                }
-            }
-
-            Context 'Invalid archive path specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should throw an error for invalid archive path' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Throw $testInvalidArchivePathErrorMessage
-                }
-            }
-
-            Mock -CommandName 'Assert-PathExistsAsLeaf' -MockWith { }
-
-            Context 'Invalid destination specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should throw an error for invalid destination' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Throw $testInvalidDestinationErrorMessage
-                }
-            }
-
-            Mock -CommandName 'Assert-DestinationDoesNotExistAsFile' -MockWith { }
-
-            Context 'Valid archive path and destination specified, destination does not exist, and Ensure specified as Present' {
+            Context 'Archive with specified path is not expanded at the specified destination and Ensure is specified as Present' {
                 $testTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
@@ -1003,43 +1385,15 @@ Describe 'xArchive Unit Tests' {
                     { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
+                It 'Should retrieve the state of the specified archive' {
+                    $getTargetResourceParameterFilter = {
                         $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
                         $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
+
+                        return $pathParameterCorrect -and $destinationParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the specified archive exists at the specified destination' {
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -Exactly 0 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter $getTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 It 'Should return false' {
@@ -1047,7 +1401,7 @@ Describe 'xArchive Unit Tests' {
                 }
             }
 
-            Context 'Valid archive path and destination specified, destination does not exist, and Ensure specified as Absent' {
+            Context 'Archive with specified path is not expanded at the specified destination and Ensure is specified as Absent' {
                 $testTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
@@ -1058,43 +1412,15 @@ Describe 'xArchive Unit Tests' {
                     { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
+                It 'Should retrieve the state of the specified archive' {
+                    $getTargetResourceParameterFilter = {
                         $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
                         $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
+
+                        return $pathParameterCorrect -and $destinationParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the specified archive exists at the specified destination' {
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -Exactly 0 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter $getTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 It 'Should return true' {
@@ -1102,56 +1428,55 @@ Describe 'xArchive Unit Tests' {
                 }
             }
 
-            Context '*Valid archive path and destination specified, destination does not exist, Ensure specified as Present, Validate specified as true, and Checksum specified' {
+            Mock -CommandName 'Get-TargetResource' -MockWith { return @{ Ensure = 'Present' } }
+
+            Context 'Archive with specified path is expanded at the specified destination and Ensure is specified as Present' {
                 $testTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
                     Ensure = 'Present'
-                    Validate = $true
-                    Checksum = 'ModifiedDate'
                 }
 
                 It 'Should not throw' {
                     { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
+                It 'Should retrieve the state of the specified archive' {
+                    $getTargetResourceParameterFilter = {
                         $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
                         $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
+
+                        return $pathParameterCorrect -and $destinationParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter $getTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
+                It 'Should return true' {
+                    Test-TargetResource @testTargetResourceParameters | Should Be $true
+                }
+            }
+
+            Context 'Archive with specified path is expanded at the specified destination and Ensure is specified as Absent' {
+                $testTargetResourceParameters = @{
+                    Path = 'TestPath'
+                    Destination = 'TestDestination'
+                    Ensure = 'Absent'
+                }
+
+                It 'Should not throw' {
+                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
+                }
+
+                It 'Should retrieve the state of the specified archive' {
+                    $getTargetResourceParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
+                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
+
+                        return $pathParameterCorrect -and $destinationParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the specified archive exists at the specified destination' {
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -Exactly 0 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter $getTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 It 'Should return false' {
@@ -1159,11 +1484,11 @@ Describe 'xArchive Unit Tests' {
                 }
             }
 
-            Context '*Valid archive path and destination specified, destination does not exist, Ensure specified as Absent, Validate specified as true, and Checksum specified' {
+            Context 'Archive with specified path is expanded at the specified destination, Validate and Checksum specified, and Ensure is specified as Present' {
                 $testTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
-                    Ensure = 'Absent'
+                    Ensure = 'Present'
                     Validate = $true
                     Checksum = 'SHA-256'
                 }
@@ -1172,43 +1497,17 @@ Describe 'xArchive Unit Tests' {
                     { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
+                It 'Should retrieve the state of the specified archive' {
+                    $getTargetResourceParameterFilter = {
                         $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
                         $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
+                        $validateParameterCorrect = $Validate -eq $testTargetResourceParameters.Validate
+                        $checksumParameterCorrect = $Checksum -eq $testTargetResourceParameters.Checksum
+
+                        return $pathParameterCorrect -and $destinationParameterCorrect -and $validateParameterCorrect -and $checksumParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the specified archive exists at the specified destination' {
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -Exactly 0 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter $getTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 It 'Should return true' {
@@ -1216,522 +1515,11 @@ Describe 'xArchive Unit Tests' {
                 }
             }
 
-            Mock -CommandName 'Test-Path' -MockWith { return $true }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is not present at destination, and Ensure specified as Present' {
+            Context 'Archive with specified path is expanded at the specified destination, Credential specified, and Ensure is specified as Present' {
                 $testTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
                     Ensure = 'Present'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-            }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is not present at destination, and Ensure specified as Absent' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Ensure = 'Absent'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-            }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is not present at destination, Ensure specified as Present, Validate specified as true, and Checksum specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Ensure = 'Present'
-                    Validate = $true
-                    Checksum = 'CreatedDate'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        $checksumParameterCorrect = $Checksum -eq $testTargetResourceParameters.Checksum
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect -and $checksumParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-            }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is not present at destination, Ensure specified as Absent, Validate specified as true, and Checksum specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Ensure = 'Absent'
-                    Validate = $true
-                    Checksum = 'SHA-512'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        $checksumParameterCorrect = $Checksum -eq $testTargetResourceParameters.Checksum
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect -and $checksumParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-            }
-
-            Mock -CommandName 'Test-ArchiveExistsAtDestination' -MockWith { return $true }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is present at destination, and Ensure specified as Present' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Ensure = 'Present'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-            }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is present at destination, and Ensure specified as Absent' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Ensure = 'Absent'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-            }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is present at destination, Ensure specified as Present, Validate specified as true, and Checksum specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Ensure = 'Present'
-                    Validate = $true
-                    Checksum = 'CreatedDate'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        $checksumParameterCorrect = $Checksum -eq $testTargetResourceParameters.Checksum
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect -and $checksumParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return true' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $true
-                }
-            }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is present at destination, Ensure specified as Absent, Validate specified as true, and Checksum specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
-                    Ensure = 'Absent'
-                    Validate = $true
-                    Checksum = 'SHA-512'
-                }
-
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should not attempt to mount a PSDrive' {
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        $checksumParameterCorrect = $Checksum -eq $testTargetResourceParameters.Checksum
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect -and $checksumParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should not attempt to remove a mounted PSDrive' {
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
-                }
-            }
-
-            Context 'Valid archive path and destination specified, destination exists, archive is present at destination, and credential specified' {
-                $testTargetResourceParameters = @{
-                    Path = 'TestPath'
-                    Destination = 'TestDestination'
                     Credential = $script:testCredential
                 }
 
@@ -1739,64 +1527,16 @@ Describe 'xArchive Unit Tests' {
                     { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
                 }
 
-                It 'Should mount a PSDrive' {
-                    $mountPSDriveParameterFilter = {
+                It 'Should retrieve the state of the specified archive' {
+                    $getTargetResourceParameterFilter = {
                         $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
+                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
                         $credentialParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testTargetResourceParameters.Credential -DifferenceObject $Credential)
 
-                        return $pathParameterCorrect -and $credentialParameterCorrect
+                        return $pathParameterCorrect -and $destinationParameterCorrect -and $credentialParameterCorrect
                     }
 
-                    Assert-MockCalled -CommandName 'Mount-PSDriveWithCredential' -ParameterFilter $mountPSDriveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified archive path is valid' {
-                    $assertPathExistsAsLeafParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testTargetResourceParameters.Path
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-PathExistsAsLeaf' -ParameterFilter $assertPathExistsAsLeafParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should assert that the specified destination is valid' {
-                    $assertDestinationDoesNotExistAsFileParameterFilter = {
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-                        return $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Assert-DestinationDoesNotExistAsFile' -ParameterFilter $assertDestinationDoesNotExistAsFileParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified destination exists' {
-                    $testPathParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testTargetResourceParameters.Destination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-Path' -ParameterFilter $testPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the specified archive exists at the specified destination' {
-                    $testArchiveExistsAtDestinationParameterFilter = {
-                        $archiveSourcePathParameterCorrect = $ArchiveSourcePath -eq $testTargetResourceParameters.Path
-                        $destinationParameterCorrect = $Destination -eq $testTargetResourceParameters.Destination
-
-                        return $archiveSourcePathParameterCorrect -and $destinationParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-ArchiveExistsAtDestination' -ParameterFilter $testArchiveExistsAtDestinationParameterFilter -Exactly 1 -Scope 'Context'  
-                }
-
-                It 'Should remove the mounted PSDrive' {
-                    $removePSDriveParameterFilter = {
-                        $nameParameterCorrect = $null -eq (Compare-Object -ReferenceObject $testPSDrive -DifferenceObject $Name)
-                        $forceParameterCorrect = $Force -eq $true
-
-                        return $nameParameterCorrect -and $forceParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Remove-PSDrive' -ParameterFilter $removePSDriveParameterFilter -Exactly 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Get-TargetResource' -ParameterFilter $getTargetResourceParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
                 It 'Should return true' {
@@ -2058,275 +1798,6 @@ Describe 'xArchive Unit Tests' {
                 It 'Should throw error for file at destination' {
                     $expectedErrorMessage = $script:localizedData.DestinationExistsAsFile -f $assertDestinationDoesNotExistAsFileParameters.Destination
                     { Assert-DestinationDoesNotExistAsFile @assertDestinationDoesNotExistAsFileParameters } | Should Throw $expectedErrorMessage
-                }
-            }
-        }
-
-        Describe 'Copy-ArchiveEntryToDestination' {
-            $testArchiveEntryFullNameWithBackslash = 'TestArchiveEntryFullName\'
-            $testArchiveEntryLastWriteTime = Get-Date
-
-            $testCopyFromStreamToStreamError = 'Test copy from stream to stream error'
-
-            $mockArchiveEntry = New-MockObject -Type 'System.IO.Compression.ZipArchiveEntry'
-            $mockFileStream = New-MockObject -Type 'System.IO.FileStream'
-
-            Mock -CommandName 'Get-ArchiveEntryFullName' { return $testArchiveEntryFullNameWithBackslash }
-            Mock -CommandName 'New-Item' -MockWith { }
-            Mock -CommandName 'Open-ArchiveEntry' -MockWith { return $mockFileStream }
-            Mock -CommandName 'New-Object' -MockWith {
-                if ($TypeName -eq 'System.IO.FileStream')
-                {
-                    return $mockFileStream
-                }
-                elseif ($TypeName -eq 'System.IO.FileInfo')
-                {
-                    return $null
-                }
-            }
-            Mock -CommandName 'Copy-FromStreamToStream' -MockWith { throw $testCopyFromStreamToStreamError }
-            Mock -CommandName 'Close-Stream' -MockWith { }
-            Mock -CommandName 'Get-ArchiveEntryLastWriteTime' -MockWith { return $testArchiveEntryLastWriteTime }
-            Mock -CommandName 'Set-ItemProperty' -MockWith { }
-
-            Context 'Archive entry name ends in a backslash (directory)' {
-                $copyArchiveEntryToDestinationParameters = @{
-                    ArchiveEntry = $mockArchiveEntry
-                    DestinationPath = 'TestDestinationPath'
-                }
-
-                It 'Should not throw' {
-                    { Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should retrieve the full name of the specified archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should create a new directory at the specified destination' {
-                    $newItemParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $copyArchiveEntryToDestinationParameters.DestinationPath
-                        $itemTypeParameterCorrect = $ItemType -eq 'Directory'
-
-                        return $pathParameterCorrect -and $itemTypeParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'New-Item' -ParameterFilter $newItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to open the specified archive entry' {
-                    Assert-MockCalled -CommandName 'Open-ArchiveEntry' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not attempt to create a new file stream at the specified destination' {
-                    $newObjectParameterFilter = {
-                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileStream'
-                        return $typeNameParameterIsFileStream
-                    }
-
-                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not attempt to copy the archive entry to the destination' {
-                    Assert-MockCalled -CommandName 'Copy-FromStreamToStream' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not attempt to close a file stream' {
-                    Assert-MockCalled -CommandName 'Close-Stream' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not attempt to create a new file info at the specified destination' {
-                    $newObjectParameterFilter = {
-                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileInfo'
-                        return $typeNameParameterIsFileStream
-                    }
-
-                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not attempt to retrieve the last write time of the specified archive entry' {
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryLastWriteTime' -Exactly 0 -Scope 'Context'
-                }
-                
-                It 'Should not attempt to set the last write time of the file at the specified destination' {
-                    $setItemPropertyParameterFilter = {
-                        $nameParameterIsLastWriteTime = $Name -eq 'LastWriteTime'
-                        return $nameParameterIsLastWriteTime
-                    }
-
-                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not attempt to set the last access time of the file at the specified destination' {
-                    $setItemPropertyParameterFilter = {
-                        $nameParameterIsLastWriteTime = $Name -eq 'LastAccessTime'
-                        return $nameParameterIsLastWriteTime
-                    }
-
-                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not attempt to set the creation time of the file at the specified destination' {
-                    $setItemPropertyParameterFilter = {
-                        $nameParameterIsLastWriteTime = $Name -eq 'CreationTime'
-                        return $nameParameterIsLastWriteTime
-                    }
-
-                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should not return' {
-                    Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters | Should Be $null
-                }
-            }
-
-            $testArchiveEntryFullNameNoBackslash = 'TestArchiveEntryFullName'
-            Mock -CommandName 'Get-ArchiveEntryFullName' { return $testArchiveEntryFullNameNoBackslash }
-
-            Context 'Archive entry name does not end in a backslash and copying from stream to stream fails' {
-                $copyArchiveEntryToDestinationParameters = @{
-                    ArchiveEntry = $mockArchiveEntry
-                    DestinationPath = 'TestDestinationPath'
-                }
-
-                It 'Should throw an error for failed copy from the file stream to the archive entry stream' {
-                    $expectedErrorMessage = $script:localizedData.ErrorCopyingFromArchiveToDestination -f $copyArchiveEntryToDestinationParameters.DestinationPath
-                    { Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters } | Should Throw $expectedErrorMessage
-                }
-            }
-
-            Mock -CommandName 'Copy-FromStreamToStream' -MockWith { }
-
-            Context 'Archive entry name does not end in a backslash and copying from stream to stream succeeds' {
-                $copyArchiveEntryToDestinationParameters = @{
-                    ArchiveEntry = $mockArchiveEntry
-                    DestinationPath = 'TestDestinationPath'
-                }
-
-                It 'Should not throw' {
-                    { Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should retrieve the full name of the specified archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to create a new directory at the specified destination' {
-                    Assert-MockCalled -CommandName 'New-Item' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should open the specified archive entry' {
-                    $openArchiveEntryParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-ArchiveEntry' -ParameterFilter $openArchiveEntryParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should create a new file stream at the specified destination' {
-                    $expectedArgumentList = @( $copyArchiveEntryToDestinationParameters.DestinationPath, [System.IO.FileMode]::Create )
-
-                    $newObjectParameterFilter = {
-                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileStream'
-                        $argumentListParameterCorrect = $null -eq (Compare-Object -ReferenceObject $expectedArgumentList -DifferenceObject $ArgumentList)
-
-                        return $typeNameParameterIsFileStream -and $argumentListParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should copy the archive entry to the destination' {
-                    $copyFromStreamToStreamParameterFilter = {
-                        $sourceStreamParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFileStream -DifferenceObject $SourceStream)
-                        $destinationStreamParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFileStream -DifferenceObject $DestinationStream)
-
-                        return $sourceStreamParameterCorrect -and $destinationStreamParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Copy-FromStreamToStream' -ParameterFilter $copyFromStreamToStreamParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should close the archive entry stream and the file stream' {
-                    $closeStreamParameterFilter = {
-                        $streamParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFileStream -DifferenceObject $Stream)
-                        return $streamParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Stream' -ParameterFilter $closeStreamParameterFilter -Exactly 2 -Scope 'Context'
-                }
-
-                It 'Should create a new file info at the specified destination' {
-                    $expectedArgumentList = @( $copyArchiveEntryToDestinationParameters.DestinationPath )
-
-                    $newObjectParameterFilter = {
-                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileInfo'
-                        $argumentListParameterCorrect = $null -eq (Compare-Object -ReferenceObject $expectedArgumentList -DifferenceObject $ArgumentList)
-
-                        return $typeNameParameterIsFileStream -and $argumentListParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the last write time of the specified archive entry' {
-                    $getArchiveEntryLastWriteTimeParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryLastWriteTime' -ParameterFilter $getArchiveEntryLastWriteTimeParameterFilter -Exactly 1 -Scope 'Context'
-                }
-                
-                It 'Should set the last write time of the file at the specified destination' {
-                    $setItemPropertyParameterFilter = {
-                        $nameParameterIsLastWriteTime = $Name -eq 'LastWriteTime'
-                        $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
-                        $valueParameterCorrect = $Value -eq $testArchiveEntryLastWriteTime
-
-                        return $nameParameterIsLastWriteTime -and $literalPathParameterCorrect -and $valueParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to set the last access time of the file at the specified destination' {
-                    $setItemPropertyParameterFilter = {
-                        $nameParameterIsLastWriteTime = $Name -eq 'LastAccessTime'
-                        $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
-                        $valueParameterCorrect = $Value -eq $testArchiveEntryLastWriteTime
-
-                        return $nameParameterIsLastWriteTime -and $literalPathParameterCorrect -and $valueParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to set the creation time of the file at the specified destination' {
-                    $setItemPropertyParameterFilter = {
-                        $nameParameterIsLastWriteTime = $Name -eq 'CreationTime'
-                        $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
-                        $valueParameterCorrect = $Value -eq $testArchiveEntryLastWriteTime
-
-                        return $nameParameterIsLastWriteTime -and $literalPathParameterCorrect -and $valueParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not return' {
-                    Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters | Should Be $null
                 }
             }
         }
@@ -2887,6 +2358,1085 @@ Describe 'xArchive Unit Tests' {
 
                 It 'Should return true' {
                     Test-FileMatchesArchiveEntryByChecksum @testFileMatchesArchiveEntryByChecksumParameters | Should Be $true
+                }
+            }
+        }
+
+        Describe 'Test-ArchiveExistsAtDestination' {
+            $testArchiveEntryFullNameWithBackslash = 'TestArchiveEntryFullName\'
+            $testArchiveEntryFullNameNoBackslash = 'TestArchiveEntryFullName'
+            $testItemPathAtDestination = 'TestItemPathAtDestination'
+            $testParentDirectoryPath = 'TestParentDirectoryPath'
+
+            $mockArchive = New-MockObject -Type 'System.IO.Compression.ZipArchive'
+            $mockArchiveEntry = New-MockObject -Type 'System.IO.Compression.ZipArchiveEntry'
+            $mockFile = New-MockObject -Type 'System.IO.FileInfo'
+            $mockDirectory = New-MockObject -Type 'System.IO.DirectoryInfo'
+            
+            Mock -CommandName 'Open-Archive' -MockWith { return $mockArchive }
+            Mock -CommandName 'Get-ArchiveEntries' -MockWith { return @( $mockArchiveEntry ) }
+            Mock -CommandName 'Get-ArchiveEntryFullName' -MockWith { return $testArchiveEntryFullNameWithBackslash }
+            Mock -CommandName 'Join-Path' -MockWith { return $testItemPathAtDestination }
+            Mock -CommandName 'Get-Item' -MockWith { return $null }
+            Mock -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -MockWith { return $false }
+            Mock -CommandName 'Close-Archive' -MockWith { }
+
+            Context 'Archive entry is a directory and does not exist at destination' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return $mockFile }
+
+            Context 'Archive entry is a directory and item with the same name exists at the destination but is a file' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return 'NotAFileOrADirectory' }
+
+            Context 'Archive entry is a directory and item with the same name exists at the destination but is not a file or a directory' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return $mockDirectory }
+
+            Context 'Archive entry is a directory and directory with the same name exists at the destination' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $true
+                }
+            }
+
+            Mock -CommandName 'Get-ArchiveEntryFullName' -MockWith { return $testArchiveEntryFullNameNoBackslash }
+            Mock -CommandName 'Get-Item' -MockWith { return $null }
+
+            Context 'Archive entry is a file and does not exist at destination' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return $mockDirectory }
+
+            Context 'Archive entry is a file and item with the same name exists at the destination but is a directory' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return 'NotAFileOrADirectory' }
+
+            Context 'Archive entry is a file and item with the same name exists at the destination but is not a file or a directory' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return $mockFile }
+
+            Context 'Archive entry is a file, file with the same name exists at the destination, and a checksum method is not specified' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $true
+                }
+            }
+
+            Context 'Archive entry is a file, file with the same name exists at the destination, and files do not match by the specified checksum method' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                    Checksum = 'SHA-256'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    $testFileMatchesArchiveEntryByChecksumParameterFilter = {
+                        $fileParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFile -DifferenceObject $File)
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        $checksumParameterCorrect = $Checksum -eq $testArchiveExistsAtDestinationParameters.Checksum
+
+                        return $fileParameterCorrect -and $archiveEntryParameterCorrect -and $checksumParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -ParameterFilter $testFileMatchesArchiveEntryByChecksumParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return false' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
+                }
+            }
+
+            Mock -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -MockWith { return $true }
+
+            Context 'Archive entry is a file, file with the same name exists at the destination, and files match by the specified checksum method' {
+                $testArchiveExistsAtDestinationParameters = @{
+                    ArchiveSourcePath = 'TestArchiveSourcePath'
+                    Destination = 'TestDestination'
+                    Checksum = 'SHA-256'
+                }
+
+                It 'Should not throw' {
+                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should open the archive' {
+                    $openArchiveParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
+                        return $pathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the entries of the specified archive' {
+                    $getArchiveEntriesParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the full name of the current archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should find the desired path of the archive entry at the destination' {
+                    $joinPathParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
+                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
+                        
+                        return $pathParameterCorrect -and $childPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
+                    $getItemParameterFilter = {
+                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
+                        return $literalPathParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
+                    $testFileMatchesArchiveEntryByChecksumParameterFilter = {
+                        $fileParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFile -DifferenceObject $File)
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        $checksumParameterCorrect = $Checksum -eq $testArchiveExistsAtDestinationParameters.Checksum
+
+                        return $fileParameterCorrect -and $archiveEntryParameterCorrect -and $checksumParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -ParameterFilter $testFileMatchesArchiveEntryByChecksumParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should close the opened archive' {
+                    $closeArchiveParameterFilter = {
+                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
+                        return $archiveParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should return true' {
+                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $true
+                }
+            }
+        }
+
+        Describe 'Copy-ArchiveEntryToDestination' {
+            $testArchiveEntryFullNameWithBackslash = 'TestArchiveEntryFullName\'
+            $testArchiveEntryLastWriteTime = Get-Date
+
+            $testCopyFromStreamToStreamError = 'Test copy from stream to stream error'
+
+            $mockArchiveEntry = New-MockObject -Type 'System.IO.Compression.ZipArchiveEntry'
+            $mockFileStream = New-MockObject -Type 'System.IO.FileStream'
+
+            Mock -CommandName 'Get-ArchiveEntryFullName' { return $testArchiveEntryFullNameWithBackslash }
+            Mock -CommandName 'New-Item' -MockWith { }
+            Mock -CommandName 'Open-ArchiveEntry' -MockWith { return $mockFileStream }
+            Mock -CommandName 'New-Object' -MockWith {
+                if ($TypeName -eq 'System.IO.FileStream')
+                {
+                    return $mockFileStream
+                }
+                elseif ($TypeName -eq 'System.IO.FileInfo')
+                {
+                    return $null
+                }
+            }
+            Mock -CommandName 'Copy-FromStreamToStream' -MockWith { throw $testCopyFromStreamToStreamError }
+            Mock -CommandName 'Close-Stream' -MockWith { }
+            Mock -CommandName 'Get-ArchiveEntryLastWriteTime' -MockWith { return $testArchiveEntryLastWriteTime }
+            Mock -CommandName 'Set-ItemProperty' -MockWith { }
+
+            Context 'Archive entry name ends in a backslash (directory)' {
+                $copyArchiveEntryToDestinationParameters = @{
+                    ArchiveEntry = $mockArchiveEntry
+                    DestinationPath = 'TestDestinationPath'
+                }
+
+                It 'Should not throw' {
+                    { Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should retrieve the full name of the specified archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should create a new directory at the specified destination' {
+                    $newItemParameterFilter = {
+                        $pathParameterCorrect = $Path -eq $copyArchiveEntryToDestinationParameters.DestinationPath
+                        $itemTypeParameterCorrect = $ItemType -eq 'Directory'
+
+                        return $pathParameterCorrect -and $itemTypeParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'New-Item' -ParameterFilter $newItemParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to open the specified archive entry' {
+                    Assert-MockCalled -CommandName 'Open-ArchiveEntry' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not attempt to create a new file stream at the specified destination' {
+                    $newObjectParameterFilter = {
+                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileStream'
+                        return $typeNameParameterIsFileStream
+                    }
+
+                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not attempt to copy the archive entry to the destination' {
+                    Assert-MockCalled -CommandName 'Copy-FromStreamToStream' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not attempt to close a file stream' {
+                    Assert-MockCalled -CommandName 'Close-Stream' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not attempt to create a new file info at the specified destination' {
+                    $newObjectParameterFilter = {
+                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileInfo'
+                        return $typeNameParameterIsFileStream
+                    }
+
+                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not attempt to retrieve the last write time of the specified archive entry' {
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryLastWriteTime' -Exactly 0 -Scope 'Context'
+                }
+                
+                It 'Should not attempt to set the last write time of the file at the specified destination' {
+                    $setItemPropertyParameterFilter = {
+                        $nameParameterIsLastWriteTime = $Name -eq 'LastWriteTime'
+                        return $nameParameterIsLastWriteTime
+                    }
+
+                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not attempt to set the last access time of the file at the specified destination' {
+                    $setItemPropertyParameterFilter = {
+                        $nameParameterIsLastWriteTime = $Name -eq 'LastAccessTime'
+                        return $nameParameterIsLastWriteTime
+                    }
+
+                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not attempt to set the creation time of the file at the specified destination' {
+                    $setItemPropertyParameterFilter = {
+                        $nameParameterIsLastWriteTime = $Name -eq 'CreationTime'
+                        return $nameParameterIsLastWriteTime
+                    }
+
+                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should not return' {
+                    Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters | Should Be $null
+                }
+            }
+
+            $testArchiveEntryFullNameNoBackslash = 'TestArchiveEntryFullName'
+            Mock -CommandName 'Get-ArchiveEntryFullName' { return $testArchiveEntryFullNameNoBackslash }
+
+            Context 'Archive entry name does not end in a backslash and copying from stream to stream fails' {
+                $copyArchiveEntryToDestinationParameters = @{
+                    ArchiveEntry = $mockArchiveEntry
+                    DestinationPath = 'TestDestinationPath'
+                }
+
+                It 'Should throw an error for failed copy from the file stream to the archive entry stream' {
+                    $expectedErrorMessage = $script:localizedData.ErrorCopyingFromArchiveToDestination -f $copyArchiveEntryToDestinationParameters.DestinationPath
+                    { Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters } | Should Throw $expectedErrorMessage
+                }
+            }
+
+            Mock -CommandName 'Copy-FromStreamToStream' -MockWith { }
+
+            Context 'Archive entry name does not end in a backslash and copying from stream to stream succeeds' {
+                $copyArchiveEntryToDestinationParameters = @{
+                    ArchiveEntry = $mockArchiveEntry
+                    DestinationPath = 'TestDestinationPath'
+                }
+
+                It 'Should not throw' {
+                    { Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters } | Should Not Throw
+                }
+
+                It 'Should retrieve the full name of the specified archive entry' {
+                    $getArchiveEntryFullNameParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to create a new directory at the specified destination' {
+                    Assert-MockCalled -CommandName 'New-Item' -Exactly 0 -Scope 'Context'
+                }
+
+                It 'Should open the specified archive entry' {
+                    $openArchiveEntryParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Open-ArchiveEntry' -ParameterFilter $openArchiveEntryParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should create a new file stream at the specified destination' {
+                    $expectedArgumentList = @( $copyArchiveEntryToDestinationParameters.DestinationPath, [System.IO.FileMode]::Create )
+
+                    $newObjectParameterFilter = {
+                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileStream'
+                        $argumentListParameterCorrect = $null -eq (Compare-Object -ReferenceObject $expectedArgumentList -DifferenceObject $ArgumentList)
+
+                        return $typeNameParameterIsFileStream -and $argumentListParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should copy the archive entry to the destination' {
+                    $copyFromStreamToStreamParameterFilter = {
+                        $sourceStreamParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFileStream -DifferenceObject $SourceStream)
+                        $destinationStreamParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFileStream -DifferenceObject $DestinationStream)
+
+                        return $sourceStreamParameterCorrect -and $destinationStreamParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Copy-FromStreamToStream' -ParameterFilter $copyFromStreamToStreamParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should close the archive entry stream and the file stream' {
+                    $closeStreamParameterFilter = {
+                        $streamParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFileStream -DifferenceObject $Stream)
+                        return $streamParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Close-Stream' -ParameterFilter $closeStreamParameterFilter -Exactly 2 -Scope 'Context'
+                }
+
+                It 'Should create a new file info at the specified destination' {
+                    $expectedArgumentList = @( $copyArchiveEntryToDestinationParameters.DestinationPath )
+
+                    $newObjectParameterFilter = {
+                        $typeNameParameterIsFileStream = $TypeName -eq 'System.IO.FileInfo'
+                        $argumentListParameterCorrect = $null -eq (Compare-Object -ReferenceObject $expectedArgumentList -DifferenceObject $ArgumentList)
+
+                        return $typeNameParameterIsFileStream -and $argumentListParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'New-Object' -ParameterFilter $newObjectParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should retrieve the last write time of the specified archive entry' {
+                    $getArchiveEntryLastWriteTimeParameterFilter = {
+                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
+                        return $archiveEntryParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-ArchiveEntryLastWriteTime' -ParameterFilter $getArchiveEntryLastWriteTimeParameterFilter -Exactly 1 -Scope 'Context'
+                }
+                
+                It 'Should set the last write time of the file at the specified destination' {
+                    $setItemPropertyParameterFilter = {
+                        $nameParameterIsLastWriteTime = $Name -eq 'LastWriteTime'
+                        $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
+                        $valueParameterCorrect = $Value -eq $testArchiveEntryLastWriteTime
+
+                        return $nameParameterIsLastWriteTime -and $literalPathParameterCorrect -and $valueParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to set the last access time of the file at the specified destination' {
+                    $setItemPropertyParameterFilter = {
+                        $nameParameterIsLastWriteTime = $Name -eq 'LastAccessTime'
+                        $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
+                        $valueParameterCorrect = $Value -eq $testArchiveEntryLastWriteTime
+
+                        return $nameParameterIsLastWriteTime -and $literalPathParameterCorrect -and $valueParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not attempt to set the creation time of the file at the specified destination' {
+                    $setItemPropertyParameterFilter = {
+                        $nameParameterIsLastWriteTime = $Name -eq 'CreationTime'
+                        $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
+                        $valueParameterCorrect = $Value -eq $testArchiveEntryLastWriteTime
+
+                        return $nameParameterIsLastWriteTime -and $literalPathParameterCorrect -and $valueParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
+                It 'Should not return' {
+                    Copy-ArchiveEntryToDestination @copyArchiveEntryToDestinationParameters | Should Be $null
                 }
             }
         }
@@ -5555,816 +6105,6 @@ Describe 'xArchive Unit Tests' {
 
                 It 'Should not return anything' {
                     Remove-ArchiveFromDestination @removeArchiveFromDestinationParameters | Should Be $null
-                }
-            }
-        }
-
-        Describe 'Test-ArchiveExistsAtDestination' {
-            $testArchiveEntryFullNameWithBackslash = 'TestArchiveEntryFullName\'
-            $testArchiveEntryFullNameNoBackslash = 'TestArchiveEntryFullName'
-            $testItemPathAtDestination = 'TestItemPathAtDestination'
-            $testParentDirectoryPath = 'TestParentDirectoryPath'
-
-            $mockArchive = New-MockObject -Type 'System.IO.Compression.ZipArchive'
-            $mockArchiveEntry = New-MockObject -Type 'System.IO.Compression.ZipArchiveEntry'
-            $mockFile = New-MockObject -Type 'System.IO.FileInfo'
-            $mockDirectory = New-MockObject -Type 'System.IO.DirectoryInfo'
-            
-            Mock -CommandName 'Open-Archive' -MockWith { return $mockArchive }
-            Mock -CommandName 'Get-ArchiveEntries' -MockWith { return @( $mockArchiveEntry ) }
-            Mock -CommandName 'Get-ArchiveEntryFullName' -MockWith { return $testArchiveEntryFullNameWithBackslash }
-            Mock -CommandName 'Join-Path' -MockWith { return $testItemPathAtDestination }
-            Mock -CommandName 'Get-Item' -MockWith { return $null }
-            Mock -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -MockWith { return $false }
-            Mock -CommandName 'Close-Archive' -MockWith { }
-
-            Context 'Archive entry is a directory and does not exist at destination' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
-                }
-            }
-
-            Mock -CommandName 'Get-Item' -MockWith { return $mockFile }
-
-            Context 'Archive entry is a directory and item with the same name exists at the destination but is a file' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
-                }
-            }
-
-            Mock -CommandName 'Get-Item' -MockWith { return 'NotAFileOrADirectory' }
-
-            Context 'Archive entry is a directory and item with the same name exists at the destination but is not a file or a directory' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
-                }
-            }
-
-            Mock -CommandName 'Get-Item' -MockWith { return $mockDirectory }
-
-            Context 'Archive entry is a directory and directory with the same name exists at the destination' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameWithBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return true' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $true
-                }
-            }
-
-            Mock -CommandName 'Get-ArchiveEntryFullName' -MockWith { return $testArchiveEntryFullNameNoBackslash }
-            Mock -CommandName 'Get-Item' -MockWith { return $null }
-
-            Context 'Archive entry is a file and does not exist at destination' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
-                }
-            }
-
-            Mock -CommandName 'Get-Item' -MockWith { return $mockDirectory }
-
-            Context 'Archive entry is a file and item with the same name exists at the destination but is a directory' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
-                }
-            }
-
-            Mock -CommandName 'Get-Item' -MockWith { return 'NotAFileOrADirectory' }
-
-            Context 'Archive entry is a file and item with the same name exists at the destination but is not a file or a directory' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
-                }
-            }
-
-            Mock -CommandName 'Get-Item' -MockWith { return $mockFile }
-
-            Context 'Archive entry is a file, file with the same name exists at the destination, and a checksum method is not specified' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should not attempt to test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -Exactly 0 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return true' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $true
-                }
-            }
-
-            Context 'Archive entry is a file, file with the same name exists at the destination, and files do not match by the specified checksum method' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                    Checksum = 'SHA-256'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    $testFileMatchesArchiveEntryByChecksumParameterFilter = {
-                        $fileParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFile -DifferenceObject $File)
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        $checksumParameterCorrect = $Checksum -eq $testArchiveExistsAtDestinationParameters.Checksum
-
-                        return $fileParameterCorrect -and $archiveEntryParameterCorrect -and $checksumParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -ParameterFilter $testFileMatchesArchiveEntryByChecksumParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return false' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $false
-                }
-            }
-
-            Mock -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -MockWith { return $true }
-
-            Context 'Archive entry is a file, file with the same name exists at the destination, and files match by the specified checksum method' {
-                $testArchiveExistsAtDestinationParameters = @{
-                    ArchiveSourcePath = 'TestArchiveSourcePath'
-                    Destination = 'TestDestination'
-                    Checksum = 'SHA-256'
-                }
-
-                It 'Should not throw' {
-                    { Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters } | Should Not Throw
-                }
-
-                It 'Should open the archive' {
-                    $openArchiveParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.ArchiveSourcePath
-                        return $pathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Open-Archive' -ParameterFilter $openArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the entries of the specified archive' {
-                    $getArchiveEntriesParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntries' -ParameterFilter $getArchiveEntriesParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the full name of the current archive entry' {
-                    $getArchiveEntryFullNameParameterFilter = {
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        return $archiveEntryParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-ArchiveEntryFullName' -ParameterFilter $getArchiveEntryFullNameParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should find the desired path of the archive entry at the destination' {
-                    $joinPathParameterFilter = {
-                        $pathParameterCorrect = $Path -eq $testArchiveExistsAtDestinationParameters.Destination
-                        $childPathParameterCorrect = $ChildPath -eq $testArchiveEntryFullNameNoBackslash
-                        
-                        return $pathParameterCorrect -and $childPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Join-Path' -ParameterFilter $joinPathParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the item at the desired path of the archive entry at the destination' {
-                    $getItemParameterFilter = {
-                        $literalPathParameterCorrect = $LiteralPath -eq $testItemPathAtDestination
-                        return $literalPathParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should test if the file at the desired path of the archive entry at the destination matches the archive entry by the specified checksum method' {
-                    $testFileMatchesArchiveEntryByChecksumParameterFilter = {
-                        $fileParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockFile -DifferenceObject $File)
-                        $archiveEntryParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchiveEntry -DifferenceObject $ArchiveEntry)
-                        $checksumParameterCorrect = $Checksum -eq $testArchiveExistsAtDestinationParameters.Checksum
-
-                        return $fileParameterCorrect -and $archiveEntryParameterCorrect -and $checksumParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Test-FileMatchesArchiveEntryByChecksum' -ParameterFilter $testFileMatchesArchiveEntryByChecksumParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should close the opened archive' {
-                    $closeArchiveParameterFilter = {
-                        $archiveParameterCorrect = $null -eq (Compare-Object -ReferenceObject $mockArchive -DifferenceObject $Archive)
-                        return $archiveParameterCorrect
-                    }
-
-                    Assert-MockCalled -CommandName 'Close-Archive' -ParameterFilter $closeArchiveParameterFilter -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should return true' {
-                    Test-ArchiveExistsAtDestination @testArchiveExistsAtDestinationParameters | Should Be $true
                 }
             }
         }

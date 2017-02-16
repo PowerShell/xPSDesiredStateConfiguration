@@ -12,7 +12,7 @@ For more information see the [Code of Conduct FAQ](https://opensource.microsoft.
 
 ## Contributing
 
-If you qould like to contribute to this module, please review the common DSC Resources [contributing guidelines](https://github.com/PowerShell/DscResource.Kit/blob/master/CONTRIBUTING.md).
+If you would like to contribute to this module, please review the common DSC Resources [contributing guidelines](https://github.com/PowerShell/DscResource.Kit/blob/master/CONTRIBUTING.md).
 
 ## Resources
 
@@ -594,14 +594,12 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 
 ### Unreleased
 
-
 * Moved DSC pull server setup tests to DSCPullServerSetup folder for new common tests
 * xArchive:
     * Updated the resource to be a high quality resource
     * Transferred the existing "unit" tests to integration tests
     * Added unit and end-to-end tests
     * Updated documentation and examples
-
 * xUser
     * Fixed error handling in xUser
 
