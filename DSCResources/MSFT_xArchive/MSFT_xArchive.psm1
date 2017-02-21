@@ -204,9 +204,9 @@ function Get-TargetResource
         specified checksum method.
         
         If the file does not match and Ensure is specified as Present and Force is not specified,
-        the resource will throw an error that the file at the desintation cannot be overwritten.
+        the resource will throw an error that the file at the destination cannot be overwritten.
         If the file does not match and Ensure is specified as Present and Force is specified, the
-        file at the desintation will be overwritten.
+        file at the destination will be overwritten.
         If the file does not match and Ensure is specified as Absent, the file at the destination
         will not be removed.
 
@@ -1045,13 +1045,13 @@ function Test-FileMatchesArchiveEntryByChecksum
 
         if ($fileHashMatchesArchiveEntryHash)
         {
-            Write-Verbose -Message ($script:localizedData.FilesMatchesArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
+            Write-Verbose -Message ($script:localizedData.FileMatchesArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
 
             $fileMatchesArchiveEntry = $true
         }
         else
         {
-            Write-Verbose -Message ($script:localizedData.FilesDoesNotMatchArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
+            Write-Verbose -Message ($script:localizedData.FileDoesNotMatchArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
         }
     }
     else
@@ -1062,13 +1062,13 @@ function Test-FileMatchesArchiveEntryByChecksum
 
         if ($fileTimestampForChecksum.Equals($archiveEntryLastWriteTime))
         {
-            Write-Verbose -Message ($script:localizedData.FilesMatchesArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
+            Write-Verbose -Message ($script:localizedData.FileMatchesArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
 
             $fileMatchesArchiveEntry = $true
         }
         else
         {
-            Write-Verbose -Message ($script:localizedData.FilesDoesNotMatchArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
+            Write-Verbose -Message ($script:localizedData.FileDoesNotMatchArchiveEntryByChecksum -f $File.FullName, $archiveEntryFullName, $Checksum)
         }
     }
 

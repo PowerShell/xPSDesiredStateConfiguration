@@ -1,11 +1,11 @@
 <#
     .SYNOPSIS
-        Expands the archive located at 'C:\ArchivePath\Archive.zip' to the destination path
-        'C:\DestinationPath\Destination'.
+        Expands the archive located at 'C:\ExampleArchivePath\Archive.zip' to the destination path
+        'C:\ExampleDestinationPath\Destination'.
 
         Since Validate is specified as $true and the Checksum parameter is specified as SHA-256, the
         resource will check if the SHA-256 hash of the file in the archive matches the SHA-256 hash
-        of the correspnding file at the destination and replace any files that do not match.
+        of the corresponding file at the destination and replace any files that do not match.
 
         Since Force is specified as $true, the resource will overwrite any mismatching files at the
         destination. If Force is specified as $false, the resource will throw an error instead of
@@ -17,10 +17,10 @@ Configuration Sample_xArchive_ExpandArchiveChecksumAndForce
 
     Node localhost
     {
-        xArchive Archive3
+        xArchive Archive4
         {
-            Path = 'C:\ArchivePath\Archive.zip'
-            Destination = 'C:\DestinationPath\Destination'
+            Path = 'C:\ExampleArchivePath\Archive.zip'
+            Destination = 'C:\ExampleDestinationPath\Destination'
             Validate = $true
             Checksum = 'SHA-256'
             Force = $true

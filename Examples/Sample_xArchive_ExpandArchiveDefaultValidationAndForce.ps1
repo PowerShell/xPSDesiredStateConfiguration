@@ -1,7 +1,7 @@
 <#
     .SYNOPSIS
-        Expands the archive located at 'C:\ArchivePath\Archive.zip' to the destination path
-        'C:\DestinationPath\Destination'.
+        Expands the archive located at 'C:\ExampleArchivePath\Archive.zip' to the destination path
+        'C:\ExampleDestinationPath\Destination'.
 
         Since Validate is specified as $true and the Checksum parameter is not provided, the
         resource will check if the last write time of the archive file matches the last write time
@@ -17,10 +17,10 @@ Configuration Sample_xArchive_ExpandArchiveDefaultValidationAndForce
 
     Node localhost
     {
-        xArchive Archive2
+        xArchive Archive3
         {
-            Path = 'C:\ArchivePath\Archive.zip'
-            Destination = 'C:\DestinationPath\Destination'
+            Path = 'C:\ExampleArchivePath\Archive.zip'
+            Destination = 'C:\ExampleDestinationPath\Destination'
             Validate = $true
             Force = $true
             Ensure = 'Present'

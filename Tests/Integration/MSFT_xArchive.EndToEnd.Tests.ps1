@@ -158,7 +158,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
@@ -240,7 +240,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
@@ -285,7 +285,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
@@ -311,7 +311,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
@@ -332,7 +332,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
@@ -366,11 +366,11 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
-        It 'File contents of destination should not match the file contents of the archive' {
+        It 'File contents of destination should not match the file contents of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
@@ -391,11 +391,11 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
-        It 'File contents of destination should not match the file contents of the archive' {
+        It 'File contents of destination should not match the file contents of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
@@ -424,11 +424,11 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
-        It 'File contents of destination should match the file contents of the archive' {
+        It 'File contents of destination should match the file contents of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
@@ -449,11 +449,11 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
-        It 'File contents of destination should match the file contents of the archive' {
+        It 'File contents of destination should match the file contents of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
@@ -482,11 +482,11 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
-        It 'File contents of destination should match the file contents of the archive' {
+        It 'File contents of destination should match the file contents of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
@@ -507,7 +507,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
@@ -533,7 +533,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should not match the file structure of the archive' {
+        It 'File structure of destination should not match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $false
         }
 
@@ -595,7 +595,9 @@ Describe 'xArchive End to End Tests' {
             }
         }
 
-        # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
+        It 'File structure of destination should match the file structure of the archive before configuration' {
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
+        }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
@@ -643,7 +645,9 @@ Describe 'xArchive End to End Tests' {
             }
         }
 
-        # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
+        It 'File structure of destination should not match the file structure of the archive after configuration' {
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $false
+        }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
             MSFT_xArchive\Test-TargetResource @archiveParameters | Should Be $true
@@ -660,7 +664,9 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
+        It 'File structure of destination should not match the file structure of the archive before configuration' {
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $false
+        }
 
         $archiveParameters = @{
             Path = $script:testArchiveFilePath
@@ -684,7 +690,9 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        # Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $emptyDestination
+        It 'File structure of destination should not match the file structure of the archive after configuration' {
+            Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $false
+        }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
             MSFT_xArchive\Test-TargetResource @archiveParameters | Should Be $true
@@ -739,11 +747,11 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
-        It 'File contents of destination should not match the file contents of the archive' {
+        It 'File contents of destination should not match the file contents of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
@@ -772,11 +780,11 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should match the file structure of the archive' {
+        It 'File structure of destination should match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $true
         }
 
-        It 'File contents of destination should not match the file contents of the archive' {
+        It 'File contents of destination should not match the file contents of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $false
         }
 
@@ -797,7 +805,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure and contents of destination should match the file contents of the archive' {
+        It 'File structure and contents of destination should match the file contents of the archive before configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination -CheckContents | Should Be $true
         }
 
@@ -826,7 +834,7 @@ Describe 'xArchive End to End Tests' {
             Test-Path -Path $destination | Should Be $true
         }
 
-        It 'File structure of destination should not match the file structure of the archive' {
+        It 'File structure of destination should not match the file structure of the archive after configuration' {
             Test-FileStructuresMatch -SourcePath $script:testArchiveFilePathWithoutExtension -DestinationPath $destination | Should Be $false
         }
 

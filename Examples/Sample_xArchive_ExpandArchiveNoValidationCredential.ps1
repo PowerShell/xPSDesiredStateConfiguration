@@ -1,7 +1,7 @@
 ﻿<#
     .SYNOPSIS
-        Expands the archive located at 'C:\ArchivePath\Archive.zip' to the destination path
-        'C:\DestinationPath\Destination'.
+        Expands the archive located at 'C:\ExampleArchivePath\Archive.zip' to the destination path
+        'C:\ExampleDestinationPath\Destination'.
 
         The added specification of a Credential here allows you to provide the credential of a user
         to provide the resource access to the archive and destination paths.
@@ -24,10 +24,10 @@ Configuration Sample_xArchive_ExpandArchiveNoValidationCredential
 
     Node localhost
     {
-        xArchive Archive1
+        xArchive Archive2
         {
-            Path = 'C:\ArchivePath\Archive.zip'
-            Destination = 'C:\DestinationPath\Destination'
+            Path = 'C:\ExampleArchivePath\Archive.zip'
+            Destination = 'C:\ExampleDestinationPath\Destination'
             Credential = $Credential
             Ensure = 'Present'
         }

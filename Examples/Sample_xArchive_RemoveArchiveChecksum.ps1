@@ -1,11 +1,11 @@
 ﻿<#
     .SYNOPSIS
-        Remove the expansion of the archive located at 'C:\ArchivePath\Archive.zip' from the
-        destination path 'C:\DestinationPath\Destination'.
+        Remove the expansion of the archive located at 'C:\ExampleArchivePath\Archive.zip' from the
+        destination path 'C:\ExampleDestinationPath\Destination'.
 
         Since Validate is specified as $true and the Checksum parameter is specified as SHA-256, the
         resource will check if the SHA-256 hash of the file in the archive matches the SHA-256 hash
-        of the correspnding file at the destination and will not remove any files that do not match.
+        of the corresponding file at the destination and will not remove any files that do not match.
 #>
 Configuration Sample_xArchive_RemoveArchiveChecksum
 {
@@ -13,10 +13,10 @@ Configuration Sample_xArchive_RemoveArchiveChecksum
 
     Node localhost
     {
-        xArchive Archive4
+        xArchive Archive6
         {
-            Path = 'C:\ArchivePath\Archive.zip'
-            Destination = 'C:\DestinationPath\Destination'
+            Path = 'C:\ExampleArchivePath\Archive.zip'
+            Destination = 'C:\ExampleDestinationPath\Destination'
             Validate = $true
             Checksum = 'SHA-256'
             Ensure = 'Absent'

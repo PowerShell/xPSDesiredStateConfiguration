@@ -65,7 +65,7 @@ function ConvertTo-FileStructure
 <#
     .SYNOPSIS
         Creates a new zip file with the specified name and file structure under the specified parent path.
-        Returns the file path the to compressed zip file.
+        Returns the file path to the compressed zip file.
     
     .PARAMETER ParentPath
         The path under which the new zip file should be created.

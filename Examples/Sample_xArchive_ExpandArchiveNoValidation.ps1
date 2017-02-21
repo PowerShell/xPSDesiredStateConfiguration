@@ -1,7 +1,7 @@
 <#
     .SYNOPSIS
-        Expands the archive located at 'C:\ArchivePath\Archive.zip' to the destination path
-        'C:\DestinationPath\Destination'.
+        Expands the archive located at 'C:\ExampleArchivePath\Archive.zip' to the destination path
+        'C:\ExampleDestinationPath\Destination'.
 
         The resource will only check if the expanded archive files exist at the destination. 
         No validation is performed on any existing files at the destination to ensure that they
@@ -15,8 +15,8 @@ Configuration Sample_xArchive_ExpandArchiveNoValidation
     {
         xArchive Archive1
         {
-            Path = 'C:\ArchivePath\Archive.zip'
-            Destination = 'C:\DestinationPath\Destination'
+            Path = 'C:\ExampleArchivePath\Archive.zip'
+            Destination = 'C:\ExampleDestinationPath\Destination'
             Ensure = 'Present'
         }
     }
