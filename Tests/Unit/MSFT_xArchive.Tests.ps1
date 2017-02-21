@@ -2078,10 +2078,12 @@ Describe 'xArchive Unit Tests' {
         }
 
         Describe 'Get-TimestampForChecksum' {
+            Mock -CommandName 'Get-Date' -MockWith { return $Date }
+
             # This is the actual file info of this file since we cannot set the properties of mock objects
             $testFileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $PSScriptRoot )
-            $testFileCreationTime = $testFileInfo.CreationTime
-            $testFileLastWriteTime = $testFileInfo.LastWriteTime
+            $testFileCreationTime = $testFileInfo.CreationTime.DateTime
+            $testFileLastWriteTime = $testFileInfo.LastWriteTime.DateTime
 
             Context 'Checksum specified as CreatedDate' {
                 $getTimestampForChecksumParameters = @{
@@ -2093,8 +2095,19 @@ Describe 'xArchive Unit Tests' {
                     { $null = Get-TimestampForChecksum @getTimestampForChecksumParameters } | Should Not Throw
                 }
 
+                It 'Should normalize the date to the General (G) format' {
+                    $getDateParameterFilter = {
+                        $dateParameterCorrect = $Date -eq $testFileCreationTime
+                        $formatParameterCorrect = $Format -eq 'G'
+
+                        return $dateParameterCorrect -and $formatParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Date' -ParameterFilter $getDateParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
                 It 'Should return the creation time of the file' {
-                    Get-TimestampForChecksum @getTimestampForChecksumParameters | Should Be $testFileInfo.CreationTime
+                    Get-TimestampForChecksum @getTimestampForChecksumParameters | Should Be $testFileCreationTime
                 }
             }
 
@@ -2108,8 +2121,19 @@ Describe 'xArchive Unit Tests' {
                     { $null = Get-TimestampForChecksum @getTimestampForChecksumParameters } | Should Not Throw
                 }
 
+                It 'Should normalize the date to the General (G) format' {
+                    $getDateParameterFilter = {
+                        $dateParameterCorrect = $Date -eq $testFileLastWriteTime
+                        $formatParameterCorrect = $Format -eq 'G'
+
+                        return $dateParameterCorrect -and $formatParameterCorrect
+                    }
+
+                    Assert-MockCalled -CommandName 'Get-Date' -ParameterFilter $getDateParameterFilter -Exactly 1 -Scope 'Context'
+                }
+
                 It 'Should return the last write time of the file' {
-                    Get-TimestampForChecksum @getTimestampForChecksumParameters | Should Be $testFileInfo.LastWriteTime
+                    Get-TimestampForChecksum @getTimestampForChecksumParameters | Should Be $testFileLastWriteTime
                 }
             }
         }
