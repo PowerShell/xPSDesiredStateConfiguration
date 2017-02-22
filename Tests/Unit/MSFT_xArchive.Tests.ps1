@@ -930,7 +930,7 @@ Describe 'xArchive Unit Tests' {
                 }
             }
 
-            Context '*Valid archive path and destination specified, destination does not exist, Ensure specified as Absent, Validate specified as true, and Checksum specified' {
+            Context 'Valid archive path and destination specified, destination does not exist, Ensure specified as Absent, Validate specified as true, and Checksum specified' {
                 $setTargetResourceParameters = @{
                     Path = 'TestPath'
                     Destination = 'TestDestination'
@@ -1822,6 +1822,22 @@ Describe 'xArchive Unit Tests' {
             Context 'Specified checksum method name is not a SHA method name' {
                 $testChecksumIsShaParameters = @{
                     Checksum = 'CreatedDate'
+                }
+
+                It 'Should not throw' {
+                    { $null = Test-ChecksumIsSha @testChecksumIsShaParameters } | Should Not Throw
+                }
+
+                $testChecksumIsShaResult = Test-ChecksumIsSha @testChecksumIsShaParameters
+
+                It 'Should return false' {
+                    $testChecksumIsShaResult | Should Be $false
+                }
+            }
+
+            Context 'Specified checksum method name is less than 3 characters' {
+                $testChecksumIsShaParameters = @{
+                    Checksum = 'AB'
                 }
 
                 It 'Should not throw' {
@@ -3435,7 +3451,7 @@ Describe 'xArchive Unit Tests' {
                     Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
-                It 'Should not attempt to set the last access time of the file at the specified destination' {
+                It 'Should set the last access time of the file at the specified destination' {
                     $setItemPropertyParameterFilter = {
                         $nameParameterIsLastWriteTime = $Name -eq 'LastAccessTime'
                         $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
@@ -3447,7 +3463,7 @@ Describe 'xArchive Unit Tests' {
                     Assert-MockCalled -CommandName 'Set-ItemProperty' -ParameterFilter $setItemPropertyParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
-                It 'Should not attempt to set the creation time of the file at the specified destination' {
+                It 'Should set the creation time of the file at the specified destination' {
                     $setItemPropertyParameterFilter = {
                         $nameParameterIsLastWriteTime = $Name -eq 'CreationTime'
                         $literalPathParameterCorrect = $LiteralPath -eq $copyArchiveEntryToDestinationParameters.DestinationPath
@@ -4245,7 +4261,7 @@ Describe 'xArchive Unit Tests' {
                     Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
-                It 'Should find the parent directory of the desired path of the archive entry at the destination' {
+                It 'Should not attempt to find the parent directory of the desired path of the archive entry at the destination' {
                     Assert-MockCalled -CommandName 'Split-Path' -Exactly 0 -Scope 'Context'
                 }
 
@@ -4367,7 +4383,7 @@ Describe 'xArchive Unit Tests' {
                     Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
-                It 'Should find the parent directory of the desired path of the archive entry at the destination' {
+                It 'Should not attempt to find the parent directory of the desired path of the archive entry at the destination' {
                     Assert-MockCalled -CommandName 'Split-Path' -Exactly 0 -Scope 'Context'
                 }
 
@@ -4586,7 +4602,7 @@ Describe 'xArchive Unit Tests' {
                     Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
-                It 'Should find the parent directory of the desired path of the archive entry at the destination' {
+                It 'Should not attempt to find the parent directory of the desired path of the archive entry at the destination' {
                     Assert-MockCalled -CommandName 'Split-Path' -Exactly 0 -Scope 'Context'
                 }
 
@@ -4704,7 +4720,7 @@ Describe 'xArchive Unit Tests' {
                     Assert-MockCalled -CommandName 'Get-Item' -ParameterFilter $getItemParameterFilter -Exactly 1 -Scope 'Context'
                 }
 
-                It 'Should find the parent directory of the desired path of the archive entry at the destination' {
+                It 'Should not attempt to find the parent directory of the desired path of the archive entry at the destination' {
                     Assert-MockCalled -CommandName 'Split-Path' -Exactly 0 -Scope 'Context'
                 }
 
