@@ -73,18 +73,21 @@ try
 
             try
             {
+                $configurationScriptText = @"
                 Configuration $configurationName
                 {
                     Import-DscResource -ModuleName xPSDesiredStateConfiguration
 
                     xPackage Package1
                     {
-                        Path = $script:msiLocation
+                        Path = '$script:msiLocation'
                         Ensure = "Present"
-                        Name = $script:packageName
-                        ProductId = $script:packageId
+                        Name = '$script:packageName'
+                        ProductId = '$script:packageId'
                     }
                 }
+"@
+                .([scriptblock]::Create($configurationScriptText))
 
                 & $configurationName -OutputPath $configurationPath
 

@@ -15,7 +15,9 @@ try {
 
     Import-Module -Name (Join-Path -Path $PSScriptRoot `
                                    -ChildPath 'MSFT_xUserResource.TestHelper.psm1') `
-                                   -Force
+                                   -Force `
+                                   -Scope Global
+
 
     InModuleScope 'MSFT_xUserResource' {
         # Used to skip the Nano server tests for the time being since they are not working on AppVeyor
