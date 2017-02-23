@@ -35,5 +35,4 @@ test_script:
 deploy_script:
   - ps: |
         Invoke-AppveyorAfterTestTask `
-            -MainModulePath $mainModuleFolder `
             -ResourceModuleName $moduleName
