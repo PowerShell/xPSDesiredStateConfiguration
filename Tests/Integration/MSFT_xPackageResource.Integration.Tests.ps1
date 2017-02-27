@@ -80,10 +80,10 @@ try
 
                     xPackage Package1
                     {
-                        Path = $script:msiLocation
-                        Ensure = 'Present'
-                        Name = $script:packageName
-                        ProductId = $script:packageId
+                        Path = '$script:msiLocation'
+                        Ensure = "Present"
+                        Name = '$script:packageName'
+                        ProductId = '$script:packageId'
                     }
                 }
 "@
