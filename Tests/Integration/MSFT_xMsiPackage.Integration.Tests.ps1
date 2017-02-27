@@ -14,16 +14,8 @@ try
     InModuleScope 'MSFT_xMsiPackage' {
         Describe 'MSFT_xMsiPackage integration Tests' {
             BeforeAll {
-            <#
-                # Import msiPackage resource module for Get-TargetResource, Test-TargetResource, Set-TargetResource
-                $moduleRootFilePath = Split-Path -Path (Split-Path $PSScriptRoot -Parent) -Parent
-                $dscResourcesFolderFilePath = Join-Path -Path $moduleRootFilePath -ChildPath 'DscResources'
-                $msiPackageFolderFilePath = Join-Path -Path $dscResourcesFolderFilePath -ChildPath 'MSFT_xMsiPackage'
-                $msiPackageModuleFilePath = Join-Path -Path $msiPackageFolderFilePath -ChildPath 'MSFT_xMsiPackage.psm1'
-                Import-Module -Name $msiPackageModuleFilePath -Force
-            #>
 
-                $script:skipHttpsTest = $false
+                $script:skipHttpsTest = $true
 
                 $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
 
