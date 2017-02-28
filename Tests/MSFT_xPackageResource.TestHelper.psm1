@@ -835,8 +835,7 @@ function Get-LocalizedRegistryKeyValue
     return $localizedRegistryKeyValue
 }
 
-Export-ModuleMember -Function `
-    New-TestMsi, `
+Export-ModuleMember -Function New-TestMsi, `
     Clear-xPackageCache, `
     New-MockFileServer, `
     New-TestExecutable, `
