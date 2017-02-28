@@ -16,7 +16,7 @@ try
             BeforeAll {
                 
                 $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
-                $script:packageTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
+                $script:packageTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
                 Import-Module -Name $script:packageTestHelperFilePath
 
                 $script:skipHttpsTest = $true
