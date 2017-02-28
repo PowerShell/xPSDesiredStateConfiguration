@@ -1,8 +1,8 @@
 ﻿$script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:packageTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
-$script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
+$script:commonTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
 Import-Module -Name $script:packageTestHelperFilePath
-Import-Module -Name $commonTestHelperFilePath
+Import-Module -Name $script:commonTestHelperFilePath
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
@@ -238,6 +238,7 @@ try
                 It 'Should add space after .MSI installation arguments (#195)' {
                     Mock Invoke-Process -ParameterFilter { $Process.StartInfo.Arguments.EndsWith($script:msiArguments) } { return @{ ExitCode = 0 } }
                     Mock Test-TargetResource { return $false }
+                    #Mock Get-ProductEntry { return $script:packageId }
 
                     $packageParameters = @{
                         Path = $script:msiLocation
@@ -253,6 +254,7 @@ try
                 It 'Should not check for product installation when rebooted is required (#52)' {
                     Mock Invoke-Process { return [PSCustomObject] @{ ExitCode = 3010 } }
                     Mock Test-TargetResource { return $false }
+                    #Mock Get-ProductEntry { }
 
                     $packageParameters = @{
                         Path = $script:msiLocation
@@ -275,7 +277,7 @@ try
 
                     Set-TargetResource -Ensure 'Present' @packageParameters
 
-                    Assert-MockCalled Invoke-PInvoke -ParameterFilter { $RunAsCredential -eq $packageCredential} -Scope It
+                    Assert-MockCalled Invoke-PInvoke -ParameterFilter { $Credential -eq $packageCredential} -Scope It
                 }
             }
 

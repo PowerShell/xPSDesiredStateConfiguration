@@ -64,9 +64,24 @@ function Test-PackageInstalledById
         $ProductId
     )
 
-    $getTargetResourceResult = Get-TargetResource -ProductId $ProductId -Path 'notUsed'
+    $uninstallRegistryKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+    $uninstallRegistryKeyWow64 = 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
 
-    return ($getTargetResourceResult.Ensure -eq 'Present')
+    $productEntry = $null
+
+    if (-not [String]::IsNullOrEmpty($ProductId))
+    {
+        $productEntryKeyLocation = Join-Path -Path $uninstallRegistryKey -ChildPath $ProductId
+        $productEntry = Get-Item -Path $productEntryKeyLocation -ErrorAction 'SilentlyContinue'
+
+        if ($null -eq $productEntry)
+        {
+            $productEntryKeyLocation = Join-Path -Path $uninstallRegistryKeyWow64 -ChildPath $ProductId
+            $productEntry = Get-Item $productEntryKeyLocation -ErrorAction 'SilentlyContinue'
+        }
+    }
+
+    return ($null -ne $productEntry)
 }
 
 <#
