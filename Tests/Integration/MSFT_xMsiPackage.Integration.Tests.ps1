@@ -14,6 +14,10 @@ try
     InModuleScope 'MSFT_xMsiPackage' {
         Describe 'MSFT_xMsiPackage integration Tests' {
             BeforeAll {
+                
+                $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
+                $script:packageTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
+                Import-Module -Name $script:packageTestHelperFilePath
 
                 $script:skipHttpsTest = $true
 
