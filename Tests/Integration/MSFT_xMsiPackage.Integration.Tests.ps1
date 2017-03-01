@@ -1,7 +1,5 @@
 ﻿$script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
-$script:packageTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
 $script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
-Import-Module -Name $script:packageTestHelperFilePath
 Import-Module -Name $commonTestHelperFilePath
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
@@ -17,7 +15,7 @@ try
                 
                 $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
                 $script:packageTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
-                Import-Module -Name $script:packageTestHelperFilePath
+                Import-Module -Name $script:packageTestHelperFilePath -force
 
                 $script:skipHttpsTest = $true
 
