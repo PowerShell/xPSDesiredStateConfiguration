@@ -37,11 +37,6 @@ function Get-TargetResource
         [String]
         $Path,
 
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [String]
-        $ProductId,
-
         [Boolean]
         $CreateCheckRegValue = $false,
 
@@ -191,11 +186,6 @@ function Set-TargetResource
         [String]
         $Path,
 
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [String]
-        $ProductId,
-
         [String]
         $Arguments,
 
@@ -207,9 +197,6 @@ function Set-TargetResource
         [ValidateNotNullOrEmpty()]
         [UInt32[]]
         $ReturnCode = @( 0, 1641, 3010 ),
-
-        [String]
-        $LogPath,
 
         [String]
         $FileHash,
@@ -706,11 +693,6 @@ function Test-TargetResource
         [String]
         $Path,
 
-        [Parameter(Mandatory = $true)]
-        [AllowEmptyString()]
-        [String]
-        $ProductId,
-
         [String]
         $Arguments,
 
@@ -722,9 +704,6 @@ function Test-TargetResource
         [ValidateNotNullOrEmpty()]
         [UInt32[]]
         $ReturnCode = @( 0, 1641, 3010 ),
-
-        [String]
-        $LogPath,
 
         [String]
         $FileHash,

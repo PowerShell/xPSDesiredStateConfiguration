@@ -1,7 +1,5 @@
 $script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
-$script:packageTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
 $script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
-Import-Module -Name $script:packageTestHelperFilePath
 Import-Module -Name $commonTestHelperFilePath
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
@@ -14,6 +12,9 @@ try
     InModuleScope 'MSFT_xPackageResource' {
         Describe 'MSFT_xPackageResource Unit Tests' {
             BeforeAll {
+                $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
+                $packageTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
+                Import-Module -Name $packageTestHelperFilePath
 
                 $script:skipHttpsTest = $true
 
@@ -489,7 +490,7 @@ try
                 It 'Should not check for product installation when rebooted is required (#52)' {
                     Mock Invoke-Process { return [PSCustomObject] @{ ExitCode = 3010 } }
                     Mock Test-TargetResource { return $false }
-                    Mock Get-ProductEntry { }
+                    Mock Get-ProductEntry { return $null }
 
                     $packageParameters = @{
                         Path = $script:msiLocation
@@ -503,6 +504,7 @@ try
                 It 'Should install package using user credentials when specified' {
                     Mock Invoke-PInvoke { }
                     Mock Test-TargetResource { return $false }
+                    Mock Get-ProductEntry { return $script:packageId }
 
                     $packageCredential = [System.Management.Automation.PSCredential]::Empty
                     $packageParameters = @{

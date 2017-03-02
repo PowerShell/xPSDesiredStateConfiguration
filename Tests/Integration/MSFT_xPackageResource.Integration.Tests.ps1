@@ -8,7 +8,7 @@ try
 {
     Describe 'xPackage Integration Tests' {
         BeforeAll {
-            Import-Module "$PSScriptRoot\..\Unit\MSFT_xPackageResource.TestHelper.psm1" -Force
+            Import-Module "$PSScriptRoot\..\MSFT_xPackageResource.TestHelper.psm1" -Force
 
             $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
 
