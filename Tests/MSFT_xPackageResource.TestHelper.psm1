@@ -19,7 +19,7 @@ function Clear-xPackageCache
 
     .PARAMETER Name
         The name of the package to test for.
-#>
+#><#
 function Test-PackageInstalledByName
 {
     [OutputType([Boolean])]
@@ -45,7 +45,7 @@ function Test-PackageInstalledByName
     }
 
     return ($null -ne $productEntry)
-}
+}#>
 
 <#
     .SYNOPSIS
@@ -835,9 +835,10 @@ function Get-LocalizedRegistryKeyValue
     return $localizedRegistryKeyValue
 }
 
-Export-ModuleMember -Function New-TestMsi, `
+Export-ModuleMember -Function `
+    New-TestMsi, `
     Clear-xPackageCache, `
     New-MockFileServer, `
     New-TestExecutable, `
-    Test-PackageInstalledByName, `
-    Test-PackageInstalledById
+    Test-PackageInstalledByName
+ #   Test-PackageInstalledById
