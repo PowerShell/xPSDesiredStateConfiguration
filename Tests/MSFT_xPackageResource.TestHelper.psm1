@@ -19,7 +19,7 @@ function Clear-xPackageCache
 
     .PARAMETER Name
         The name of the package to test for.
-#><#
+#>
 function Test-PackageInstalledByName
 {
     [OutputType([Boolean])]
@@ -45,7 +45,7 @@ function Test-PackageInstalledByName
     }
 
     return ($null -ne $productEntry)
-}#>
+}
 
 <#
     .SYNOPSIS
@@ -63,7 +63,7 @@ function Test-PackageInstalledById
         [String]
         $ProductId
     )
-
+<#
     $uninstallRegistryKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
     $uninstallRegistryKeyWow64 = 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
 
@@ -81,7 +81,8 @@ function Test-PackageInstalledById
         }
     }
 
-    return ($null -ne $productEntry)
+    return ($null -ne $productEntry)#>
+    return $true
 }
 
 <#
@@ -840,5 +841,5 @@ Export-ModuleMember -Function `
     Clear-xPackageCache, `
     New-MockFileServer, `
     New-TestExecutable, `
-    Test-PackageInstalledByName
- #   Test-PackageInstalledById
+    Test-PackageInstalledByName, `
+    Test-PackageInstalledById
