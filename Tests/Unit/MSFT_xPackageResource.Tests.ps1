@@ -1,6 +1,6 @@
 $script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
-$script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
-Import-Module -Name $commonTestHelperFilePath
+$script:commonTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
+Import-Module -Name $script:commonTestHelperFilePath
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
@@ -14,7 +14,11 @@ try
             BeforeAll {
                 $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
                 $packageTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'MSFT_xPackageResource.TestHelper.psm1'
+                $commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
+
                 Import-Module -Name $packageTestHelperFilePath
+                # The common test helper file needs to be imported twice because of the InModuleScope
+                Import-Module -Name $commonTestHelperFilePath
 
                 $script:skipHttpsTest = $true
 
