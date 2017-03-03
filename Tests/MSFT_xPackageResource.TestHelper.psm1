@@ -63,7 +63,7 @@ function Test-PackageInstalledById
         [String]
         $ProductId
     )
-<#
+
     $uninstallRegistryKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
     $uninstallRegistryKeyWow64 = 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
 
@@ -81,8 +81,7 @@ function Test-PackageInstalledById
         }
     }
 
-    return ($null -ne $productEntry)#>
-    return $true
+    return ($null -ne $productEntry)
 }
 
 <#
