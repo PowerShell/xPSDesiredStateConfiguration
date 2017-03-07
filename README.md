@@ -602,6 +602,8 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
     * Updated documentation and examples
 * xUser
     * Fixed error handling in xUser
+* xRegistry
+    * Fixed bug where an error was thrown when running Get-DscConfiguration if the registry key already existed
 
 ### 6.0.0.0
 
