@@ -604,6 +604,7 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
     * Fixed error handling in xUser
 * xRegistry
     * Fixed bug where an error was thrown when running Get-DscConfiguration if the registry key already existed
+* Updated Test-IsNanoServer cmdlet to properly test for a Nano server rather than the core version of PowerShell
 
 ### 6.0.0.0
 

@@ -1,6 +1,6 @@
 ﻿<#
     .SYNOPSIS
-    Tests if the current machine is a Nano server.
+        Tests if the current machine is a Nano server.
 #>
 function Test-IsNanoServer
 {
@@ -8,7 +8,44 @@ function Test-IsNanoServer
     [CmdletBinding()]
     param ()
 
-    return $PSVersionTable.PSEdition -ieq 'Core'
+    $isNanoServer = $false
+    
+    if (Test-CommandExists -Name 'Get-ComputerInfo')
+    {
+        $computerInfo = Get-ComputerInfo
+
+        $computerIsServer = 'Server' -ieq $computerInfo.OsProductType
+
+        if ($computerIsServer)
+        {
+            $isNanoServer = 'NanoServer' -ieq $computerInfo.OsServerLevel
+        }
+    }
+
+    return $isNanoServer
+}
+
+<#
+    .SYNOPSIS
+        Tests whether or not the command with the specified name exists.
+
+    .PARAMETER Name
+        The name of the command to test for.
+#>
+function Test-CommandExists
+{
+    [OutputType([Boolean])]
+    [CmdletBinding()]
+    param 
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Name 
+    )
+
+    $command = Get-Command -Name $Name -ErrorAction 'SilentlyContinue'
+    return ($null -ne $command)
 }
 
 <#
@@ -37,11 +74,11 @@ function New-InvalidArgumentException
         $ArgumentName
     )
 
-    $argumentException = New-Object -TypeName 'ArgumentException' -ArgumentList @( $Message,
-        $ArgumentName )
+    $argumentException = New-Object -TypeName 'ArgumentException' `
+                                    -ArgumentList @($Message, $ArgumentName)
     $newObjectParams = @{
         TypeName = 'System.Management.Automation.ErrorRecord'
-        ArgumentList = @( $argumentException, $ArgumentName, 'InvalidArgument', $null )
+        ArgumentList = @($argumentException, $ArgumentName, 'InvalidArgument', $null)
     }
     $errorRecord = New-Object @newObjectParams
 
@@ -78,21 +115,21 @@ function New-InvalidOperationException
     }
     elseif ($null -eq $ErrorRecord)
     {
-        $invalidOperationException =
-            New-Object -TypeName 'InvalidOperationException' -ArgumentList @( $Message )
+        $invalidOperationException = New-Object -TypeName 'InvalidOperationException' `
+                                                -ArgumentList @($Message)
     }
     else
     {
-        $invalidOperationException =
-            New-Object -TypeName 'InvalidOperationException' -ArgumentList @( $Message,
-                $ErrorRecord.Exception )
+        $invalidOperationException = New-Object -TypeName 'InvalidOperationException' `
+                                                -ArgumentList @($Message, $ErrorRecord.Exception)
     }
 
     $newObjectParams = @{
         TypeName = 'System.Management.Automation.ErrorRecord'
         ArgumentList = @( $invalidOperationException.ToString(), 'MachineStateIncorrect',
-            'InvalidOperation', $null )
+                          'InvalidOperation', $null )
     }
+
     $errorRecordToThrow = New-Object @newObjectParams
     throw $errorRecordToThrow
 }
@@ -104,11 +141,10 @@ function New-InvalidOperationException
 
     .PARAMETER ResourceName
         The name of the resource as it appears before '.strings.psd1' of the localized string file.
-
         For example:
-            For WindowsOptionalFeature: MSFT_xWindowsOptionalFeature
-            For Service: MSFT_xServiceResource
-            For Registry: MSFT_xRegistryResource
+            For xWindowsOptionalFeature: MSFT_xWindowsOptionalFeature
+            For xService: MSFT_xServiceResource
+            For xRegistry: MSFT_xRegistryResource
 #>
 function Get-LocalizedData
 {
@@ -121,7 +157,7 @@ function Get-LocalizedData
         $ResourceName
     )
 
-    $resourceDirectory = (Join-Path -Path $PSScriptRoot -ChildPath $ResourceName)
+    $resourceDirectory = Join-Path -Path $PSScriptRoot -ChildPath $ResourceName
     $localizedStringFileLocation = Join-Path -Path $resourceDirectory -ChildPath $PSUICulture
 
     if (-not (Test-Path -Path $localizedStringFileLocation))
