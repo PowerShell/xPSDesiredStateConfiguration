@@ -602,6 +602,7 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
     * Updated documentation and examples
 * xUser
     * Fixed error handling in xUser
+* Updated Test-IsNanoServer cmdlet to properly test for a Nano server rather than the core version of PowerShell
 
 ### 6.0.0.0
 
