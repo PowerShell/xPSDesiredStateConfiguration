@@ -45,7 +45,6 @@ ConvertFrom-StringData @'
     ThepathextensionwaspathExt = The path extension was {0}
     ParsingProductIdasanidentifyingNumber = Parsing {0} as an identifyingNumber
     ParsedProductIdasidentifyingNumber = Parsed {0} as {1}
-    EnsureisEnsure = Ensure is {0}
     productisproduct = product {0} found
     productasbooleanis = product as boolean is {0}
     Creatingcachelocation = Creating cache location

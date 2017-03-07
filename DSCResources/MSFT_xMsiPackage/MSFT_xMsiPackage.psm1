@@ -54,10 +54,7 @@ function Get-TargetResource
     }
     else
     {
-        <#
-            Identifying number can still be null here (e.g. remote MSI with Name specified).
-            If the user gave a product ID just pass it through, otherwise get it from the product.
-        #>
+        # Identifying number could still be null here (e.g. remote MSI with Name specified).
         if ($null -eq $identifyingNumber -and $null -ne $productEntry.Name)
         {
             $identifyingNumber = Split-Path -Path $productEntry.Name -Leaf
@@ -114,7 +111,7 @@ function Get-TargetResource
 
 function Set-TargetResource
 {
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -168,16 +165,15 @@ function Set-TargetResource
     }
 
     Assert-PathExtensionValid -Path $Path
+
     $uri = Convert-PathToUri -Path $Path
-
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
-
     $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
     <#
-        Path gets overwritten in the download code path. Retain the user's original Path in case
-        the install succeeded but the named package wasn't present on the system afterward so we
-        can give a better error message.
+        Path gets overwritten in the download code path. Retain the user's original Path so as
+        to provide a more descriptive error message in case the install succeeds but the named
+        package can't be found on the system afterward.
     #>
     $originalPath = $Path
 
@@ -194,19 +190,15 @@ function Set-TargetResource
             try
             {
                 <#
-                    We want to pre-verify the log path exists and is writable ahead of time
-                    even in the MSI case, as detecting WHY the MSI log path doesn't exist would
-                    be rather problematic for the user.
+                    Pre-verify the log path exists and is writable ahead of time so the user won't
+                    have to detect why the MSI log path doesn't exist.
                 #>
-                if ((Test-Path -Path $LogPath) -and $PSCmdlet.ShouldProcess($script:localizedData.RemoveExistingLogFile, $null, $null))
+                if (Test-Path -Path $LogPath)
                 {
                     Remove-Item -Path $LogPath
                 }
 
-                if ($PSCmdlet.ShouldProcess($script:localizedData.CreateLogFile, $null, $null))
-                {
-                    New-Item -Path $LogPath -Type 'File' | Out-Null
-                }
+                New-Item -Path $LogPath -Type 'File' | Out-Null
             }
             catch
             {
@@ -225,7 +217,6 @@ function Set-TargetResource
                     Root = Split-Path -Path $uri.LocalPath
                 }
 
-                # If we pass a null for Credential, a dialog will pop up.
                 if ($null -ne $Credential)
                 {
                     $psDriveArgs['Credential'] = $Credential
@@ -246,7 +237,7 @@ function Set-TargetResource
 
                     if (-not (Test-Path -Path $script:packageCacheLocation -PathType 'Container'))
                     {
-                        New-Item -Path $script:packageCacheLocation -ItemType 'Directory' | Out-Null
+                        $null = New-Item -Path $script:packageCacheLocation -ItemType 'Directory'
                     }
 
                     $destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath (Split-Path -Path $uri.LocalPath -Leaf)
@@ -290,7 +281,6 @@ function Set-TargetResource
                     }
                     catch
                     {
-                         Write-Verbose -Message ($script:localizedData.ErrorOutString -f ($_ | Out-String))
                          New-InvalidOperationException -Message ($script:localizedData.CouldNotGetHttpStream -f $uriScheme, $Path) -ErrorRecord $_
                     }
 
@@ -324,7 +314,7 @@ function Set-TargetResource
                 $downloadedFileName = $destinationPath
             }
 
-            # At this point the Path ought to be valid unless it's a MSI uninstall case
+            # At this point the Path should be valid unless it's an uninstall case
             if (-not (Test-Path -Path $Path -PathType 'Leaf'))
             {
                 New-InvalidOperationException -Message ($script:localizedData.PathDoesNotExist -f $Path)
@@ -335,7 +325,7 @@ function Set-TargetResource
 
         $startInfo = New-Object -TypeName 'System.Diagnostics.ProcessStartInfo'
 
-        # Necessary for I/O redirection and just generally a good idea
+        # Necessary for I/O redirection
         $startInfo.UseShellExecute = $false
 
         $process = New-Object -TypeName 'System.Diagnostics.Process'
@@ -362,22 +352,21 @@ function Set-TargetResource
         {
             $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
-            # We may have used the Name earlier, now we need the actual ID
             $id = Split-Path -Path $productEntry.Name -Leaf
-            $startInfo.Arguments = '/x{0}' -f $id
+            $startInfo.Arguments = ('/x{0}' -f $id)
         }
 
         if ($LogPath)
         {
-            $startInfo.Arguments += ' /log "{0}"' -f $LogPath
+            $startInfo.Arguments += (' /log "{0}"' -f $LogPath)
         }
 
         $startInfo.Arguments += ' /quiet /norestart'
 
         if ($Arguments)
         {
-            # Append any specified arguments with a space (#195)
-            $startInfo.Arguments += ' {0}' -f $Arguments
+            # Append any specified arguments with a space
+            $startInfo.Arguments += (' {0}' -f $Arguments)
         }
 
         Write-Verbose -Message ($script:localizedData.StartingWithStartInfoFileNameStartInfoArguments -f $startInfo.FileName, $startInfo.Arguments)
@@ -386,9 +375,9 @@ function Set-TargetResource
 
         try
         {
-            if($PSBoundParameters.ContainsKey('RunAsCredential'))
+            if ($PSBoundParameters.ContainsKey('RunAsCredential'))
             {
-                $commandLine = '"{0}" {1}' -f $startInfo.FileName, $startInfo.Arguments
+                $commandLine = ('"{0}" {1}' -f $startInfo.FileName, $startInfo.Arguments)
                 $exitCode = Invoke-PInvoke -CommandLine $commandLine -RunAsCredential $RunAsCredential
             }
             else
@@ -402,12 +391,14 @@ function Set-TargetResource
             New-InvalidOperationException -Message ($script:localizedData.CouldNotStartProcess -f $Path) -ErrorRecord $_
         }
 
-        if ($logStream)
+        if ($logStream)  ### I think something should be changed here since this isn't being used for EXEs anymore
         {
-            #We have to re-mux these since they appear to us as different streams
-            #The underlying Win32 APIs prevent this problem, as would constructing a script
-            #on the fly and executing it, but the former is highly problematic from PowerShell
-            #and the latter doesn't let us get the return code for UI-based EXEs
+            <#
+                We have to re-mux these since they appear as different streams.
+                The underlying Win32 APIs prevent this problem, as would constructing a script
+                on the fly and executing it, but the former is highly problematic from PowerShell
+                and the latter doesn't let us get the return code for UI-based EXEs
+            #>
             $outputEvents = Get-Event -SourceIdentifier $LogPath
             $errorEvents = Get-Event -SourceIdentifier $errorLogPath
             $masterEvents = @() + $outputEvents + $errorEvents
@@ -444,18 +435,10 @@ function Set-TargetResource
         Remove-Item -Path $downloadedFileName
     }
 
-    $operationMessageString = $script:localizedData.PackageUninstalled
-
-    if ($Ensure -eq 'Present')
-    {
-        $operationMessageString = $script:localizedData.PackageInstalled
-    }
-
     <#
         Check if a reboot is required, if so notify CA. The MSFT_ServerManagerTasks provider is
         missing on some client SKUs (worked on both Server and Client Skus in Windows 10).
     #>
-
     $serverFeatureData = Invoke-CimMethod -Name 'GetServerFeature' `
                                           -Namespace 'root\microsoft\windows\servermanager' `
                                           -Class 'MSFT_ServerManagerTasks' `
@@ -479,7 +462,15 @@ function Set-TargetResource
         }
     }
 
-    Write-Verbose -Message $operationMessageString
+    if ($Ensure -eq 'Present')
+    {
+        Write-Verbose -Message $script:localizedData.PackageInstalled
+    }
+    else
+    {
+        Write-Verbose -Message $script:localizedData.PackageUninstalled
+    }
+
     Write-Verbose -Message $script:localizedData.PackageConfigurationComplete
 }
 
@@ -537,8 +528,6 @@ function Test-TargetResource
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
     $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
-
-    Write-Verbose -Message ($script:localizedData.EnsureIsEnsure -f $Ensure)
 
     if ($null -ne $productEntry)
     {
@@ -627,7 +616,7 @@ function Convert-PathToUri
         Retrieves the product ID as an identifying number.
 
     .PARAMETER ProductId
-        The product id to retrieve as an identifying number.
+        The product ID to retrieve as an identifying number.
 #>
 function Convert-ProductIdToIdentifyingNumber
 {
@@ -695,10 +684,12 @@ function Get-ProductEntry
 
 <#
     .SYNOPSIS
-        Asserts that the file at the given path is valid.
+        Asserts that the file at the given path has a valid hash, signer thumbprint, and/or
+        signer subject. If only Path is provided, then this function will never throw.
+        If FileHash is provide and HashAlgorithm is not, then Sha-256 will be used by default.
 
     .PARAMETER Path
-        The path to the file to check.
+        The path of the file to check.
 
     .PARAMETER FileHash
         The hash that should match the hash of the file.
@@ -786,7 +777,7 @@ function Assert-FileHashValid
 
     if ($fileHash.Hash -ne $Hash)
     {
-        throw ($script:localizedData.InvalidFileHash -f $Path, $Hash, $Algorithm)
+        New-InvalidArgumentException -ArgumentName 'FileHash' -Message ($script:localizedData.InvalidFileHash -f $Path, $Hash, $Algorithm)
     }
 }
 
@@ -825,7 +816,7 @@ function Assert-FileSignatureValid
 
     if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid)
     {
-        throw ($script:localizedData.InvalidFileSignature -f $Path, $signature.Status)
+        New-InvalidArgumentException -ArgumentName 'Path' -Message ($script:localizedData.InvalidFileSignature -f $Path, $signature.Status)
     }
     else
     {
@@ -834,12 +825,12 @@ function Assert-FileSignatureValid
 
     if ($null -ne $Subject -and ($signature.SignerCertificate.Subject -notlike $Subject))
     {
-        throw ($script:localizedData.WrongSignerSubject -f $Path, $Subject)
+        New-InvalidArgumentException -ArgumentName 'SignerSubject' -Message ($script:localizedData.WrongSignerSubject -f $Path, $Subject)
     }
 
     if ($null -ne $Thumbprint -and ($signature.SignerCertificate.Thumbprint -ne $Thumbprint))
     {
-        throw ($script:localizedData.WrongSignerThumbprint -f $Path, $Thumbprint)
+        New-InvalidArgumentException -ArgumentName 'SignerThumbprint' -Message ($script:localizedData.WrongSignerThumbprint -f $Path, $Thumbprint)
     }
 }
 
