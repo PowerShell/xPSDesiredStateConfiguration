@@ -20,7 +20,7 @@ try
                 # The common test helper file needs to be imported twice because of the InModuleScope
                 Import-Module -Name $commonTestHelperFilePath
 
-                $script:skipHttpsTest = $true
+                $script:skipHttpsTest = $true ##### Figure out why this test is skipped and make sure the https functionality does in fact work
 
                 $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
 
