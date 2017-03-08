@@ -594,6 +594,8 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 
 ### Unreleased
 
+### 6.1.0.0
+
 * Moved DSC pull server setup tests to DSCPullServerSetup folder for new common tests
 * xArchive:
     * Updated the resource to be a high quality resource

@@ -1,6 +1,6 @@
 @{
 # Version number of this module.
-ModuleVersion = '6.0.0.0'
+ModuleVersion = '6.1.0.0'
 
 # ID used to uniquely identify this module
 GUID = 'cc8dc021-fa5f-4f96-8ecf-dfd68a6d9d48'
@@ -52,16 +52,17 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '* xEnvironment
-    * Updated resource to follow HQRM guidelines.
-    * Added examples.
-    * Added unit and end-to-end tests.
-    * Significantly cleaned the resource.
-    * Minor Breaking Change where the resource will now throw an error if no value is provided, Ensure is set to present, and the variable does not exist, whereas before it would create an empty registry key on the machine in this case (if this is the desired outcome then use the Registry resource).
-    * Added a new Write property "Target", which specifies whether the user wants to set the machine variable, the process variable, or both (previously it was setting both in most cases).  
-* xGroup:
-    * Group members in the "NT Authority", "BuiltIn" and "NT Service" scopes should now be resolved without an error. If you were seeing the errors "Exception calling ".ctor" with "4" argument(s): "Server names cannot contain a space character."" or "Exception calling ".ctor" with "2" argument(s): "Server names cannot contain a space character."", this fix should resolve those errors. If you are still seeing one of the errors, there is probably another local scope we need to add. Please let us know.
-    * The resource will no longer attempt to resolve group members if Members, MembersToInclude, and MembersToExclude are not specified.
+        ReleaseNotes = '* Moved DSC pull server setup tests to DSCPullServerSetup folder for new common tests
+* xArchive:
+    * Updated the resource to be a high quality resource
+    * Transferred the existing "unit" tests to integration tests
+    * Added unit and end-to-end tests
+    * Updated documentation and examples
+* xUser
+    * Fixed error handling in xUser
+* xRegistry
+    * Fixed bug where an error was thrown when running Get-DscConfiguration if the registry key already existed
+* Updated Test-IsNanoServer cmdlet to properly test for a Nano server rather than the core version of PowerShell
 
 '
 
@@ -69,6 +70,7 @@ PrivateData = @{
 
 } # End of PrivateData hashtable
 }
+
 
 
 
