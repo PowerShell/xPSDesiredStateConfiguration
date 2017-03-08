@@ -46,7 +46,6 @@ ConvertFrom-StringData @'
     ParsingProductIdasanidentifyingNumber = Parsing {0} as an identifyingNumber
     ParsedProductIdasidentifyingNumber = Parsed {0} as {1}
     productisproduct = product {0} found
-    productasbooleanis = product as boolean is {0}
     Creatingcachelocation = Creating cache location
     NeedtodownloadfilefromschemedestinationwillbedestName = Need to download file from {0}, destination will be {1}
     Creatingthedestinationcachefile = Creating the destination cache file
