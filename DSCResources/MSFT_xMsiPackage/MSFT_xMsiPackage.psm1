@@ -21,6 +21,16 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xMsiPackage'
 $script:packageCacheLocation = "$env:programData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xMsiPackage"
 $script:msiTools = $null
 
+<#
+    .SYNOPSIS
+        Retrieves the current state of the MSI file with the given Product ID.
+
+    .PARAMETER ProductId
+        The ID of the MSI file to retrieve the state of.
+
+    .PARAMETER Path
+        Not used in Get-TargetResource
+#>
 function Get-TargetResource
 {
     [OutputType([Hashtable])]
@@ -36,7 +46,6 @@ function Get-TargetResource
         [ValidateNotNullOrEmpty()]
         [String]
         $Path
-        ######## not used in Get-TargetResource
     )
 
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
@@ -109,6 +118,33 @@ function Get-TargetResource
     return $packageResourceResult
 }
 
+<#
+    .SYNOPSIS
+
+    .PARAMETER ProductId   
+
+    .PARAMETER Path
+
+    .PARAMETER Ensure
+
+    .PARAMETER Arguments
+
+    .PARAMETER Credential
+
+    .PARAMETER LogPath
+
+    .PARAMETER FileHash
+
+    .PARAMETER HashAlgorithm
+
+    .PARAMETER SignerSubject
+
+    .PARAMETER SignerThumbprint
+
+    .PARAMETER ServerCertificateValidationCallback
+
+    .PARAMETER RunAsCredential
+#>
 function Set-TargetResource
 {
     [CmdletBinding()]
@@ -474,6 +510,33 @@ function Set-TargetResource
     Write-Verbose -Message $script:localizedData.PackageConfigurationComplete
 }
 
+<#
+    .SYNOPSIS
+
+    .PARAMETER ProductId   
+
+    .PARAMETER Path
+
+    .PARAMETER Ensure
+
+    .PARAMETER Arguments
+
+    .PARAMETER Credential
+
+    .PARAMETER LogPath
+
+    .PARAMETER FileHash
+
+    .PARAMETER HashAlgorithm
+
+    .PARAMETER SignerSubject
+
+    .PARAMETER SignerThumbprint
+
+    .PARAMETER ServerCertificateValidationCallback
+
+    .PARAMETER RunAsCredential
+#>
 function Test-TargetResource
 {
     [OutputType([Boolean])]
@@ -538,8 +601,6 @@ function Test-TargetResource
     {
         Write-Verbose -Message ($script:localizedData.PackageDoesNotAppearInstalled -f $ProductId)
     }
-
-    Write-Verbose -Message ($script:localizedData.ProductAsBooleanIs -f [Boolean]$productEntry)
 
     return (($null -ne $productEntry -and $Ensure -eq 'Present') -or ($null -eq $productEntry -and $Ensure -eq 'Absent'))
 }
@@ -766,14 +827,9 @@ function Assert-FileHashValid
         $Algorithm = 'SHA256'
     )
 
-    if ([String]::IsNullOrEmpty($Algorithm))
-    {
-        $Algorithm = 'SHA256'
-    }
-
     Write-Verbose -Message ($script:localizedData.CheckingFileHash -f $Path, $Hash, $Algorithm)
 
-    $fileHash = Get-FileHash -LiteralPath $Path -Algorithm $Algorithm -ErrorAction 'Stop'
+    $fileHash = Get-FileHash -LiteralPath $Path -Algorithm $Algorithm
 
     if ($fileHash.Hash -ne $Hash)
     {
@@ -812,7 +868,7 @@ function Assert-FileSignatureValid
 
     Write-Verbose -Message ($script:localizedData.CheckingFileSignature -f $Path)
 
-    $signature = Get-AuthenticodeSignature -LiteralPath $Path -ErrorAction 'Stop'
+    $signature = Get-AuthenticodeSignature -LiteralPath $Path
 
     if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid)
     {
@@ -900,7 +956,7 @@ function Get-MsiTool
     {
         return $script:msiTools
     }
-
+    ### what's going on in this script?
     $msiToolsCodeDefinition = @'
     [DllImport("msi.dll", CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true, ExactSpelling = true)]
     private static extern UInt32 MsiOpenPackageExW(string szPackagePath, int dwOptions, out IntPtr hProduct);
@@ -1025,11 +1081,11 @@ function Invoke-Process
         $Process,
 
         [Parameter()]
-        [System.Boolean]
+        [Boolean]
         $LogStream
     )
 
-    $Process.Start() | Out-Null
+    $null = $Process.Start()
 
     if ($LogStream)
     {
