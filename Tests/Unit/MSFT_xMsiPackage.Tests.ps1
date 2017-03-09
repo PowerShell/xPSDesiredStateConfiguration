@@ -29,6 +29,8 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testIdentifyingNumber = '{DEADBEEF-80C6-41E6-A1B9-8BDB8A05027F}'
         $script:testPath = 'TestPath'
 
+        $script:functionAssertTitles = @{'Convert-ProductIdToIdentifyingNumber' = 'convert product to identifying number'}
+
         Describe 'Get-TargetResource' {
 
             function Get-TestName {
@@ -46,7 +48,7 @@ Describe 'xMsiPackage Unit Tests' {
 
                 if ($IsCalled)
                 {
-                    return 'Should ' + $Title
+                    return 'Should call' + $Title
                 }
                 else
                 {
@@ -71,8 +73,17 @@ Describe 'xMsiPackage Unit Tests' {
                     { $null = Get-TargetResource @GetTargetResourceParameters } | Should Not Throw
                 }
 
+                foreach ($key in $MocksCalled.Keys)
+                {
+                    $testName = Get-TestName -Title $key -IsCalled $MocksCalled.$key
+
+                    It $testName {
+                        Assert-MockCalled -CommandName $key -Exactly $MocksCalled.$key -Scope 'Context'
+                    }
+                }
+
                 $testName = Get-TestName -Title 'convert product ID to identifying number' -IsCalled $MocksCalled.ConvertProductIdToIdentifyingNumber
-                It $MocksCalled[0] {
+                It $MocksCalled {
                     Assert-MockCalled -CommandName 'Convert-ProductIdToIdentifyingNumber' -Exactly $MocksCalled.ConvertProductIdToIdentifyingNumber -Scope 'Context'
                 }
 
