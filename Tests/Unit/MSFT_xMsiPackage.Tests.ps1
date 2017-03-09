@@ -29,7 +29,10 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testIdentifyingNumber = '{DEADBEEF-80C6-41E6-A1B9-8BDB8A05027F}'
         $script:testPath = 'TestPath'
 
-        $script:functionAssertTitles = @{'Convert-ProductIdToIdentifyingNumber' = 'convert product to identifying number'}
+        $script:functionAssertTitles = @{
+            'Convert-ProductIdToIdentifyingNumber' = 'convert product to identifying number.'
+            'Get-ProductEntry' = 'retrieve product entry.'
+        }
 
         Describe 'Get-TargetResource' {
 
@@ -40,7 +43,7 @@ Describe 'xMsiPackage Unit Tests' {
                 (
                     [Parameter(Mandatory = $true)]
                     [String]
-                    $Title,
+                    $Command,
 
                     [Boolean]
                     $IsCalled = $true
@@ -48,11 +51,11 @@ Describe 'xMsiPackage Unit Tests' {
 
                 if ($IsCalled)
                 {
-                    return 'Should call' + $Title
+                    return 'Should ' + $script:functionAssertTitles.$Command
                 }
                 else
                 {
-                    return 'Should not ' + $Title
+                    return 'Should not ' + $script:functionAssertTitles.$Command
                 }
             }
 
@@ -75,23 +78,14 @@ Describe 'xMsiPackage Unit Tests' {
 
                 foreach ($key in $MocksCalled.Keys)
                 {
-                    $testName = Get-TestName -Title $key -IsCalled $MocksCalled.$key
+                    $testName = Get-TestName -Command $key -IsCalled $MocksCalled.$key
 
                     It $testName {
                         Assert-MockCalled -CommandName $key -Exactly $MocksCalled.$key -Scope 'Context'
                     }
                 }
 
-                $testName = Get-TestName -Title 'convert product ID to identifying number' -IsCalled $MocksCalled.ConvertProductIdToIdentifyingNumber
-                It $MocksCalled {
-                    Assert-MockCalled -CommandName 'Convert-ProductIdToIdentifyingNumber' -Exactly $MocksCalled.ConvertProductIdToIdentifyingNumber -Scope 'Context'
-                }
-
-                It 'Should retrieve the product entry' {
-                    Assert-MockCalled -CommandName 'Get-ProductEntry' -Exactly 1 -Scope 'Context'
-                }
-
-                $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
+                $getTargetResourceResult = Get-TargetResource @GetTargetResourceParameters
 
                 It 'Should return a Hashtable' {
                     $getTargetResourceResult -is [Hashtable] | Should Be $true
@@ -119,38 +113,20 @@ Describe 'xMsiPackage Unit Tests' {
                     Path = $script:testPath
                 }
 
-                Invoke-GetTargetResourceTest -GetTargetResourceParameters $getTargetResourceParameters -MocksCalled @{ConvertProductIdToIdentifyingNumber = 1}
-
-                It 'Should not throw' {
-                    { $null = Get-TargetResource @getTargetResourceParameters } | Should Not Throw
-                }
-
-                It 'Should convert product ID to identifying number' {
-                    Assert-MockCalled -CommandName 'Convert-ProductIdToIdentifyingNumber' -Exactly 1 -Scope 'Context'
-                }
-
-                It 'Should retrieve the product entry' {
-                    Assert-MockCalled -CommandName 'Get-ProductEntry' -Exactly 1 -Scope 'Context'
-                }
-
-                $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
-
-                It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
-                }
-
-                It 'Should return a Hashtable with 2 properties' {
-                    $getTargetResourceResult.Keys.Count | Should Be 2
-                }
-
-                It 'Should return a Hashtable with the Ensure property as Absent' {
-                    $getTargetResourceResult.Ensure | Should Be 'Absent'
-                }
-
-                It 'Should return a Hashtable with the ProductId property as the returned identifying number' {
-                    $getTargetResourceResult.ProductId | Should Be $script:testIdentifyingNumber
-                }
+                Invoke-GetTargetResourceTest -GetTargetResourceParameters $getTargetResourceParameters -MocksCalled @{'Convert-ProductIdToIdentifyingNumber' = 1; 'Get-ProductEntry' = 1 }
             }
+
+            Mock -CommandName 'Get-ProductEntry' -MockWith { return $null }
+            Context 'MSI package does exist' {
+                $getTargetResourceParameters = @{
+                    ProductId = $script:testProductId
+                    Path = $script:testPath
+                }
+
+                Invoke-GetTargetResourceTest -GetTargetResourceParameters $getTargetResourceParameters -MocksCalled @{'Convert-ProductIdToIdentifyingNumber' = 1; 'Get-ProductEntry' = 1 }
+            }
+
+
         }
             
         Describe 'Set-TargetResource' {
