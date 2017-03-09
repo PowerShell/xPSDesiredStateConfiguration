@@ -313,6 +313,7 @@ function Set-TargetResource
                         }
 
                         Write-Verbose -Message ($script:localizedData.Gettingtheschemeresponsestream -f $uriScheme)
+                        #### why is an HttpWebRequest object being used for both Https and Http?
                         $responseStream = (([System.Net.HttpWebRequest]$webRequest).GetResponse()).GetResponseStream()
                     }
                     catch
@@ -516,26 +517,36 @@ function Set-TargetResource
     .PARAMETER ProductId   
 
     .PARAMETER Path
+        Not Used in Test-TargetResource
 
     .PARAMETER Ensure
 
     .PARAMETER Arguments
+        Not Used in Test-TargetResource
 
     .PARAMETER Credential
+        Not Used in Test-TargetResource
 
     .PARAMETER LogPath
+        Not Used in Test-TargetResource
 
     .PARAMETER FileHash
+        Not Used in Test-TargetResource
 
     .PARAMETER HashAlgorithm
+        Not Used in Test-TargetResource
 
     .PARAMETER SignerSubject
+        Not Used in Test-TargetResource
 
     .PARAMETER SignerThumbprint
+        Not Used in Test-TargetResource
 
     .PARAMETER ServerCertificateValidationCallback
+        Not Used in Test-TargetResource
 
     .PARAMETER RunAsCredential
+        Not Used in Test-TargetResource
 #>
 function Test-TargetResource
 {
@@ -551,7 +562,7 @@ function Test-TargetResource
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $Path, # not used in Test-TargetResource
+        $Path,
 
         [ValidateSet('Present', 'Absent')]
         [String]
@@ -715,6 +726,7 @@ function Convert-ProductIdToIdentifyingNumber
 #>
 function Get-ProductEntry
 {
+    [OutputType([Microsoft.Win32.RegistryKey])]
     [CmdletBinding()]
     param
     (
@@ -1021,7 +1033,8 @@ function Get-MsiTool
 
 <#
     .SYNOPSIS
-        Runs a process as the specified user via PInvoke.
+        Runs a process as the specified user via PInvoke. Returns the exitCode that
+        PInvoke returns.
 
     .PARAMETER CommandLine
         The command line (including arguments) of the process to start.
@@ -1031,8 +1044,8 @@ function Get-MsiTool
 #>
 function Invoke-PInvoke
 {
-    [CmdletBinding()]
     [OutputType([System.Int32])]
+    [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -1049,13 +1062,13 @@ function Invoke-PInvoke
     [System.Int32] $exitCode = 0
 
     [Source.NativeMethods]::CreateProcessAsUser($CommandLine, `
-        $Credential.GetNetworkCredential().Domain, `
-        $Credential.GetNetworkCredential().UserName, `
-        $Credential.GetNetworkCredential().Password, `
+        $RunAsCredential.GetNetworkCredential().Domain, `
+        $RunAsCredential.GetNetworkCredential().UserName, `
+        $RunAsCredential.GetNetworkCredential().Password, `
         [ref] $exitCode
     )
 
-    return $exitCode;
+    return $exitCode
 }
 
 <#
@@ -1073,8 +1086,8 @@ function Invoke-PInvoke
 #>
 function Invoke-Process
 {
-    [CmdletBinding()]
     [OutputType([System.Diagnostics.Process])]
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
         [System.Diagnostics.Process]
