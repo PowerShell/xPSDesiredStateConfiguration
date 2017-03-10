@@ -44,9 +44,26 @@ Describe 'xMsiPackage Unit Tests' {
         }
 
         $script:functionAssertTitles = @{
-            'Convert-ProductIdToIdentifyingNumber' = 'convert product ID to identifying number.'
-            'Get-ProductEntry' = 'retrieve product entry.'
-            'Get-ProductEntryInfo' = 'retrieve product entry info.'
+            'Convert-ProductIdToIdentifyingNumber' = 'convert product ID to identifying number'
+            'Get-ProductEntry' = 'retrieve product entry'
+            'Get-ProductEntryInfo' = 'retrieve product entry info'
+            'Test-TargetResource' = 'check to see if the resource is already in the desired state'
+            'Assert-PathExtensionValid' = 'assert that the specified path extension is valid'
+            'Convert-PathToUri' = 'convert the path to a URI'
+            'Test-Path' = 'test that the path exists....'
+            'Remove-Item' = 'remove .....'
+            'New-Item' = 'create a new.....'
+            'New-PSDrive' = 'create a new PS Drive'
+            'New-Object' = 'create a new.....'
+            'Assert-FileValid' = 'assert that the file is valid'
+            'Get-MsiProductCode' = 'retrieve the MSI product code'
+            'Invoke-PInvoke' = 'attempt to... what does this do?'
+            'Invoke-Process' = 'attempt to ......not quite sure?'
+        }
+
+        $script:errorMessageTitles = @{
+
+
         }
 
         function Get-TestName
@@ -74,6 +91,19 @@ Describe 'xMsiPackage Unit Tests' {
         }
 
         Describe 'Get-TargetResource' {
+            <#
+                .SYNOPSIS
+                    Performs generic tests for Get-TargetResource, including checking that the
+                    function does not throw, checking that all mocks are called the expected
+                    number of times, and checking that the correct result is returned. If the function
+                    is expected to throw, then this function should not be used.
+
+                .PARAMETER GetTargetResourceParameters
+
+                .PARAMETER MocksCalled
+
+                .PARAMETER ExpectedReturnValue
+            #>
             function Invoke-GetTargetResourceTest {
                 [CmdletBinding()]
                 param
@@ -166,22 +196,101 @@ Describe 'xMsiPackage Unit Tests' {
         }
             
         Describe 'Set-TargetResource' {
-            
-            Context 'set tests' {
-                $setTargetResourceParameters = @{
-                    ProductId = 'TestProductId'
-                    Path = 'TestPath'
-                    Ensure = 'Present'
-                    Arguments = 'TestArguments'
-                    Credential = $script:testCredential
-                    LogPath = 'TestLogPath'
-                    FileHash = 'TestFileHash'
-                    HashAlgorithm = 'Sha256'
-                    SignerSubject = 'TestSignerSubject'
-                    SignerThumbprint = 'TestSignerThumbprint'
-                    ServerCertificateValidationCallback = 'TestValidationCallback'
-                    RunAsCredential = $script:testCredential
+            <#
+                .SYNOPSIS
+                    Performs generic tests for Set-TargetResource, including checking that the
+                    function does not throw and checking that all mocks are called the expected
+                    number of times. If the function is expected to throw, then this function
+                    should not be used.
+
+                .PARAMETER SetTargetResourceParameters
+
+                .PARAMETER MocksCalled
+
+                .PARAMETER ShouldThrow
+
+                .PARAMETER ErrorMessage
+            #>
+            function Invoke-SetTargetResourceTest {
+                [CmdletBinding()]
+                param
+                (
+                    [Parameter(Mandatory = $true)]
+                    [Hashtable]
+                    $SetTargetResourceParameters,
+
+                    [Parameter(Mandatory = $true)]
+                    [Hashtable]
+                    $MocksCalled,
+
+                    [Boolean]
+                    $ShouldThrow = $false,
+
+                    [String]
+                    $ErrorMessage = ''
+                )
+
+                if ($ShouldThrow)
+                {
+                    It "Should throw an error for $ErrorMessage" {
+                        { $null = Set-TargetResource @SetTargetResourceParameters } | Should Throw $ErrorMessage
+                    }
                 }
+                else
+                {
+                    It 'Should not throw' {
+                        { $null = Set-TargetResource @SetTargetResourceParameters } | Should Not Throw
+                    }
+                }
+
+                foreach ($key in $MocksCalled.Keys)
+                {
+                    $testName = Get-TestName -Command $key -IsCalled $MocksCalled.$key
+
+                    It $testName {
+                        Assert-MockCalled -CommandName $key -Exactly $MocksCalled.$key -Scope 'Context'
+                    }
+                }
+            }
+
+            $mocksCalled = @{
+                'Test-TargetResource' = 1
+                'Assert-PathExtensionValid' = 1
+                'Convert-ProductIdToIdentifyingNumber' = 1
+                'Get-ProductEntry' = 1
+                'Get-ProductEntryInfo' = 0
+            }
+
+            $setTargetResourceParameters = @{
+                ProductId = 'TestProductId'
+                Path = 'TestPath'
+                Ensure = 'Present'
+                Arguments = 'TestArguments'
+                Credential = $script:testCredential
+                LogPath = 'TestLogPath'
+                FileHash = 'TestFileHash'
+                HashAlgorithm = 'Sha256'
+                SignerSubject = 'TestSignerSubject'
+                SignerThumbprint = 'TestSignerThumbprint'
+                ServerCertificateValidationCallback = 'TestValidationCallback'
+                RunAsCredential = $script:testCredential
+            }
+
+            $mocksCalled = @{
+                'Test-TargetResource' = 1
+                'Assert-PathExtensionValid' = 0
+            }
+            
+            Mock -CommandName 'Test-TargetResource' -MockWith { return $true }
+            Mock -CommandName 'Assert-PathExtensionValid' -MockWith {}
+            Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
+            Mock -CommandName 'Get-ProductEntry' -MockWith { return $null }
+            Mock -CommandName 'Get-ProductEntryInfo' -MockWith { return $script:mockProductEntryInfo }
+            
+            Context 'Resource is in desired state already' {
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled
+                
             }
         }
 
