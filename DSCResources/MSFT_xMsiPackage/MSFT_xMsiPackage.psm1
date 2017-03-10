@@ -63,56 +63,10 @@ function Get-TargetResource
     }
     else
     {
-        # Identifying number could still be null here (e.g. remote MSI with Name specified).
-        if ($null -eq $identifyingNumber -and $null -ne $productEntry.Name)
-        {
-            $identifyingNumber = Split-Path -Path $productEntry.Name -Leaf
-        }
-
-        $installDate = $productEntry.GetValue('InstallDate')
-
-        if ($null -ne $installDate)
-        {
-            try
-            {
-                $installDate = '{0:d}' -f [DateTime]::ParseExact($installDate, 'yyyyMMdd',[System.Globalization.CultureInfo]::CurrentCulture).Date
-            }
-            catch
-            {
-                $installDate = $null
-            }
-        }
-
-        $publisher = $productEntry.GetValue('Publisher')
-
-        $estimatedSize = $productEntry.GetValue('EstimatedSize')
-
-        if ($null -ne $estimatedSize)
-        {
-            $estimatedSize = $estimatedSize / 1024
-        }
-
-        $displayVersion = $productEntry.GetValue('DisplayVersion')
-
-        $comments = $productEntry.GetValue('Comments')
-
-        $displayName = $productEntry.GetValue('DisplayName')
-
-        $installSource = $productEntry.GetValue('InstallSource')
+        $packageResourceResult = Get-ProductEntryInfo -ProductEntry $productEntry
+        $packageResourceResult['ProductId'] = $identifyingNumber
 
         Write-Verbose -Message ($script:localizedData.GetTargetResourceFound -f $ProductId)
-
-        $packageResourceResult = @{
-            Ensure = 'Present'
-            Name = $displayName
-            InstallSource = $installSource
-            InstalledOn = $installDate
-            ProductId = $identifyingNumber
-            Size = $estimatedSize
-            Version = $displayVersion
-            PackageDescription = $comments
-            Publisher = $publisher
-        }
     }
 
     return $packageResourceResult
@@ -753,6 +707,60 @@ function Get-ProductEntry
     }
 
     return $productEntry
+}
+
+function Get-ProductEntryInfo
+{
+    [OutputType([Hashtable])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [Microsoft.Win32.RegistryKey]
+        $ProductEntry
+    )
+
+    $installDate = $productEntry.GetValue('InstallDate')
+
+    if ($null -ne $installDate)
+    {
+        try
+        {
+            $installDate = '{0:d}' -f [DateTime]::ParseExact($installDate, 'yyyyMMdd',[System.Globalization.CultureInfo]::CurrentCulture).Date
+        }
+        catch
+        {
+            $installDate = $null
+        }
+    }
+
+    $publisher = $productEntry.GetValue('Publisher')
+
+    $estimatedSize = $productEntry.GetValue('EstimatedSize')
+
+    if ($null -ne $estimatedSize)
+    {
+        $estimatedSize = $estimatedSize / 1024
+    }
+
+    $displayVersion = $productEntry.GetValue('DisplayVersion')
+
+    $comments = $productEntry.GetValue('Comments')
+
+    $displayName = $productEntry.GetValue('DisplayName')
+
+    $installSource = $productEntry.GetValue('InstallSource')
+
+    return @{
+        Ensure = 'Present'
+        Name = $displayName
+        InstallSource = $installSource
+        InstalledOn = $installDate
+        Size = $estimatedSize
+        Version = $displayVersion
+        PackageDescription = $comments
+        Publisher = $publisher
+    }
 }
 
 <#
