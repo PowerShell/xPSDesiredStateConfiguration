@@ -13,7 +13,7 @@ ConvertFrom-StringData @'
     PathDoesNotExist = The given Path ({0}) could not be found
     CouldNotOpenDestFile = Could not open the file {0} for writing
     CouldNotGetHttpStream = Could not get the {0} stream for file {1}
-    ErrorCopyingDataToFile = Encountered error while writing the contents of {0} to {1}
+    ErrorCopyingDataToFile = Encountered error while copying the contents of {0} over to the destination
     PackageConfigurationComplete = Package configuration finished
     PackageConfigurationStarting = Package configuration starting
     InstalledPackage = Installed package
