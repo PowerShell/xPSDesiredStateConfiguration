@@ -281,7 +281,6 @@ Describe 'xMsiPackage Unit Tests' {
                 Path = $script:testPath
                 Ensure = 'Present'
                 Arguments = 'TestArguments'
-                Credential = $script:testCredential
                 LogPath = 'TestLogPath'
                 FileHash = 'TestFileHash'
                 HashAlgorithm = 'Sha256'
