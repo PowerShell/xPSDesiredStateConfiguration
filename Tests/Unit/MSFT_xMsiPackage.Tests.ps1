@@ -27,7 +27,21 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @( $testUsername, $secureTestPassword )
         $script:testProductId = '{deadbeef-80c6-41e6-a1b9-8bdb8a05027f}'
         $script:testIdentifyingNumber = '{DEADBEEF-80C6-41E6-A1B9-8BDB8A05027F}'
-        $script:testPath = 'TestPath'
+        $script:testWrongProductId = 'wrongId'
+        $script:testPath = Join-Path -Path Test-Drive -ChildPath 'test.msi'
+        $script:destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath 'C:\'
+        $script:testUriNonUnc = [Uri] $script:testPath
+        $script:testUriHttp = [Uri] 'http://testPath'
+        $script:testUriHttps = [Uri] 'https://testPath'
+        $script:testUriFile = [Uri] 'file://testPath'
+
+        $script:testFileOutStream = New-MockObject -Type 'System.IO.FileStream'
+        $script:mockPSDrive = @{
+            Root = 'mockRoot'
+        }
+        $script:mockProcess = @{
+            ExitCode = 0
+        }
 
         # This registry key is used ONLY for its type (Microsoft.Win32.RegistryKey). It is not actually accessed in any way during these tests.
         $script:mockProductEntry = [Microsoft.Win32.Registry]::CurrentConfig
@@ -59,9 +73,13 @@ Describe 'xMsiPackage Unit Tests' {
             'Get-MsiProductCode' = 'retrieve the MSI product code'
             'Invoke-PInvoke' = 'attempt to... what does this do?'
             'Invoke-Process' = 'attempt to ......not quite sure?'
+            'Invoke-CimMethod' = 'attempt to invoke a cim method'
+            'Close-Stream' = 'close the stream'
+            'Copy-WebResponseToFileStream' = 'copy the web response to the file stream'
+            'Get-ItemProperty' = 'retrieve the item property'
         }
 
-        $script:errorMessageTitles = @{
+        $script:errorMessageTitles = @{ ###Problem here since messeges passed in ususally contain a variable - could pass these in separately?
 
 
         }
@@ -113,7 +131,7 @@ Describe 'xMsiPackage Unit Tests' {
                     $GetTargetResourceParameters,
 
                     [Parameter(Mandatory = $true)]
-                    [Hashtable]
+                    [Hashtable[]]
                     $MocksCalled,
 
                     [Parameter(Mandatory = $true)]
@@ -125,12 +143,12 @@ Describe 'xMsiPackage Unit Tests' {
                     { $null = Get-TargetResource @GetTargetResourceParameters } | Should Not Throw
                 }
 
-                foreach ($key in $MocksCalled.Keys)
+                foreach ($mock in $MocksCalled)
                 {
-                    $testName = Get-TestName -Command $key -IsCalled $MocksCalled.$key
+                    $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
 
                     It $testName {
-                        Assert-MockCalled -CommandName $key -Exactly $MocksCalled.$key -Scope 'Context'
+                        Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
                     }
                 }
 
@@ -152,12 +170,6 @@ Describe 'xMsiPackage Unit Tests' {
                 }
             }
 
-            $mocksCalled = @{
-                'Convert-ProductIdToIdentifyingNumber' = 1
-                'Get-ProductEntry' = 1
-                'Get-ProductEntryInfo' = 0
-            }
-
             Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
             Mock -CommandName 'Get-ProductEntry' -MockWith { return $null }
             Mock -CommandName 'Get-ProductEntryInfo' -MockWith { return $script:mockProductEntryInfo }
@@ -167,6 +179,12 @@ Describe 'xMsiPackage Unit Tests' {
                     ProductId = $script:testProductId
                     Path = $script:testPath
                 }
+
+                $mocksCalled = @(
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                    @{ Command = 'Get-ProductEntryInfo'; Times = 0 }
+                )
 
                 $expectedReturnValue = @{
                     Ensure = 'Absent'
@@ -186,8 +204,13 @@ Describe 'xMsiPackage Unit Tests' {
                     Path = $script:testPath
                 }
 
+                $mocksCalled = @(
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                    @{ Command = 'Get-ProductEntryInfo'; Times = 1 }
+                )
+
                 $expectedReturnValue = $script:mockProductEntryInfo
-                $mocksCalled['Get-ProductEntryInfo'] = 1
 
                 Invoke-GetTargetResourceTest -GetTargetResourceParameters $getTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
@@ -220,7 +243,7 @@ Describe 'xMsiPackage Unit Tests' {
                     $SetTargetResourceParameters,
 
                     [Parameter(Mandatory = $true)]
-                    [Hashtable]
+                    [Hashtable[]]
                     $MocksCalled,
 
                     [Boolean]
@@ -232,7 +255,7 @@ Describe 'xMsiPackage Unit Tests' {
 
                 if ($ShouldThrow)
                 {
-                    It "Should throw an error for $ErrorMessage" {
+                    It "Should throw error: $ErrorMessage" {
                         { $null = Set-TargetResource @SetTargetResourceParameters } | Should Throw $ErrorMessage
                     }
                 }
@@ -243,27 +266,19 @@ Describe 'xMsiPackage Unit Tests' {
                     }
                 }
 
-                foreach ($key in $MocksCalled.Keys)
+                foreach ($mock in $MocksCalled)
                 {
-                    $testName = Get-TestName -Command $key -IsCalled $MocksCalled.$key
+                    $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
 
                     It $testName {
-                        Assert-MockCalled -CommandName $key -Exactly $MocksCalled.$key -Scope 'Context'
+                        Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
                     }
                 }
             }
 
-            $mocksCalled = @{
-                'Test-TargetResource' = 1
-                'Assert-PathExtensionValid' = 1
-                'Convert-ProductIdToIdentifyingNumber' = 1
-                'Get-ProductEntry' = 1
-                'Get-ProductEntryInfo' = 0
-            }
-
             $setTargetResourceParameters = @{
                 ProductId = 'TestProductId'
-                Path = 'TestPath'
+                Path = $script:testPath
                 Ensure = 'Present'
                 Arguments = 'TestArguments'
                 Credential = $script:testCredential
@@ -275,22 +290,312 @@ Describe 'xMsiPackage Unit Tests' {
                 ServerCertificateValidationCallback = 'TestValidationCallback'
                 RunAsCredential = $script:testCredential
             }
-
-            $mocksCalled = @{
-                'Test-TargetResource' = 1
-                'Assert-PathExtensionValid' = 0
-            }
             
             Mock -CommandName 'Test-TargetResource' -MockWith { return $true }
             Mock -CommandName 'Assert-PathExtensionValid' -MockWith {}
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriFile }
             Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
             Mock -CommandName 'Get-ProductEntry' -MockWith { return $null }
-            Mock -CommandName 'Get-ProductEntryInfo' -MockWith { return $script:mockProductEntryInfo }
+            Mock -CommandName 'Test-Path' -MockWith { return $true }
+            Mock -CommandName 'Remove-Item' -MockWith { Throw }
+            Mock -CommandName 'New-Item' -MockWith {}
+            Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
+            Mock -CommandName 'New-Object' -MockWith { Throw } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
+            Mock -CommandName 'Close-Stream' -MockWith {}
+            Mock -CommandName 'Copy-WebResponseToFileStream' -MockWith {}
+            Mock -CommandName 'Assert-FileValid' -MockWith {}
+            Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testWrongProductId }
+            Mock -CommandName 'Invoke-PInvoke' -MockWith { Throw }
+            Mock -CommandName 'Invoke-Process' -MockWith { Throw }
+            Mock -CommandName 'Invoke-CimMethod' -MockWith {}
+            Mock -CommandName 'Get-ItemProperty' -MockWith { return $null }
+            Mock -CommandName 'Remove-PSDrive' -MockWith {}
             
             Context 'Resource is in desired state already' {
+
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 0 }
+                )
+
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
-                                             -MocksCalled $mocksCalled
-                
+                                             -MocksCalled $mocksCalled  
+            }
+
+            Mock -CommandName 'Test-TargetResource' -MockWith { return $false }
+
+            Context 'Error opening Log' {
+
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 1 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 0 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.CouldNotOpenLog -f $setTargetResourceParameters.LogPath)
+            }
+
+            Mock -CommandName 'Remove-Item' -MockWith {}
+
+            Context 'Uri scheme is File and specified ProductId does not match actual product code' {
+
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 1 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Assert-FileValid'; Times = 1 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.InvalidId -f $script:testIdentifyingNumber, $script:testWrongProductId)
+            }
+
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttp }
+
+            Context 'Uri scheme is http and error occurred while attempting to open destination file' {
+
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.CouldNotOpenDestFile -f $script:destinationPath)
+            }
+
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttps }
+            Mock -CommandName 'New-Object' -MockWith { return $script:testFileOutStream } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
+            Mock -CommandName 'Test-Path' -MockWith { return $false } -ParameterFilter { $Path -eq $script:destinationPath}
+
+            Context 'Uri scheme is https and specified Path does not exist' {
+
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 0 }
+                    @{ Command = 'Test-Path'; Times = 3 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'New-Object'; Times = 1 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 1 }
+                    @{ Command = 'Close-Stream'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.PathDoesNotExist -f $script:destinationPath)
+            }
+
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
+            Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testIdentifyingNumber }
+
+            Context 'Uri scheme is not file, http, or https and RunAsCredential is specified and starting the process fails' {
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 0 }
+                    @{ Command = 'Test-Path'; Times = 2 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Assert-FileValid'; Times = 1 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
+                    @{ Command = 'Invoke-PInvoke'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path)
+            }
+
+            Context 'Uri scheme is not file, http, or https and RunAsCredential is specified and starting the process fails' {
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 0 }
+                    @{ Command = 'Test-Path'; Times = 2 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Assert-FileValid'; Times = 1 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
+                    @{ Command = 'Invoke-PInvoke'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path)
+            }
+
+            $setTargetResourceParameters.Remove('RunAsCredential')
+
+            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and starting the process fails' {
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 0 }
+                    @{ Command = 'Test-Path'; Times = 2 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Assert-FileValid'; Times = 1 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
+                    @{ Command = 'Invoke-Process'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path)
+            }
+
+            Mock -CommandName 'Invoke-Process' -MockWith { return $script:mockProcess }
+
+            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Assert-FileValid'; Times = 1 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
+                    @{ Command = 'Invoke-Process'; Times = 1 }
+                    @{ Command = 'Invoke-CimMethod'; Times = 1 }
+                    @{ Command = 'Get-ItemProperty'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.PostValidationError -f $setTargetResourceParameters.Path)
+            }
+
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttp }
+            Mock -CommandName 'Test-Path' -MockWith { return $true } -ParameterFilter { $Path -eq $script:destinationPath}
+
+            Context 'Uri scheme is http, RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 3 }
+                    @{ Command = 'Remove-Item'; Times = 2 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 1 }
+                    @{ Command = 'Assert-FileValid'; Times = 1 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
+                    @{ Command = 'Invoke-Process'; Times = 1 }
+                    @{ Command = 'Invoke-CimMethod'; Times = 1 }
+                    @{ Command = 'Get-ItemProperty'; Times = 1 }
+                    @{ Command = 'Close-Stream'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $true `
+                                             -ErrorMessage ($script:localizedData.PostValidationError -f $setTargetResourceParameters.Path)
+            }
+
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
+            Mock -CommandName 'Get-ProductEntry' -MockWith { return $script:mockProductEntry }
+
+            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and installation succeeds' {
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Assert-FileValid'; Times = 1 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
+                    @{ Command = 'Invoke-Process'; Times = 1 }
+                    @{ Command = 'Invoke-CimMethod'; Times = 1 }
+                    @{ Command = 'Get-ItemProperty'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $false `
+            }
+
+            $setTargetResourceParameters.Ensure = 'Absent'
+
+            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and uninstallation succeeds' {
+                $mocksCalled = @(
+                    @{ Command = 'Test-TargetResource'; Times = 1 }
+                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
+                    @{ Command = 'Convert-PathToUri'; Times = 1 }
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 1 }
+                    @{ Command = 'Remove-Item'; Times = 1 }
+                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Assert-FileValid'; Times = 0 }
+                    @{ Command = 'Get-MsiProductCode'; Times = 0 }
+                    @{ Command = 'Invoke-Process'; Times = 1 }
+                    @{ Command = 'Invoke-CimMethod'; Times = 1 }
+                    @{ Command = 'Get-ItemProperty'; Times = 1 }
+                )
+
+                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
+                                             -MocksCalled $mocksCalled `
+                                             -ShouldThrow $false `
             }
         }
 

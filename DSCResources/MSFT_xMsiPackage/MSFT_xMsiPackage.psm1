@@ -158,7 +158,6 @@ function Set-TargetResource
 
     $uri = Convert-PathToUri -Path $Path
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
-    $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
 
     <#
         Path gets overwritten in the download code path. Retain the user's original Path so as
@@ -217,9 +216,7 @@ function Set-TargetResource
             }
             elseif (@( 'http', 'https' ) -contains $uri.Scheme)
             {
-                $uriScheme = $uri.Scheme
                 $outStream = $null
-                $responseStream = $null
 
                 try
                 {
@@ -232,7 +229,7 @@ function Set-TargetResource
 
                     $destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath (Split-Path -Path $uri.LocalPath -Leaf)
 
-                    Write-Verbose -Message ($script:localizedData.NeedtodownloadfilefromschemedestinationwillbedestName -f $uriScheme, $destinationPath)
+                    Write-Verbose -Message ($script:localizedData.NeedtodownloadfilefromschemedestinationwillbedestName -f $uri.Scheme, $destinationPath)
 
                     try
                     {
@@ -245,58 +242,13 @@ function Set-TargetResource
                         New-InvalidOperationException -Message ($script:localizedData.CouldNotOpenDestFile -f $destinationPath) -ErrorRecord $_
                     }
 
-                    try
-                    {
-                        Write-Verbose -Message ($script:localizedData.CreatingTheSchemeStream -f $uriScheme)
-                        $webRequest = [System.Net.WebRequest]::Create($uri)
-
-                        Write-Verbose -Message ($script:localizedData.SettingDefaultCredential)
-                        $webRequest.Credentials = [System.Net.CredentialCache]::DefaultCredentials
-
-                        if ($uriScheme -eq 'http')
-                        {
-                            # Default value is MutualAuthRequested, which applies to the https scheme
-                            Write-Verbose -Message ($script:localizedData.SettingAuthenticationLevel)
-                            $webRequest.AuthenticationLevel = [System.Net.Security.AuthenticationLevel]::None
-                        }
-                        elseif ($uriScheme -eq 'https' -and -not [String]::IsNullOrEmpty($ServerCertificateValidationCallback))
-                        {
-                            Write-Verbose -Message 'Assigning user-specified certificate verification callback'
-                            $serverCertificateValidationScriptBlock = [ScriptBlock]::Create($ServerCertificateValidationCallback)
-                            $webRequest.ServerCertificateValidationCallBack = $serverCertificateValidationScriptBlock
-                        }
-
-                        Write-Verbose -Message ($script:localizedData.Gettingtheschemeresponsestream -f $uriScheme)
-                        #### why is an HttpWebRequest object being used for both Https and Http?
-                        $responseStream = (([System.Net.HttpWebRequest]$webRequest).GetResponse()).GetResponseStream()
-                    }
-                    catch
-                    {
-                         New-InvalidOperationException -Message ($script:localizedData.CouldNotGetHttpStream -f $uriScheme, $Path) -ErrorRecord $_
-                    }
-
-                    try
-                    {
-                        Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache -f $uriScheme)
-                        $responseStream.CopyTo($outStream)
-                        $responseStream.Flush()
-                        $outStream.Flush()
-                    }
-                    catch
-                    {
-                        New-InvalidOperationException -Message ($script:localizedData.ErrorCopyingDataToFile -f $Path, $destinationPath) -ErrorRecord $_
-                    }
+                    Copy-WebResponseToFileStream -Uri $uri -OutStream $outStream -ServerCertificateValidationCallback $ServerCertificateValidationCallback
                 }
                 finally
                 {
                     if ($null -ne $outStream)
                     {
-                        $outStream.Close()
-                    }
-
-                    if ($null -ne $responseStream)
-                    {
-                        $responseStream.Close()
+                        Close-Stream -Stream $outStream
                     }
                 }
 
@@ -305,7 +257,7 @@ function Set-TargetResource
                 $downloadedFileName = $destinationPath
             }
 
-            # At this point the Path should be valid unless it's an uninstall case
+            # At this point the Path should be valid if this is an install case
             if (-not (Test-Path -Path $Path -PathType 'Leaf'))
             {
                 New-InvalidOperationException -Message ($script:localizedData.PathDoesNotExist -f $Path)
@@ -761,6 +713,93 @@ function Get-ProductEntryInfo
         PackageDescription = $comments
         Publisher = $publisher
     }
+}
+
+function Copy-WebResponseToFileStream
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [Uri]
+        $Uri,
+
+        [Parameter(Mandatory = $true)]
+        [System.IO.FileStream]
+        $OutStream,
+
+        [String]
+        $ServerCertificateValidationCallback
+    )
+
+    $responseStream = $null
+
+    try
+    {
+        try
+        {
+            $uriScheme = $Uri.Scheme
+
+            Write-Verbose -Message ($script:localizedData.CreatingTheSchemeStream -f $uriScheme)
+            $webRequest = [System.Net.WebRequest]::Create($Uri)
+        
+            Write-Verbose -Message ($script:localizedData.SettingDefaultCredential)
+            $webRequest.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+        
+            if ($uriScheme -eq 'http')
+            {
+                # Default value is MutualAuthRequested, which applies to the https scheme
+                Write-Verbose -Message ($script:localizedData.SettingAuthenticationLevel)
+                $webRequest.AuthenticationLevel = [System.Net.Security.AuthenticationLevel]::None
+            }
+            elseif ($uriScheme -eq 'https' -and -not [String]::IsNullOrEmpty($ServerCertificateValidationCallback))
+            {
+                Write-Verbose -Message 'Assigning user-specified certificate verification callback'
+                $serverCertificateValidationScriptBlock = [ScriptBlock]::Create($ServerCertificateValidationCallback)
+                $webRequest.ServerCertificateValidationCallBack = $serverCertificateValidationScriptBlock
+            }
+        
+            Write-Verbose -Message ($script:localizedData.Gettingtheschemeresponsestream -f $uriScheme)
+            #### why is an HttpWebRequest object being used for both Https and Http?
+            $responseStream = (([System.Net.HttpWebRequest]$webRequest).GetResponse()).GetResponseStream()
+        }
+        catch
+        {
+             New-InvalidOperationException -Message ($script:localizedData.CouldNotGetHttpStream -f $uriScheme, $Uri.OriginalString) -ErrorRecord $_
+        }
+
+        try
+        {
+            Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache -f $uriScheme)
+            $responseStream.CopyTo($OutStream)
+            $responseStream.Flush()
+            $OutStream.Flush()
+        }
+        catch
+        {
+            New-InvalidOperationException -Message ($script:localizedData.ErrorCopyingDataToFile -f $Uri.OriginalString) -ErrorRecord $_
+        }
+    }
+    finally
+    {
+        if ($null -ne $responseStream)
+        {
+            $responseStream.Close()
+        }
+    }
+}
+
+function Close-Stream
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.IO.FileStream]
+        $Stream
+    )
+
+    $Stream.Close()
 }
 
 <#
