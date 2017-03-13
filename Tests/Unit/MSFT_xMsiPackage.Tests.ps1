@@ -39,8 +39,8 @@ Describe 'xMsiPackage Unit Tests' {
         {
             ConvertFrom-StringData -StringData @'
 Convert-ProductIdToIdentifyingNumber = convert the product ID to the identifying number
-Get-ProductEntry = retrieve product entry
-Get-ProductEntryInfo = retrieve product entry info
+Get-ProductEntry = retrieve the product entry
+Get-ProductEntryInfo = retrieve the product entry info
 Test-TargetResource = check to see if the resource is already in the desired state
 Assert-PathExtensionValid = assert that the specified path extension is valid
 Convert-PathToUri = convert the path to a URI
@@ -477,29 +477,7 @@ Get-ItemProperty = retrieve the registry data
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testIdentifyingNumber }
 
-            Context 'Uri scheme is not file, http, or https and RunAsCredential is specified and starting the process fails' {
-                $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
-                    @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
-                    @{ Command = 'Convert-PathToUri'; Times = 1 }
-                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
-                    @{ Command = 'Get-ProductEntry'; Times = 0 }
-                    @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
-                    @{ Command = 'New-PSDrive'; Times = 0 }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
-                    @{ Command = 'Assert-FileValid'; Times = 1 }
-                    @{ Command = 'Get-MsiProductCode'; Times = 1 }
-                    @{ Command = 'Invoke-PInvoke'; Times = 1 }
-                )
-
-                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
-                                             -MocksCalled $mocksCalled `
-                                             -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path) `
-                                             -ErrorTestName $script:errorMessageTitles.CouldNotStartProcess
-            }
-
-            Context 'Uri scheme is not file, http, or https and RunAsCredential is specified and starting the process fails' {
+            Context 'Uri scheme is not file, http, or https, RunAsCredential is specified and starting the process fails' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -523,7 +501,7 @@ Get-ItemProperty = retrieve the registry data
 
             $setTargetResourceParameters.Remove('RunAsCredential')
 
-            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and starting the process fails' {
+            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and starting the process fails' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -547,7 +525,7 @@ Get-ItemProperty = retrieve the registry data
 
             Mock -CommandName 'Invoke-Process' -MockWith { return $script:mockProcess }
 
-            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
+            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -604,7 +582,7 @@ Get-ItemProperty = retrieve the registry data
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
             Mock -CommandName 'Get-ProductEntry' -MockWith { return $script:mockProductEntry }
 
-            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and installation succeeds' {
+            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and installation succeeds' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -628,7 +606,7 @@ Get-ItemProperty = retrieve the registry data
 
             $setTargetResourceParameters.Ensure = 'Absent'
 
-            Context 'Uri scheme is not file, http, or https and RunAsCredential is not specified and uninstallation succeeds' {
+            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and uninstallation succeeds' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -652,23 +630,133 @@ Get-ItemProperty = retrieve the registry data
         }
 
         Describe 'Test-TargetResource' {
-            Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
-            Mock -CommandName 'Get-ProductEntry' -MockWith { return $null }
+            <#
+                .SYNOPSIS
+                    Performs generic tests for Test-TargetResource, including checking that the
+                    function does not throw, checking that all mocks are called the expected
+                    number of times, and checking that the correct result is returned. If the function
+                    is expected to throw, then this function should not be used.
 
-            Context 'test tests' {
+                .PARAMETER TestTargetResourceParameters
+                    The parameters that should be passed to Test-TargetResource for this test.
+
+                .PARAMETER MocksCalled
+                    An array of the mocked commands that should be called for this test.
+                    Each item in the array is a hashtable that contains the name of the command
+                    being mocked and the number of times it is called (can be 0).
+
+                .PARAMETER ExpectedReturnValue
+                    The expected boolean value that should be returned
+            #>
+            function Invoke-TestTargetResourceTest
+            {
+                [CmdletBinding()]
+                param
+                (
+                    [Parameter(Mandatory = $true)]
+                    [Hashtable]
+                    $TestTargetResourceParameters,
+
+                    [Parameter(Mandatory = $true)]
+                    [Hashtable[]]
+                    $MocksCalled,
+
+                    [Parameter(Mandatory = $true)]
+                    [Boolean]
+                    $ExpectedReturnValue
+                )
+
+                It 'Should not throw' {
+                    { $null = Test-TargetResource @TestTargetResourceParameters } | Should Not Throw
+                }
+
+                foreach ($mock in $MocksCalled)
+                {
+                    $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
+
+                    It $testName {
+                        Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
+                    }
+                }
+
+                $testTargetResourceResult = Test-TargetResource @TestTargetResourceParameters
+
+                It "Should return $ExpectedReturnValue" {
+                    $testTargetResourceResult | Should Be $ExpectedReturnValue
+                }
+            }
+
+            Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
+            Mock -CommandName 'Get-ProductEntry' -MockWith { return $script:mockProductEntry }
+
+            Context 'Specified package is present and should be' {
                 $testTargetResourceParameters = @{
                     ProductId = $script:testProductId
                     Path = $script:testPath
                     Ensure = 'Present'
                 }
 
-                It 'Should not throw' {
-                    { $null = Test-TargetResource @testTargetResourceParameters } | Should Not Throw
+                $mocksCalled = @(
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                )
+
+                Invoke-TestTargetResourceTest -TestTargetResourceParameters $testTargetResourceParameters `
+                                              -MocksCalled $mocksCalled `
+                                              -ExpectedReturnValue $true
+            }
+
+            Context 'Specified package is present but should not be' {
+                $testTargetResourceParameters = @{
+                    ProductId = $script:testProductId
+                    Path = $script:testPath
+                    Ensure = 'Absent'
                 }
 
-                It 'Should return false' {
-                    Test-TargetResource @testTargetResourceParameters | Should Be $false
+                $mocksCalled = @(
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                )
+
+                Invoke-TestTargetResourceTest -TestTargetResourceParameters $testTargetResourceParameters `
+                                              -MocksCalled $mocksCalled `
+                                              -ExpectedReturnValue $false
+            }
+
+            Mock -CommandName 'Get-ProductEntry' -MockWith { return $null }
+
+            Context 'Specified package is Absent but should not be' {
+                $testTargetResourceParameters = @{
+                    ProductId = $script:testProductId
+                    Path = $script:testPath
+                    Ensure = 'Present'
                 }
+
+                $mocksCalled = @(
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                )
+
+                Invoke-TestTargetResourceTest -TestTargetResourceParameters $testTargetResourceParameters `
+                                              -MocksCalled $mocksCalled `
+                                              -ExpectedReturnValue $false
+            }
+
+            Context 'Specified package is Absent and should be' {
+                $testTargetResourceParameters = @{
+                    ProductId = $script:testProductId
+                    Path = $script:testPath
+                    Ensure = 'Absent'
+                }
+
+                $mocksCalled = @(
+                    @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
+                    @{ Command = 'Get-ProductEntry'; Times = 1 }
+                )
+
+                Invoke-TestTargetResourceTest -TestTargetResourceParameters $testTargetResourceParameters `
+                                              -MocksCalled $mocksCalled `
+                                              -ExpectedReturnValue $true
             }
         }
     }
