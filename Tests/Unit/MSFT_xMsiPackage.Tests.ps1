@@ -1,31 +1,6 @@
 ﻿$errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
-data testStrings
-{
-    ConvertFrom-StringData -StringData @'
-Convert-ProductIdToIdentifyingNumber = convert the product ID to the identifying number
-Get-ProductEntry = retrieve product entry
-Get-ProductEntryInfo = retrieve product entry info
-Test-TargetResource = check to see if the resource is already in the desired state
-Assert-PathExtensionValid = assert that the specified path extension is valid
-Convert-PathToUri = convert the path to a URI
-Test-Path = test that the path at '{0}' exists
-Remove-Item = remove '{0}'
-New-Item = create a new {0}
-New-PSDrive = create a new PS Drive
-New-Object = create a new object of type {0}
-Assert-FileValid = assert that the file is valid
-Get-MsiProductCode = retrieve the MSI product code
-Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
-Invoke-Process = attempt to install/uninstall the MSI package under the process
-Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
-Close-Stream = close the stream
-Copy-WebResponseToFileStream = copy the web response to the file stream
-Get-ItemProperty = retrieve the registry data
-'@
-}
-
 Describe 'xMsiPackage Unit Tests' {
     BeforeAll {
         # Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
@@ -59,6 +34,31 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testUriHttp = [Uri] 'http://testPath'
         $script:testUriHttps = [Uri] 'https://testPath'
         $script:testUriFile = [Uri] 'file://testPath'
+
+        data testStrings
+        {
+            ConvertFrom-StringData -StringData @'
+Convert-ProductIdToIdentifyingNumber = convert the product ID to the identifying number
+Get-ProductEntry = retrieve product entry
+Get-ProductEntryInfo = retrieve product entry info
+Test-TargetResource = check to see if the resource is already in the desired state
+Assert-PathExtensionValid = assert that the specified path extension is valid
+Convert-PathToUri = convert the path to a URI
+Test-Path = test that the path at '{0}' exists
+Remove-Item = remove '{0}'
+New-Item = create a new {0}
+New-PSDrive = create a new PS Drive
+New-Object = create a new object of type {0}
+Assert-FileValid = assert that the file is valid
+Get-MsiProductCode = retrieve the MSI product code
+Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
+Invoke-Process = attempt to install/uninstall the MSI package under the process
+Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
+Close-Stream = close the stream
+Copy-WebResponseToFileStream = copy the web response to the file stream
+Get-ItemProperty = retrieve the registry data
+'@
+        }
 
         $script:testFileOutStream = New-MockObject -Type 'System.IO.FileStream'
         $script:mockPSDrive = @{
