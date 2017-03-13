@@ -1,6 +1,31 @@
 ﻿$errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
+data testStrings
+{
+    ConvertFrom-StringData -StringData @'
+Convert-ProductIdToIdentifyingNumber = convert the product ID to the identifying number
+Get-ProductEntry = retrieve product entry
+Get-ProductEntryInfo = retrieve product entry info
+Test-TargetResource = check to see if the resource is already in the desired state
+Assert-PathExtensionValid = assert that the specified path extension is valid
+Convert-PathToUri = convert the path to a URI
+Test-Path = test that the path at '{0}' exists
+Remove-Item = remove '{0}'
+New-Item = create a new {0}
+New-PSDrive = create a new PS Drive
+New-Object = create a new object of type {0}
+Assert-FileValid = assert that the file is valid
+Get-MsiProductCode = retrieve the MSI product code
+Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
+Invoke-Process = attempt to install/uninstall the MSI package under the process
+Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
+Close-Stream = close the stream
+Copy-WebResponseToFileStream = copy the web response to the file stream
+Get-ItemProperty = retrieve the registry data
+'@
+}
+
 Describe 'xMsiPackage Unit Tests' {
     BeforeAll {
         # Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
@@ -57,33 +82,26 @@ Describe 'xMsiPackage Unit Tests' {
             Ensure = 'Present'
         }
 
-        $script:functionAssertTitles = @{
-            'Convert-ProductIdToIdentifyingNumber' = 'convert product ID to identifying number'
-            'Get-ProductEntry' = 'retrieve product entry'
-            'Get-ProductEntryInfo' = 'retrieve product entry info'
-            'Test-TargetResource' = 'check to see if the resource is already in the desired state'
-            'Assert-PathExtensionValid' = 'assert that the specified path extension is valid'
-            'Convert-PathToUri' = 'convert the path to a URI'
-            'Test-Path' = 'test that the path exists....'
-            'Remove-Item' = 'remove .....'
-            'New-Item' = 'create a new.....'
-            'New-PSDrive' = 'create a new PS Drive'
-            'New-Object' = 'create a new.....'
-            'Assert-FileValid' = 'assert that the file is valid'
-            'Get-MsiProductCode' = 'retrieve the MSI product code'
-            'Invoke-PInvoke' = 'attempt to... what does this do?'
-            'Invoke-Process' = 'attempt to ......not quite sure?'
-            'Invoke-CimMethod' = 'attempt to invoke a cim method'
-            'Close-Stream' = 'close the stream'
-            'Copy-WebResponseToFileStream' = 'copy the web response to the file stream'
-            'Get-ItemProperty' = 'retrieve the item property'
+        # Used to create the names of the tests that check to ensure the correct error is thrown.
+        $script:errorMessageTitles = @{
+            CouldNotOpenLog = 'not being able to open the log path'
+            InvalidId = 'the specified product ID not matching the actual product ID'
+            CouldNotOpenDestFile = 'not being able to open the destination file to write to'
+            PathDoesNotExist = 'not being able to find the path'
+            CouldNotStartProcess = 'not being able to start the process'
+            PostValidationError = 'not being able to find the package after installation'
         }
 
-        $script:errorMessageTitles = @{ ###Problem here since messeges passed in ususally contain a variable - could pass these in separately?
-
-
-        }
-
+        <#
+            .SYNOPSIS
+                Retrieves the name of the test for asserting that the given function is called.
+        
+            .PARAMETER IsCalled
+                Indicates whether the function should be called or not.
+        
+            .PARAMETER Custom
+                An optional string to include in the test name to make the name more descriptive.
+        #>
         function Get-TestName
         {
             [OutputType([String])]
@@ -95,16 +113,30 @@ Describe 'xMsiPackage Unit Tests' {
                 $Command,
 
                 [Boolean]
-                $IsCalled = $true
+                $IsCalled = $true,
+
+                [String]
+                $Custom = ''
             )
 
-            if ($IsCalled)
+            $testName = ''
+
+            if (-not [String]::IsNullOrEmpty($Custom))
             {
-                return 'Should ' + $script:functionAssertTitles.$Command
+                $testName = ($testStrings.$Command -f $Custom)
             }
             else
             {
-                return 'Should not ' + $script:functionAssertTitles.$Command
+                $testName = $testStrings.$Command
+            }
+
+            if ($IsCalled)
+            {
+                return 'Should ' + $testName
+            }
+            else
+            {
+                return 'Should not ' + $testName
             }
         }
 
@@ -117,12 +149,18 @@ Describe 'xMsiPackage Unit Tests' {
                     is expected to throw, then this function should not be used.
 
                 .PARAMETER GetTargetResourceParameters
+                    The parameters that should be passed to Get-TargetResource for this test.
 
                 .PARAMETER MocksCalled
+                    An array of the mocked commands that should be called for this test.
+                    Each item in the array is a hashtable that contains the name of the command
+                    being mocked and the number of times it is called (can be 0).
 
                 .PARAMETER ExpectedReturnValue
+                    The expected hashtable that Get-TargetResource should return for this test.
             #>
-            function Invoke-GetTargetResourceTest {
+            function Invoke-GetTargetResourceTest
+            {
                 [CmdletBinding()]
                 param
                 (
@@ -223,16 +261,27 @@ Describe 'xMsiPackage Unit Tests' {
                 .SYNOPSIS
                     Performs generic tests for Set-TargetResource, including checking that the
                     function does not throw and checking that all mocks are called the expected
-                    number of times. If the function is expected to throw, then this function
-                    should not be used.
+                    number of times.
 
                 .PARAMETER SetTargetResourceParameters
+                    The parameters that should be passed to Set-TargetResource for this test.
 
                 .PARAMETER MocksCalled
+                    An array of the mocked commands that should be called for this test.
+                    Each item in the array is a hashtable that contains the name of the command
+                    being mocked, the number of times it is called (can be 0) and, optionally,
+                    an extra custom string to make the test name more descriptive.
 
                 .PARAMETER ShouldThrow
+                    Indicates whether the function should throw or not. If this is set to True
+                    then ErrorMessage and ErrorTestName should also be passed.
 
                 .PARAMETER ErrorMessage
+                    The error message that should be thrown if the function is supposed to throw.
+
+                .PARAMETER ErrorTestName
+                    The string that should be used to create the name of the test that checks for
+                    the correct error being thrown.
             #>
             function Invoke-SetTargetResourceTest {
                 [CmdletBinding()]
@@ -250,12 +299,15 @@ Describe 'xMsiPackage Unit Tests' {
                     $ShouldThrow = $false,
 
                     [String]
-                    $ErrorMessage = ''
+                    $ErrorMessage = '',
+
+                    [String]
+                    $ErrorTestName = ''
                 )
 
                 if ($ShouldThrow)
                 {
-                    It "Should throw error: $ErrorMessage" {
+                    It "Should throw an error for $ErrorTestName" {
                         { $null = Set-TargetResource @SetTargetResourceParameters } | Should Throw $ErrorMessage
                     }
                 }
@@ -269,6 +321,11 @@ Describe 'xMsiPackage Unit Tests' {
                 foreach ($mock in $MocksCalled)
                 {
                     $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
+
+                    if ($mock.Keys -contains 'Custom')
+                    {
+                        $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times -Custom $mock.Custom
+                    }
 
                     It $testName {
                         Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
@@ -330,16 +387,17 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
-                    @{ Command = 'Test-Path'; Times = 1 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 0 }
+                    @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
+                    @{ Command = 'Remove-Item'; Times = 1; Custom = $setTargetResourceParameters.LogPath }
+                    @{ Command = 'New-Item'; Times = 0; Custom = $setTargetResourceParameters.LogPath }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.CouldNotOpenLog -f $setTargetResourceParameters.LogPath)
+                                             -ErrorMessage ($script:localizedData.CouldNotOpenLog -f $setTargetResourceParameters.LogPath) `
+                                             -ErrorTestName $script:errorMessageTitles.CouldNotOpenLog
             }
 
             Mock -CommandName 'Remove-Item' -MockWith {}
@@ -351,9 +409,9 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
-                    @{ Command = 'Test-Path'; Times = 2 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2; Custom = 'Path' }
+                    @{ Command = 'Remove-Item'; Times = 1; Custom = $setTargetResourceParameters.LogPath }
+                    @{ Command = 'New-Item'; Times = 1; Custom = $setTargetResourceParameters.LogPath }
                     @{ Command = 'New-PSDrive'; Times = 1 }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
@@ -363,7 +421,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.InvalidId -f $script:testIdentifyingNumber, $script:testWrongProductId)
+                                             -ErrorMessage ($script:localizedData.InvalidId -f $script:testIdentifyingNumber, $script:testWrongProductId) `
+                                             -ErrorTestName $script:errorMessageTitles.InvalidId
             }
 
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttp }
@@ -375,21 +434,23 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
-                    @{ Command = 'Test-Path'; Times = 2 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2; Custom = 'Path' }
+                    @{ Command = 'Remove-Item'; Times = 1; Custom = $setTargetResourceParameters.LogPath }
+                    @{ Command = 'New-Item'; Times = 1; Custom = $setTargetResourceParameters.LogPath }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.CouldNotOpenDestFile -f $script:destinationPath)
+                                             -ErrorMessage ($script:localizedData.CouldNotOpenDestFile -f $script:destinationPath) `
+                                             -ErrorTestName $script:errorMessageTitles.CouldNotOpenDestFile
             }
 
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttps }
             Mock -CommandName 'New-Object' -MockWith { return $script:testFileOutStream } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
-            Mock -CommandName 'Test-Path' -MockWith { return $false } -ParameterFilter { $Path -eq $script:destinationPath}
+            Mock -CommandName 'Test-Path' -MockWith { return $false } -ParameterFilter { $Path -eq $script:destinationPath }
+            $setTargetResourceParameters.Remove('LogPath')
 
             Context 'Uri scheme is https and specified Path does not exist' {
 
@@ -399,11 +460,9 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 0 }
-                    @{ Command = 'Test-Path'; Times = 3 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
-                    @{ Command = 'New-Object'; Times = 1 }
+                    @{ Command = 'New-Object'; Times = 1; Custom = 'System.IO.FileStream' }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 1 }
                     @{ Command = 'Close-Stream'; Times = 1 }
                 )
@@ -411,7 +470,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.PathDoesNotExist -f $script:destinationPath)
+                                             -ErrorMessage ($script:localizedData.PathDoesNotExist -f $script:destinationPath) `
+                                             -ErrorTestName $script:errorMessageTitles.PathDoesNotExist
             }
 
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
@@ -424,9 +484,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 0 }
-                    @{ Command = 'Test-Path'; Times = 2 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
@@ -437,7 +495,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path)
+                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path) `
+                                             -ErrorTestName $script:errorMessageTitles.CouldNotStartProcess
             }
 
             Context 'Uri scheme is not file, http, or https and RunAsCredential is specified and starting the process fails' {
@@ -447,9 +506,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 0 }
-                    @{ Command = 'Test-Path'; Times = 2 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
@@ -460,7 +517,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path)
+                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path) `
+                                             -ErrorTestName $script:errorMessageTitles.CouldNotStartProcess
             }
 
             $setTargetResourceParameters.Remove('RunAsCredential')
@@ -472,9 +530,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 0 }
-                    @{ Command = 'Test-Path'; Times = 2 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
@@ -485,7 +541,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path)
+                                             -ErrorMessage ($script:localizedData.CouldNotStartProcess -f $setTargetResourceParameters.Path) `
+                                             -ErrorTestName $script:errorMessageTitles.CouldNotStartProcess
             }
 
             Mock -CommandName 'Invoke-Process' -MockWith { return $script:mockProcess }
@@ -497,9 +554,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 1 }
-                    @{ Command = 'Test-Path'; Times = 2 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
@@ -512,7 +567,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.PostValidationError -f $setTargetResourceParameters.Path)
+                                             -ErrorMessage ($script:localizedData.PostValidationError -f $setTargetResourceParameters.Path) `
+                                             -ErrorTestName $script:errorMessageTitles.PostValidationError
             }
 
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttp }
@@ -525,10 +581,10 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 1 }
-                    @{ Command = 'Test-Path'; Times = 3 }
-                    @{ Command = 'Remove-Item'; Times = 2 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 2; Custom = 'Path' }
+                    @{ Command = 'Remove-Item'; Times = 1; Custom = $destinationPath }
                     @{ Command = 'New-PSDrive'; Times = 0 }
+                    @{ Command = 'New-Object'; Times = 1; Custom = 'System.IO.FileStream' }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 1 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
@@ -541,7 +597,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
                                              -MocksCalled $mocksCalled `
                                              -ShouldThrow $true `
-                                             -ErrorMessage ($script:localizedData.PostValidationError -f $setTargetResourceParameters.Path)
+                                             -ErrorMessage ($script:localizedData.PostValidationError -f $setTargetResourceParameters.Path) `
+                                             -ErrorTestName $script:errorMessageTitles.PostValidationError
             }
 
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
@@ -554,9 +611,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 1 }
-                    @{ Command = 'Test-Path'; Times = 2 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
@@ -580,9 +635,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
                     @{ Command = 'Get-ProductEntry'; Times = 1 }
-                    @{ Command = 'Test-Path'; Times = 1 }
-                    @{ Command = 'Remove-Item'; Times = 1 }
-                    @{ Command = 'New-Item'; Times = 1 }
+                    @{ Command = 'Test-Path'; Times = 0; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 0 }
