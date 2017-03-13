@@ -39,10 +39,6 @@ try
 
                 $null = New-TestMsi -DestinationPath $script:msiLocation
 
-                $script:testExecutablePath = Join-Path -Path $script:testDirectoryPath -ChildPath 'TestExecutable.exe'
-
-                $null = New-TestExecutable -DestinationPath $script:testExecutablePath
-
                 $null = Clear-xPackageCache
             }
 

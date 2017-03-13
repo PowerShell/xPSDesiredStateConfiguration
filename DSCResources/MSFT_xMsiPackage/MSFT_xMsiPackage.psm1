@@ -334,7 +334,8 @@ function Set-TargetResource
             New-InvalidOperationException -Message ($script:localizedData.CouldNotStartProcess -f $Path) -ErrorRecord $_
         }
 
-        if ($logStream)  ### I think something should be changed here since this isn't being used for EXEs anymore
+        if ($logStream)  ### I think something should be changed here since this isn't being used for EXEs anymore.
+                         ### Also, when is this even set? It looks like it will always be null based on how the code is written now
         {
             <#
                 We have to re-mux these since they appear as different streams.
