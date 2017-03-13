@@ -186,7 +186,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         # Test pipe connection as testing server readiness
         $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest1' )
-        #$pipe.WaitForConnection()
+        $pipe.WaitForConnection()
         $pipe.Dispose()
 
         $msiPackageParameters = @{
@@ -230,7 +230,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         # Test pipe connection as testing server readiness
         $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest1' )
-        #$pipe.WaitForConnection() - commented out because it was causing tests to hang on my Hyper-V
+        $pipe.WaitForConnection()
         $pipe.Dispose()
 
         $msiPackageParameters = @{
