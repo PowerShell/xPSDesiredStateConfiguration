@@ -50,8 +50,8 @@ ConvertFrom-StringData @'
     NeedtodownloadfilefromschemedestinationwillbedestName = Need to download file from {0}, destination will be {1}
     Creatingthedestinationcachefile = Creating the destination cache file
     Creatingtheschemestream = Creating the {0} stream
-    Settingdefaultcredential = Setting default credential
-    Settingauthenticationlevel = Setting authentication level
+    SettingDefaultCredential = Setting default credential
+    SettingAuthenticationlevel = Setting authentication level to None.
     Ignoringbadcertificates = Ignoring bad certificates
     Gettingtheschemeresponsestream = Getting the {0} response stream
     ErrorOutString = Error: {0}
@@ -65,4 +65,5 @@ ConvertFrom-StringData @'
     ErrorRemovingRegistryValue = An error occured while attempting to remove the registry key {0} value {1}
     ExeCouldNotBeUninstalled = The .exe file found at {0} could not be uninstalled. The uninstall functionality may not be implemented in this .exe file.
     GetTargetResourceFound = Successfully retrieved package {0}.
+    SettingCertificateValidationCallback = Assigning user-specified certificate verification callback.
 '@

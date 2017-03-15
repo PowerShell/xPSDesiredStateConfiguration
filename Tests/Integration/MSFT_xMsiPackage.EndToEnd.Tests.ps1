@@ -30,7 +30,8 @@ Describe 'xMsiPackage End to End Tests' {
         Import-Module -Name $packageTestHelperFilePath -Force
 
         # Set up the paths to the test configurations
-        $script:confgurationFilePathNoOptionalParameters = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xMsiPackage_NoOptionalParameters'
+        $script:configurationFilePathNoOptionalParameters = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xMsiPackage_NoOptionalParameters'
+        $script:configurationFilePathLogPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xMsiPackage_LogPath'
 
         $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
 
@@ -88,7 +89,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         It 'Should compile and run configuration' {
             { 
-                . $script:confgurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
                 & $configurationName -OutputPath $TestDrive @msiPackageParameters
                 Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
             } | Should Not Throw
@@ -114,7 +115,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         It 'Should compile and run configuration' {
             { 
-                . $script:confgurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
                 & $configurationName -OutputPath $TestDrive @msiPackageParameters
                 Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
             } | Should Not Throw
@@ -140,7 +141,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         It 'Should compile and run configuration' {
             { 
-                . $script:confgurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
                 & $configurationName -OutputPath $TestDrive @msiPackageParameters
                 Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
             } | Should Not Throw
@@ -166,7 +167,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         It 'Should compile and run configuration' {
             { 
-                . $script:confgurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
                 & $configurationName -OutputPath $TestDrive @msiPackageParameters
                 Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
             } | Should Not Throw
@@ -174,6 +175,54 @@ Describe 'xMsiPackage End to End Tests' {
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
             MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
+        }
+    }
+
+    Context 'Install package that is installed and write to specified log file' {
+        $configurationName = 'InstallWithLogFile'
+
+        $logPath = Join-Path -Path $script:testDirectoryPath -ChildPath 'TestMsiLog.txt'
+
+        if (Test-Path -Path $logPath)
+        {
+            Remove-Item -Path $logPath -Force
+        }
+
+        $msiPackageParameters = @{
+            ProductId = $script:packageId
+            Path = $script:msiLocation
+            Ensure = 'Present'
+            LogPath = $logPath
+        }
+
+        try
+        {
+            It 'Should return False from Test-TargetResource with the same parameters before configuration' {
+                MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $false
+            }
+
+            It 'Should compile and run configuration' {
+                { 
+                    . $script:configurationFilePathLogPath -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @msiPackageParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+            }
+
+            It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+                MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
+            }
+
+            It 'Should have created the log file' {
+                Test-Path -Path $logPath | Should Be $true
+            }
+        }
+        finally
+        {
+            if (Test-Path -Path $logPath)
+            {
+                Remove-Item -Path $logPath -Force
+            }
         }
     }
     <#  Commenting out these HTTP tests since they are failing
