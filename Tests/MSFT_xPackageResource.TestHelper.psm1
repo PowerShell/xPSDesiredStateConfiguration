@@ -128,8 +128,13 @@ function New-MockFileServer
         }
         elseif ($certificate.count -eq 0)
         {
-            # Create a self-signed one
+            ####check with Travis on this function, especially here.
+            # Create a self-signed certificate
             $certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName $env:computerName
+            $tempFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'TempCertificate'
+            Export-Certificate -Cert $certificate -FilePath $tempFilePath
+            $file = Get-ChildItem -Path $tempFilePath
+            $file | Import-Certificate -CertStoreLocation 'Cert:\LocalMachine\Root'
         }
 
         $hash = $certificate.Thumbprint
