@@ -168,6 +168,7 @@ function Set-TargetResource
 
     Write-Verbose -Message $script:localizedData.PackageConfigurationStarting
 
+    $logStream = $null
     $psDrive = $null
     $downloadedFileName = $null
 
@@ -324,7 +325,7 @@ function Set-TargetResource
             }
             else
             {
-               $process = Invoke-Process -Process $process
+               $process = Invoke-Process -Process $process -LogStream ($null -ne $logStream)
                $exitCode = $process.ExitCode
             }
         }
@@ -332,12 +333,40 @@ function Set-TargetResource
         {
             New-InvalidOperationException -Message ($script:localizedData.CouldNotStartProcess -f $Path) -ErrorRecord $_
         }
+
+        if ($logStream)  ### I think something should be changed here since this isn't being used for EXEs anymore.
+                         ### Also, when is this even set? It looks like it will always be null based on how the code is written now
+        {
+            <#
+                We have to re-mux these since they appear as different streams.
+                The underlying Win32 APIs prevent this problem, as would constructing a script
+                on the fly and executing it, but the former is highly problematic from PowerShell
+                and the latter doesn't let us get the return code for UI-based EXEs
+            #>
+            $outputEvents = Get-Event -SourceIdentifier $LogPath
+            $errorEvents = Get-Event -SourceIdentifier $errorLogPath
+            $masterEvents = @() + $outputEvents + $errorEvents
+            $masterEvents = $masterEvents | Sort-Object -Property TimeGenerated
+
+            foreach($event in $masterEvents)
+            {
+                $logStream.Write($event.SourceEventArgs.Data);
+            }
+
+            Remove-Event -SourceIdentifier $LogPath
+            Remove-Event -SourceIdentifier $errorLogPath
+        }
     }
     finally
     {
         if ($psDrive)
         {
             Remove-PSDrive -Name $psDrive -Force
+        }
+
+        if ($logStream)
+        {
+            $logStream.Dispose()
         }
     }
 
@@ -717,7 +746,6 @@ function Copy-WebResponseToFileStream
         
             Write-Verbose -Message ($script:localizedData.SettingDefaultCredential)
             $webRequest.Credentials = [System.Net.CredentialCache]::DefaultCredentials
-            $webRequest.AuthenticationLevel = [System.Net.Security.AuthenticationLevel]::None
         
             if ($uriScheme -eq 'http')
             {
@@ -727,7 +755,7 @@ function Copy-WebResponseToFileStream
             }
             elseif ($uriScheme -eq 'https' -and -not [String]::IsNullOrEmpty($ServerCertificateValidationCallback))
             {
-                Write-Verbose -Message $script:localizedData.SettingCertificateValidationCallback
+                Write-Verbose -Message 'Assigning user-specified certificate verification callback'
                 $serverCertificateValidationScriptBlock = [ScriptBlock]::Create($ServerCertificateValidationCallback)
                 $webRequest.ServerCertificateValidationCallBack = $serverCertificateValidationScriptBlock
             }
@@ -1099,6 +1127,9 @@ function Invoke-PInvoke
 
     .PARAMETER Process
         The System.Diagnositics.Process object to start.
+
+    .PARAMETER LogStream
+        Redirect STDOUT and STDERR output.
 #>
 function Invoke-Process
 {
@@ -1107,10 +1138,20 @@ function Invoke-Process
     param (
         [Parameter(Mandatory)]
         [System.Diagnostics.Process]
-        $Process
+        $Process,
+
+        [Parameter()]
+        [Boolean]
+        $LogStream
     )
 
     $null = $Process.Start()
+
+    if ($LogStream)
+    {
+        $Process.BeginOutputReadLine()
+        $Process.BeginErrorReadLine()
+    }
 
     $Process.WaitForExit()
     return $Process
