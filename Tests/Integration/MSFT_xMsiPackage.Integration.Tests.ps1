@@ -1,6 +1,6 @@
 ﻿$script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
-Import-Module -Name $script:commonTestHelperFilePath
+Import-Module -Name $script:commonTestHelperFilePath -force
 
 $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceModuleName 'xPSDesiredStateConfiguration' `
@@ -179,12 +179,26 @@ try
                 It 'Should correctly install and remove a package from a HTTP URL' {
                     $baseUrl = 'http://localhost:1242/'
                     $msiUrl = "$baseUrl" + 'package.msi'
-                    New-MockFileServer -FilePath $script:msiLocation
+                    $firstPipeArguments = '\\.\pipe\dsctest100'
+                    $secondPipeArguments = '\\.\pipe\dsctest200'
+
+                    New-MockFileServer -FilePath $script:msiLocation -FirstPipeArguments $firstPipeArguments -SecondPipeArguments $secondPipeArguments
 
                     # Test pipe connection as testing server readiness
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest1' )
-                    $pipe.WaitForConnection()
-                    $pipe.Dispose()
+                    try
+                    {
+                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
+                        $pipe.WaitForConnection()
+                    }
+                    finally 
+                    {
+                        if( $pipe -ne $null )
+                        {
+                            $pipe.Dispose()
+                        }
+                    }
+
+                    $pipe = $null
 
                     { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
 
@@ -194,20 +208,44 @@ try
                     Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                     Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
 
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( '\\.\pipe\dsctest2' )
-                    $pipe.Connect()
-                    $pipe.Dispose()
+                    try
+                    {
+                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
+                        $pipe.Connect()
+                    }
+                    finally 
+                    {
+                        if ($pipe -ne $null) 
+                        {
+                            $pipe.Dispose()
+                            $pipe = $null
+                        }
+                    }
                 }
 
                 It 'Should correctly install and remove a package from a HTTPS URL' -Skip:$script:skipHttpsTest {
                     $baseUrl = 'https://localhost:1243/'
                     $msiUrl = "$baseUrl" + 'package.msi'
-                    New-MockFileServer -FilePath $script:msiLocation -Https
+                    $firstPipeArguments = '\\.\pipe\dsctest4'
+                    $secondPipeArguments = '\\.\pipe\dsctest5'
 
-                    # Test pipe connection as testing server reasdiness
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest1' )
-                    $pipe.WaitForConnection()
-                    $pipe.Dispose()
+                    New-MockFileServer -FilePath $script:msiLocation -FirstPipeArguments $firstPipeArguments -SecondPipeArguments $secondPipeArguments -Https
+
+                    # Test pipe connection as testing server readiness
+                    try
+                    {
+                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
+                        $pipe.WaitForConnection()
+                    }
+                    finally 
+                    {
+                        if( $pipe -ne $null )
+                        {
+                            $pipe.Dispose()
+                        }
+                    }
+
+                    $pipe = $null
 
                     { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
 
@@ -217,9 +255,19 @@ try
                     Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                     Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
 
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( '\\.\pipe\dsctest2' )
-                    $pipe.Connect()
-                    $pipe.Dispose()
+                    try
+                    {
+                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
+                        $pipe.Connect()
+                    }
+                    finally 
+                    {
+                        if ($pipe -ne $null)
+                        {
+                            $pipe.Dispose()
+                            $pipe = $null
+                        }
+                    }
                 }
 
                 It 'Should write to the specified log path' {
