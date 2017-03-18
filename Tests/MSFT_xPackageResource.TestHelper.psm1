@@ -106,13 +106,7 @@ function New-MockFileServer
         $FilePath,
 
         [Switch]
-        $Https,
-
-        [String]
-        $FirstPipeArguments = '\\.\pipe\dsctest1',
-
-        [String]
-        $SecondPipeArguments = '\\.\pipe\dsctest2'
+        $Https
     )
 
     if ($null -eq (Get-NetFirewallRule -DisplayName 'UnitTestRule' -ErrorAction 'SilentlyContinue'))
@@ -134,13 +128,8 @@ function New-MockFileServer
         }
         elseif ($certificate.count -eq 0)
         {
-            ####check with Travis on this function, especially here.
-            # Create a self-signed certificate
+            # Create a self-signed one
             $certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName $env:computerName
-            $tempFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'TempCertificate'
-            Export-Certificate -Cert $certificate -FilePath $tempFilePath
-            $file = Get-ChildItem -Path $tempFilePath
-            $file | Import-Certificate -CertStoreLocation 'Cert:\LocalMachine\Root'
         }
 
         $hash = $certificate.Thumbprint
@@ -153,51 +142,37 @@ function New-MockFileServer
 
         try
         {
-            try
+            if ($Https)
             {
-                if ($Https)
-                {
-                    $httpListener.Prefixes.Add([Uri]'https://localhost:1243')
-                }
-                else
-                {
-                    $httpListener.Prefixes.Add([Uri]'http://localhost:1242')
-                }
-
-                $httpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate
-                $httpListener.Start()
+                $httpListener.Prefixes.Add([Uri]'https://localhost:1243')
             }
-            catch
+            else
             {
-                # Ensure Server stream gets notified if the http listener throws an error
-                try
-                {
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $FirstPipeArguments )
-                    $pipe.Connect()
-                }
-                finally
-                {
-                    if ($null -ne $pipe)
-                    {
-                        $pipe.Dispose()
-                    }
-                }
+                $httpListener.Prefixes.Add([Uri]'http://localhost:1242')
+            }
 
-                Throw $_
+            $httpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate
+            $httpListener.Start()
+
+            ### For some reason these can't be passed as parameters
+            $firstPipeArguments = '\\.\pipe\dsctest10'
+            $secondPipeArguments = '\\.\pipe\dsctest2'
+
+            if ($Https)
+            {
+                $firstPipeArguments = '\\.\pipe\dsctest100'
+                $secondPipeArguments = '\\.\pipe\dsctest20'
             }
 
             # Create a pipe to flag http/https client
+            $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $firstPipeArguments )
             try
             {
-                $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $FirstPipeArguments )
                 $pipe.Connect()
             }
             finally
             {
-                if ($null -ne $pipe)
-                {
-                    $pipe.Dispose()
-                }
+                $pipe.Dispose()
             }
         
             # Prepare binary buffer for http/https response
@@ -210,6 +185,7 @@ function New-MockFileServer
 
             # Send response
             $response = ($httpListener.GetContext()).Response
+            $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $SecondPipeArguments )
 
             try
             {
@@ -217,18 +193,14 @@ function New-MockFileServer
                 $response.ContentLength64 = $buf.Length
                 $response.OutputStream.Write($buf, 0, $buf.Length)
                 $response.OutputStream.Flush()
+
                 # Wait for client to finish downloading
-                $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $SecondPipeArguments )
                 $pipe.WaitForConnection()
             }
             finally
             {
                 $response.Dispose()
-
-                if( $pipe -ne $null)
-                {
-                    $pipe.Dispose()
-                }
+                $pipe.Dispose()
             }
         }
         finally
