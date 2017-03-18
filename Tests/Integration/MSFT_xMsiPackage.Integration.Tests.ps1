@@ -179,23 +179,20 @@ try
                 It 'Should correctly install and remove a package from a HTTP URL' {
                     $baseUrl = 'http://localhost:1242/'
                     $msiUrl = "$baseUrl" + 'package.msi'
-                    $firstPipeArguments = '\\.\pipe\dsctest100'
-                    $secondPipeArguments = '\\.\pipe\dsctest200'
+                    $firstPipeArguments = '\\.\pipe\dsctest10'
+                    $secondPipeArguments = '\\.\pipe\dsctest2'
 
-                    New-MockFileServer -FilePath $script:msiLocation -FirstPipeArguments $firstPipeArguments -SecondPipeArguments $secondPipeArguments
+                    New-MockFileServer -FilePath $script:msiLocation 
+                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
 
                     # Test pipe connection as testing server readiness
                     try
                     {
-                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
                         $pipe.WaitForConnection()
                     }
                     finally 
                     {
-                        if( $pipe -ne $null )
-                        {
-                            $pipe.Dispose()
-                        }
+                        $pipe.Dispose()
                     }
 
                     $pipe = $null
@@ -208,41 +205,36 @@ try
                     Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                     Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
 
+                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
+
                     try
                     {
-                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
                         $pipe.Connect()
                     }
                     finally 
                     {
-                        if ($pipe -ne $null) 
-                        {
-                            $pipe.Dispose()
-                            $pipe = $null
-                        }
+                        $pipe.Dispose()
+                        $pipe = $null
                     }
                 }
 
                 It 'Should correctly install and remove a package from a HTTPS URL' -Skip:$script:skipHttpsTest {
                     $baseUrl = 'https://localhost:1243/'
                     $msiUrl = "$baseUrl" + 'package.msi'
-                    $firstPipeArguments = '\\.\pipe\dsctest4'
-                    $secondPipeArguments = '\\.\pipe\dsctest5'
+                    $firstPipeArguments = '\\.\pipe\dsctest100'
+                    $secondPipeArguments = '\\.\pipe\dsctest20'
 
-                    New-MockFileServer -FilePath $script:msiLocation -FirstPipeArguments $firstPipeArguments -SecondPipeArguments $secondPipeArguments -Https
+                    New-MockFileServer -FilePath $script:msiLocation 
+                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
 
                     # Test pipe connection as testing server readiness
                     try
                     {
-                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
                         $pipe.WaitForConnection()
                     }
                     finally 
                     {
-                        if( $pipe -ne $null )
-                        {
-                            $pipe.Dispose()
-                        }
+                        $pipe.Dispose()
                     }
 
                     $pipe = $null
@@ -255,18 +247,16 @@ try
                     Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                     Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
 
+                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
+
                     try
                     {
-                        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
                         $pipe.Connect()
                     }
                     finally 
                     {
-                        if ($pipe -ne $null)
-                        {
-                            $pipe.Dispose()
-                            $pipe = $null
-                        }
+                        $pipe.Dispose()
+                        $pipe = $null
                     }
                 }
 
