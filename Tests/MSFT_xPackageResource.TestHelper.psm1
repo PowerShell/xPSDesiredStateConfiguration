@@ -201,21 +201,12 @@ function New-MockFileServer
 
                 $null = $httpListener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), $httpListener) 
 
-                # this is part of the callback 
-                $response = ($httpListener.GetContext()).Response
-                '5' >> c:\server.txt
-
-                $response.ContentType = 'application/octet-stream'
-                $response.ContentLength64 = $buf.Length
-                $response.OutputStream.Write($buf, 0, $buf.Length)
-                $response.OutputStream.Flush()
-                '4' >> c:\server.txt
                 # Wait for client to finish downloading
                 $fileServerCanClose.WaitOne(30000)
             }
             catch
             {
-                "catching error1" >> c:\server.txt
+                "catching error1: $_" >> c:\server.txt
                 Throw "error writing response or waiting on test to signal that it's done: $_"
             }
             finally
@@ -228,7 +219,7 @@ function New-MockFileServer
         }
         catch
         {
-            "catching error2" >> c:\server.txt
+            "catching error2: $_" >> c:\server.txt
             Throw "error with http listener: $_"
         }
         finally
@@ -262,63 +253,79 @@ function New-MockFileServer
 }
 
 ###Need to put work done with response in here 
-function New-ScriptBlockCallback {
-                    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-                    param(
-                        [parameter(Mandatory)]
-                        [ValidateNotNullOrEmpty()]
-                        [scriptblock]$Callback
-                    )
+function New-ScriptBlockCallback
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [ScriptBlock]
+        $Callback
+    )
 
-                    # Is this type already defined?
-                    if (-not ( 'CallbackEventBridge' -as [type])) {
-                        Add-Type @' 
-                            using System; 
+    # Check if  this type is defined
+    if (-not ('CallbackEventBridge' -as [Type]))
+    {
+        Add-Type @' 
+            using System; 
  
-                            public sealed class CallbackEventBridge { 
-                                public event AsyncCallback CallbackComplete = delegate { }; 
+            public sealed class CallbackEventBridge { 
+            public event AsyncCallback CallbackComplete = delegate { }; 
  
-                                private CallbackEventBridge() {} 
+            private CallbackEventBridge() {} 
  
-                                private void CallbackInternal(IAsyncResult result) { 
-                                    CallbackComplete(result); 
-                                } 
+            private void CallbackInternal(IAsyncResult result)
+            { 
+                CallbackComplete(result); 
+            } 
  
-                                public AsyncCallback Callback { 
-                                    get { return new AsyncCallback(CallbackInternal); } 
-                                } 
+            public AsyncCallback Callback
+            { 
+                get { return new AsyncCallback(CallbackInternal); } 
+            } 
  
-                                public static CallbackEventBridge Create() { 
-                                    return new CallbackEventBridge(); 
-                                } 
-                            } 
+            public static CallbackEventBridge Create()
+            { 
+                return new CallbackEventBridge(); 
+            } 
+        } 
 '@
-                    }
-                    $bridge = [callbackeventbridge]::create()
-                    Register-ObjectEvent -InputObject $bridge -EventName callbackcomplete -Action $Callback -MessageData $args > $null
-                    $bridge.Callback
-                }
+    }
+    
+    $bridge = [CallbackEventBridge]::Create()
+    Register-ObjectEvent -InputObject $bridge -EventName callbackcomplete -Action $Callback -MessageData $args > $null
+    $bridge.Callback
+
+    '5' >> c:\server.txt
+    ##### How to get this response object?  Also - do we still need the events? I don't think so
+    $response.ContentType = 'application/octet-stream'
+    $response.ContentLength64 = $buf.Length
+    $response.OutputStream.Write($buf, 0, $buf.Length)
+    $response.OutputStream.Flush()
+    '4' >> c:\server.txt
+}
 
 # Stop HTTP(s) listener (should be called from the test file, not here)
-                function Stop-Server {
-                    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-                    [cmdletbinding()]
-                    param()
+function Stop-Server
+{
+    param()
 
-                    Write-Log -Message 'Finished listening for requests. Shutting down HTTP server.'
+    'Finished listening for requests. Shutting down HTTP server.' > C:\client.txt
 
-                    # Remove SSL Binding
-                    if ($UseSSL) {
-                        $ipPort = "0.0.0.0:$Port"
-                        Invoke-ConsoleCommand -Target $ipPort -Action 'removing SSL certificate binding' -ScriptBlock {
-                            netsh http delete sslcert ipPort="$ipPort"
-                        }
-                        #netsh http delete sslcert ipport="0.0.0.0:$Port"
-                    }
+    # Remove SSL Binding
+    if ($UseSSL)
+    {
+        $ipPort = "0.0.0.0:$Port"
+        Invoke-ConsoleCommand -Target $ipPort -Action 'removing SSL certificate binding' -ScriptBlock {
+           netsh http delete sslcert ipPort="$ipPort"
+        }
+        #netsh http delete sslcert ipport="0.0.0.0:$Port"
+    }
 
-                    $listener.Close()
-                    exit 0
-                }
+    $listener.Close()
+    exit 0
+}
 
 
 <#

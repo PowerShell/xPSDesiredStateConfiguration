@@ -218,7 +218,9 @@ try
                     }
                     finally
                     {
-                    #### this is where we need to stop the server! - so that it knows when to stop receiving requests
+                        #### this is where we need to stop the server! - so that it knows when to stop receiving requests
+                        Stop-Server
+
                         if ($fileServerStarted)
                         {
                             $fileServerStarted.Dispose()
