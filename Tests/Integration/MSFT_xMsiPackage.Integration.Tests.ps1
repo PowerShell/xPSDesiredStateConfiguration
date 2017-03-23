@@ -1,4 +1,7 @@
-﻿$script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
+﻿$errorActionPreference = 'Stop'
+Set-StrictMode -Version 'Latest'
+
+$script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
 Import-Module -Name $script:commonTestHelperFilePath -force
 
@@ -20,7 +23,7 @@ try
                 # The common test helper file needs to be imported twice because of the InModuleScope
                 Import-Module -Name $commonTestHelperFilePath
 
-                $script:skipHttpsTest = $true ##### Figure out why this test is skipped and make sure the https functionality does in fact work
+                $script:skipHttpsTest = $true ##### Make sure the https functionality does in fact work
 
                 $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
 
@@ -179,84 +182,101 @@ try
                 It 'Should correctly install and remove a package from a HTTP URL' {
                     $baseUrl = 'http://localhost:1242/'
                     $msiUrl = "$baseUrl" + 'package.msi'
-                    $firstPipeArguments = '\\.\pipe\dsctest10'
-                    $secondPipeArguments = '\\.\pipe\dsctest2'
 
-                    New-MockFileServer -FilePath $script:msiLocation 
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
-
-                    # Test pipe connection as testing server readiness
-                    try
-                    {
-                        $pipe.WaitForConnection()
-                    }
-                    finally 
-                    {
-                        $pipe.Dispose()
-                    }
-
-                    $pipe = $null
-
-                    { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
-
-                    Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId
-                    Test-PackageInstalledById -ProductId $script:packageId | Should Be $true
-
-                    Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
-                    Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
-
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
+                    $fileServerStarted = $null
+                    $fileServerCanClose = $null
 
                     try
                     {
-                        $pipe.Connect()
+                        $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                                    'HttpIntegrationTest.FileServerStarted')
+
+                        $fileServerCanClose = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                                    'HttpIntegrationTest.FileServerCanClose')
+
+                        $job = New-MockFileServer -FilePath $script:msiLocation
+
+                        $fileServerStarted.WaitOne(30000)
+
+                        { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
+
+                        Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId
+                        Test-PackageInstalledById -ProductId $script:packageId | Should Be $true
+
+                        Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
+                        Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
+
+                        $fileServerCanClose.Set()
+                        
+                        if (-not $job.Finished.WaitOne(50000))
+                        {
+                            Throw 'Job did not complete'
+                        }
+
+                        # Output any errors that occurred from the mock file server
+                        Receive-Job -Job $job
                     }
-                    finally 
+                    finally
                     {
-                        $pipe.Dispose()
-                        $pipe = $null
+                    #### this is where we need to stop the server! - so that it knows when to stop receiving requests
+                        if ($fileServerStarted)
+                        {
+                            $fileServerStarted.Dispose()
+                        }
+                        if ($fileServerCanClose)
+                        {
+                            $fileServerCanClose.Dispose()
+                        }
                     }
                 }
 
                 It 'Should correctly install and remove a package from a HTTPS URL' -Skip:$script:skipHttpsTest {
                     $baseUrl = 'https://localhost:1243/'
                     $msiUrl = "$baseUrl" + 'package.msi'
-                    $firstPipeArguments = '\\.\pipe\dsctest100'
-                    $secondPipeArguments = '\\.\pipe\dsctest20'
 
-                    New-MockFileServer -FilePath $script:msiLocation 
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $firstPipeArguments )
-
-                    # Test pipe connection as testing server readiness
-                    try
-                    {
-                        $pipe.WaitForConnection()
-                    }
-                    finally 
-                    {
-                        $pipe.Dispose()
-                    }
-
-                    $pipe = $null
-
-                    { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
-
-                    Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId
-                    Test-PackageInstalledById -ProductId $script:packageId | Should Be $true
-
-                    Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
-                    Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
-
-                    $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $secondPipeArguments )
+                    $fileServerStarted = $null
+                    $fileServerCanClose = $null
 
                     try
                     {
-                        $pipe.Connect()
+                        $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                                    'HttpIntegrationTest.FileServerStarted')
+
+                        $fileServerCanClose = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                                    'HttpIntegrationTest.FileServerCanClose')
+
+                        $job = New-MockFileServer -FilePath $script:msiLocation -Https
+
+                        $fileServerStarted.WaitOne(30000)
+
+                        { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
+
+                        Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId
+                        Test-PackageInstalledById -ProductId $script:packageId | Should Be $true
+
+                        Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
+                        Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
+
+                        $fileServerCanClose.Set()
+                        
+                        if (-not $job.Finished.WaitOne(50000))
+                        {
+                            Throw 'Job did not complete'
+                        }
+
+                        # Output any errors that occurred from the mock file server
+                        Receive-Job -Job $job
                     }
-                    finally 
+                    finally
                     {
-                        $pipe.Dispose()
-                        $pipe = $null
+                        if ($fileServerStarted)
+                        {
+                            $fileServerStarted.Dispose()
+                        }
+                        if ($fileServerCanClose)
+                        {
+                            $fileServerCanClose.Dispose()
+                        }
                     }
                 }
 

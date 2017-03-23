@@ -1,4 +1,7 @@
-﻿<#
+﻿$errorActionPreference = 'Stop'
+Set-StrictMode -Version 'Latest'
+
+<#
     .SYNOPSIS
         Clears the xPackage cache.
 #>
@@ -97,6 +100,7 @@ function Test-PackageInstalledById
 #>
 function New-MockFileServer
 {
+    [OutputType([System.Management.Automation.Job])]
     [CmdletBinding()]
     param
     (
@@ -114,19 +118,19 @@ function New-MockFileServer
         New-NetFirewallRule -DisplayName 'UnitTestRule' -Direction 'Inbound' -Program "$PSHome\powershell.exe" -Authentication 'NotRequired' -Action 'Allow'
     }
 
-    netsh advfirewall set allprofiles state off
+    $null = netsh advfirewall set allprofiles state off
 
-    Start-Job -ArgumentList @( $FilePath ) -ScriptBlock {
-        
+    $job = Start-Job -ArgumentList @( $FilePath ) -ScriptBlock {
+
         # Create certificate
         $certificate = Get-ChildItem -Path 'Cert:\LocalMachine\My' -Recurse | Where-Object { $_.EnhancedKeyUsageList.FriendlyName -eq 'Server Authentication' }
 
-        if ($certificate.Count -gt 1)
+        if ($certificate -is [System.Array] -and $certificate.Count -gt 0)
         {
             # Just use the first one
             $certificate = $certificate[0]
         }
-        elseif ($certificate.count -eq 0)
+        elseif ($null -eq $certificate)
         {
             # Create a self-signed one
             $certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName $env:computerName
@@ -135,10 +139,14 @@ function New-MockFileServer
         $hash = $certificate.Thumbprint
 
         # Use net shell command to directly bind certificate to designated testing port
-        netsh http add sslcert ipport=0.0.0.0:1243 certhash=$hash appid='{833f13c2-319a-4799-9d1a-5b267a0c3593}' clientcertnegotiation=enable
+        $null = netsh http add sslcert ipport=0.0.0.0:1243 certhash=$hash appid='{833f13c2-319a-4799-9d1a-5b267a0c3593}' clientcertnegotiation=enable
 
         # Start listening endpoints
         $httpListener = New-Object -TypeName 'System.Net.HttpListener'
+
+        $fileServerStarted = $null
+        $fileServerCanClose = $null
+        Get-Date > c:\server.txt
 
         try
         {
@@ -150,31 +158,18 @@ function New-MockFileServer
             {
                 $httpListener.Prefixes.Add([Uri]'http://localhost:1242')
             }
-
+            '1' >> c:\server.txt
             $httpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate
             $httpListener.Start()
 
-            ### For some reason these can't be passed as parameters
-            $firstPipeArguments = '\\.\pipe\dsctest10'
-            $secondPipeArguments = '\\.\pipe\dsctest2'
+            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        'HttpIntegrationTest.FileServerStarted')
 
-            if ($Https)
-            {
-                $firstPipeArguments = '\\.\pipe\dsctest100'
-                $secondPipeArguments = '\\.\pipe\dsctest20'
-            }
+            $fileServerCanClose = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        'HttpIntegrationTest.FileServerCanClose')
 
-            # Create a pipe to flag http/https client
-            $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( $firstPipeArguments )
-            try
-            {
-                $pipe.Connect()
-            }
-            finally
-            {
-                $pipe.Dispose()
-            }
-        
+            $fileServerStarted.Set()
+            '2' >> c:\server.txt
             # Prepare binary buffer for http/https response
             $fileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $args[0] )
             $numBytes = $fileInfo.Length
@@ -182,39 +177,149 @@ function New-MockFileServer
             $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
             [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
             $fileStream.Close()
-
-            # Send response
-            $response = ($httpListener.GetContext()).Response
-            $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( $SecondPipeArguments )
-
+            
+            $response = $null
+            
             try
             {
+                '3' >> c:\server.txt
+                # Send response
+                $requestListener = {
+                    [cmdletbinding()]
+                    param($result)
+
+                    [System.Net.HttpListener]$listener = $result.AsyncState
+
+                    # Call EndGetContext to complete the asynchronous operation.
+                    $context = $listener.EndGetContext($result)
+
+                    # Hand off the Context to the handler, it is in charge of responding.
+                    & $requestProcessor $context
+
+                    $listener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), $listener)
+                }
+
+                $null = $httpListener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), $httpListener) 
+
+                # this is part of the callback 
+                $response = ($httpListener.GetContext()).Response
+                '5' >> c:\server.txt
+
                 $response.ContentType = 'application/octet-stream'
                 $response.ContentLength64 = $buf.Length
                 $response.OutputStream.Write($buf, 0, $buf.Length)
                 $response.OutputStream.Flush()
-
+                '4' >> c:\server.txt
                 # Wait for client to finish downloading
-                $pipe.WaitForConnection()
+                $fileServerCanClose.WaitOne(30000)
+            }
+            catch
+            {
+                "catching error1" >> c:\server.txt
+                Throw "error writing response or waiting on test to signal that it's done: $_"
             }
             finally
             {
-                $response.Dispose()
-                $pipe.Dispose()
+                if ($null -ne $response)
+                {
+                    $response.Dispose()
+                }
             }
+        }
+        catch
+        {
+            "catching error2" >> c:\server.txt
+            Throw "error with http listener: $_"
         }
         finally
         {
-            $httpListener.Stop()
+            "start finally block" >> C:\server.txt
+            if ($httpListener.IsListening)
+            {
+                $httpListener.Stop()
+            }
+
             $httpListener.Close()
 
+            if ($fileServerStarted)
+            {
+                $fileServerStarted.Dispose()
+            }
+            if ($fileServerCanClose)
+            {
+                $fileServerCanClose.Dispose()
+            }
+
+            "end of function" >> c:\server.txt
             # Use net shell command to clean up the certificate binding
-            netsh http delete sslcert ipport=0.0.0.0:1243
+            $null = netsh http delete sslcert ipport=0.0.0.0:1243
         }
     }
 
-    netsh advfirewall set allprofiles state on
+    $null = netsh advfirewall set allprofiles state on
+
+    return $job
 }
+
+###Need to put work done with response in here 
+function New-ScriptBlockCallback {
+                    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+                    param(
+                        [parameter(Mandatory)]
+                        [ValidateNotNullOrEmpty()]
+                        [scriptblock]$Callback
+                    )
+
+                    # Is this type already defined?
+                    if (-not ( 'CallbackEventBridge' -as [type])) {
+                        Add-Type @' 
+                            using System; 
+ 
+                            public sealed class CallbackEventBridge { 
+                                public event AsyncCallback CallbackComplete = delegate { }; 
+ 
+                                private CallbackEventBridge() {} 
+ 
+                                private void CallbackInternal(IAsyncResult result) { 
+                                    CallbackComplete(result); 
+                                } 
+ 
+                                public AsyncCallback Callback { 
+                                    get { return new AsyncCallback(CallbackInternal); } 
+                                } 
+ 
+                                public static CallbackEventBridge Create() { 
+                                    return new CallbackEventBridge(); 
+                                } 
+                            } 
+'@
+                    }
+                    $bridge = [callbackeventbridge]::create()
+                    Register-ObjectEvent -InputObject $bridge -EventName callbackcomplete -Action $Callback -MessageData $args > $null
+                    $bridge.Callback
+                }
+
+# Stop HTTP(s) listener (should be called from the test file, not here)
+                function Stop-Server {
+                    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
+                    [cmdletbinding()]
+                    param()
+
+                    Write-Log -Message 'Finished listening for requests. Shutting down HTTP server.'
+
+                    # Remove SSL Binding
+                    if ($UseSSL) {
+                        $ipPort = "0.0.0.0:$Port"
+                        Invoke-ConsoleCommand -Target $ipPort -Action 'removing SSL certificate binding' -ScriptBlock {
+                            netsh http delete sslcert ipPort="$ipPort"
+                        }
+                        #netsh http delete sslcert ipport="0.0.0.0:$Port"
+                    }
+
+                    $listener.Close()
+                    exit 0
+                }
+
 
 <#
     .SYNOPSIS
