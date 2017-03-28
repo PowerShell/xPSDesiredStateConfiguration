@@ -1159,7 +1159,7 @@ Export-ModuleMember -Function `
     New-TestMsi, `
     Clear-xPackageCache, `
     New-TestExecutable, `
+    New-MockFileServer, `
     Start-Server, `
-    Stop-Server, `
     Test-PackageInstalledByName, `
     Test-PackageInstalledById
