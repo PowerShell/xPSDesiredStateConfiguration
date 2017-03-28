@@ -184,20 +184,18 @@ try
                     $msiUrl = "$baseUrl" + 'package.msi'
 
                     $fileServerStarted = $null
-                    $fileServerCanClose = $null
 
                     try
                     {
                         $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                                     'HttpIntegrationTest.FileServerStarted')
 
-                        $fileServerCanClose = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
-                                    'HttpIntegrationTest.FileServerCanClose')
+                        'Http tests:' > c:\server.txt
 
-                        $job = New-MockFileServer -FilePath $script:msiLocation
+                        $job = Start-Server -FilePath $script:msiLocation               
 
                         $fileServerStarted.WaitOne(30000)
-
+                        Start-Sleep -Seconds 3
                         { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
 
                         Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId
@@ -205,52 +203,69 @@ try
 
                         Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                         Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
-
-                        $fileServerCanClose.Set()
-                        
-                        if (-not $job.Finished.WaitOne(50000))
-                        {
-                            Throw 'Job did not complete'
-                        }
-
-                        # Output any errors that occurred from the mock file server
-                        Receive-Job -Job $job
+                    }
+                    catch
+                    {
+                        "Error: $_" > C:\client.txt
+                        Throw $_
                     }
                     finally
                     {
-                        #### this is where we need to stop the server! - so that it knows when to stop receiving requests
-                        Stop-Server
-
                         if ($fileServerStarted)
                         {
                             $fileServerStarted.Dispose()
                         }
-                        if ($fileServerCanClose)
-                        {
-                            $fileServerCanClose.Dispose()
-                        }
+
+                        Stop-Job -Job $job
                     }
                 }
 
                 It 'Should correctly install and remove a package from a HTTPS URL' -Skip:$script:skipHttpsTest {
+                <#
+                    if (-not ('ServerCertificateValidationCallback' -as [Type]))
+                    {
+                        Add-Type @"
+                            using System;
+                            using System.Net;
+                            using System.Net.Security;
+                            using System.Security.Cryptography.X509Certificates;
+                            public class ServerCertificateValidationCallback
+                            {
+                                public static void Ignore()
+                                {
+                                    ServicePointManager.ServerCertificateValidationCallback += 
+                                        delegate
+                                        (
+                                            Object obj, 
+                                            X509Certificate certificate, 
+                                            X509Chain chain, 
+                                            SslPolicyErrors errors
+                                        )
+                                        {
+                                            return true;
+                                        };
+                                }
+                            }
+"@
+                    }
+                    [ServerCertificateValidationCallback]::Ignore() #>
+
                     $baseUrl = 'https://localhost:1243/'
                     $msiUrl = "$baseUrl" + 'package.msi'
 
                     $fileServerStarted = $null
-                    $fileServerCanClose = $null
 
                     try
                     {
                         $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                                     'HttpIntegrationTest.FileServerStarted')
 
-                        $fileServerCanClose = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
-                                    'HttpIntegrationTest.FileServerCanClose')
+                        'Https tests:' >> c:\server.txt
 
-                        $job = New-MockFileServer -FilePath $script:msiLocation -Https
+                        $job = Start-Server -FilePath $script:msiLocation -Https               
 
                         $fileServerStarted.WaitOne(30000)
-
+                        start-sleep -Seconds 3
                         { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
 
                         Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId
@@ -258,16 +273,11 @@ try
 
                         Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                         Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
-
-                        $fileServerCanClose.Set()
-                        
-                        if (-not $job.Finished.WaitOne(50000))
-                        {
-                            Throw 'Job did not complete'
-                        }
-
-                        # Output any errors that occurred from the mock file server
-                        Receive-Job -Job $job
+                    }
+                    catch
+                    {
+                        "Error: $_" > C:\client.txt
+                        Throw $_
                     }
                     finally
                     {
@@ -275,10 +285,8 @@ try
                         {
                             $fileServerStarted.Dispose()
                         }
-                        if ($fileServerCanClose)
-                        {
-                            $fileServerCanClose.Dispose()
-                        }
+
+                        Stop-Job -Job $job
                     }
                 }
 
