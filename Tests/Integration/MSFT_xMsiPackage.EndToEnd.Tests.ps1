@@ -83,7 +83,7 @@ Describe 'xMsiPackage End to End Tests' {
             Ensure = 'Absent'
         }
 
-        It 'Should return true from Test-TargetResource with the same parameters before configuration' {
+        It 'Should return True from Test-TargetResource with the same parameters before configuration' {
             MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
         }
 
@@ -121,7 +121,7 @@ Describe 'xMsiPackage End to End Tests' {
             } | Should Not Throw
         }
 
-        It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+        It 'Should return True from Test-TargetResource with the same parameters after configuration' {
             MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
         }
     }
@@ -147,7 +147,7 @@ Describe 'xMsiPackage End to End Tests' {
             } | Should Not Throw
         }
 
-        It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+        It 'Should return True from Test-TargetResource with the same parameters after configuration' {
             MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
         }
     }
@@ -173,7 +173,7 @@ Describe 'xMsiPackage End to End Tests' {
             } | Should Not Throw
         }
 
-        It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+        It 'Should return True from Test-TargetResource with the same parameters after configuration' {
             MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
         }
     }
@@ -209,7 +209,7 @@ Describe 'xMsiPackage End to End Tests' {
                 } | Should Not Throw
             }
 
-            It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+            It 'Should return True from Test-TargetResource with the same parameters after configuration' {
                 MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
             }
 
@@ -225,62 +225,14 @@ Describe 'xMsiPackage End to End Tests' {
             }
         }
     }
-    <#  Commenting out these HTTP tests since they are failing
-    Context 'Install Msi package from HTTP Url' {
-        $configurationName = 'InstallMsiPackageFromHttp'
 
-        $baseUrl = 'http://localhost:1242/'
-        $msiUrl = "$baseUrl" + 'package.msi'
-        New-MockFileServer -FilePath $script:msiLocation
-
-        # Test pipe connection as testing server readiness
-        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest1' )
-        $pipe.WaitForConnection()
-        $pipe.Dispose()
-
-        $msiPackageParameters = @{
-            ProductId = $script:packageId
-            Path = $msiUrl
-            Ensure = 'Present'
-        }
-
-        try
-        {
-            It 'Should return False from Test-TargetResource with the same parameters before configuration' {
-                MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $false
-            }
-
-            It 'Should compile and run configuration' {
-                { 
-                    . $script:confgurationFilePathNoOptionalParameters -ConfigurationName $configurationName
-                    & $configurationName -OutputPath $TestDrive @msiPackageParameters
-                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
-                } | Should Not Throw
-            }
-
-            It 'Should return true from Test-TargetResource with the same parameters after configuration' {
-                MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
-            }
-        }
-        catch
-        {
-            $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( '\\.\pipe\dsctest2' )
-            $pipe.Connect()
-            $pipe.Dispose()
-        }
-    }
-  
     Context 'Uninstall Msi package from HTTP Url' {
-        $configurationName = 'UninstallMsiPackageFromHttp'
+        $configurationName = 'UninstallExistingMsiPackageFromHttp'
 
         $baseUrl = 'http://localhost:1242/'
         $msiUrl = "$baseUrl" + 'package.msi'
-        New-MockFileServer -FilePath $script:msiLocation
 
-        # Test pipe connection as testing server readiness
-        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest1' )
-        $pipe.WaitForConnection()
-        $pipe.Dispose()
+        $fileServerStarted = $null
 
         $msiPackageParameters = @{
             ProductId = $script:packageId
@@ -290,27 +242,154 @@ Describe 'xMsiPackage End to End Tests' {
 
         try
         {
-            It 'Should return False from Test-TargetResource with the same parameters before configuration' {
-                MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $false
-            }
+            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        'HttpIntegrationTest.FileServerStarted')
+
+            'Http tests:' > c:\server.txt
+
+            $job = Start-Server -FilePath $script:msiLocation               
+
+            $fileServerStarted.WaitOne(30000)
 
             It 'Should compile and run configuration' {
                 { 
-                    . $script:confgurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                    . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
                     & $configurationName -OutputPath $TestDrive @msiPackageParameters
                     Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
                 } | Should Not Throw
             }
-
-            It 'Should return true from Test-TargetResource with the same parameters after configuration' {
-                MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
-            }
+        }
+        catch
+        {
+            "Error: $_" > C:\client.txt
+            Throw $_
         }
         finally
         {
-            $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( '\\.\pipe\dsctest2' )
-            $pipe.Connect()
-            $pipe.Dispose()
+            if ($fileServerStarted)
+            {
+                $fileServerStarted.Dispose()
+            }
+
+            Stop-Job -Job $job
         }
-    }#>
+
+        It 'Should return True from Test-TargetResource with the same parameters after configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
+        }
+    }
+
+    Context 'Install Msi package from HTTP Url' {
+        $configurationName = 'InstallMsiPackageFromHttp'
+
+        $baseUrl = 'http://localhost:1242/'
+        $msiUrl = "$baseUrl" + 'package.msi'
+
+        $fileServerStarted = $null
+
+        $msiPackageParameters = @{
+            ProductId = $script:packageId
+            Path = $msiUrl
+            Ensure = 'Present'
+        }
+
+        It 'Should return False from Test-TargetResource with the same parameters before configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $false
+        }
+        
+        try
+        {
+            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        'HttpIntegrationTest.FileServerStarted')
+
+            'Http tests:' > c:\server.txt
+
+            $job = Start-Server -FilePath $script:msiLocation               
+
+            $fileServerStarted.WaitOne(30000)
+            Start-Sleep -Seconds 5
+            It 'Should compile and run configuration' {
+                { 
+                    . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @msiPackageParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+            }
+        }
+        catch
+        {
+            "Error: $_" > C:\client.txt
+            Throw $_
+        }
+        finally
+        {
+            if ($fileServerStarted)
+            {
+                $fileServerStarted.Dispose()
+            }
+
+            Stop-Job -Job $job
+        }
+
+        It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
+        }
+    }
+
+    Context 'Uninstall Msi package from HTTP Url' {
+        $configurationName = 'UninstallMsiPackageFromHttp'
+
+        $baseUrl = 'http://localhost:1242/'
+        $msiUrl = "$baseUrl" + 'package.msi'
+
+        $fileServerStarted = $null
+
+        $msiPackageParameters = @{
+            ProductId = $script:packageId
+            Path = $msiUrl
+            Ensure = 'Absent'
+        }
+
+        It 'Should return False from Test-TargetResource with the same parameters before configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $false
+        }
+
+        try
+        {
+            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        'HttpIntegrationTest.FileServerStarted')
+
+            'Http tests:' > c:\server.txt
+
+            $job = Start-Server -FilePath $script:msiLocation               
+
+            $fileServerStarted.WaitOne(30000)
+            Start-Sleep -Seconds 5
+            It 'Should compile and run configuration' {
+                { 
+                    . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @msiPackageParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+            }
+        }
+        catch
+        {
+            "Error: $_" > C:\client.txt
+            Throw $_
+        }
+        finally
+        {
+            if ($fileServerStarted)
+            {
+                $fileServerStarted.Dispose()
+            }
+
+            Stop-Job -Job $job
+        }
+
+        It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
+        }
+    }
 }
