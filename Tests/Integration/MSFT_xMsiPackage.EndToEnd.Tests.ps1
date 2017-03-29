@@ -244,7 +244,8 @@ Describe 'xMsiPackage End to End Tests' {
         {
             $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
-
+            $fileServerStarted.Reset()
+            
             'Http tests:' > c:\server.txt
 
             $job = Start-Server -FilePath $script:msiLocation               
@@ -301,13 +302,14 @@ Describe 'xMsiPackage End to End Tests' {
         {
             $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
+            $fileServerStarted.Reset()
 
             'Http tests:' > c:\server.txt
 
             $job = Start-Server -FilePath $script:msiLocation               
 
             $fileServerStarted.WaitOne(30000)
-            Start-Sleep -Seconds 5
+
             It 'Should compile and run configuration' {
                 { 
                     . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
@@ -358,13 +360,14 @@ Describe 'xMsiPackage End to End Tests' {
         {
             $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
+            $fileServerStarted.Reset()
 
             'Http tests:' > c:\server.txt
 
             $job = Start-Server -FilePath $script:msiLocation               
 
             $fileServerStarted.WaitOne(30000)
-            Start-Sleep -Seconds 5
+
             It 'Should compile and run configuration' {
                 { 
                     . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
