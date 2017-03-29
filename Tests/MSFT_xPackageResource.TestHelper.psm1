@@ -89,6 +89,110 @@ function Test-PackageInstalledById
 
 <#
     .SYNOPSIS
+        Mimics a simple http or https file server. Used only by the xPackage resource - xMsiPackage uses Start-Server instead
+    .PARAMETER FilePath
+        The path to the file to add on the mock file server.
+    .PARAMETER Https
+        Indicates that the new file server should use https.
+        Otherwise the new file server will use http.
+#>
+function New-MockFileServer
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $FilePath,
+
+        [Switch]
+        $Https
+    )
+
+    if ($null -eq (Get-NetFirewallRule -DisplayName 'UnitTestRule' -ErrorAction 'SilentlyContinue'))
+    {
+        New-NetFirewallRule -DisplayName 'UnitTestRule' -Direction 'Inbound' -Program "$PSHome\powershell.exe" -Authentication 'NotRequired' -Action 'Allow'
+    }
+
+    netsh advfirewall set allprofiles state off
+
+    Start-Job -ArgumentList @( $FilePath ) -ScriptBlock {
+        
+        # Create certificate
+        $certificate = Get-ChildItem -Path 'Cert:\LocalMachine\My' -Recurse | Where-Object { $_.EnhancedKeyUsageList.FriendlyName -eq 'Server Authentication' }
+
+        if ($certificate.Count -gt 1)
+        {
+            # Just use the first one
+            $certificate = $certificate[0]
+        }
+        elseif ($certificate.count -eq 0)
+        {
+            # Create a self-signed one
+            $certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName $env:computerName
+        }
+
+        $hash = $certificate.Thumbprint
+
+        # Use net shell command to directly bind certificate to designated testing port
+        netsh http add sslcert ipport=0.0.0.0:1243 certhash=$hash appid='{833f13c2-319a-4799-9d1a-5b267a0c3593}' clientcertnegotiation=enable
+
+        # Start listening endpoints
+        $httpListener = New-Object -TypeName 'System.Net.HttpListener'
+
+        if ($Https)
+        {
+            $httpListener.Prefixes.Add([Uri]'https://localhost:1243')
+        }
+        else
+        {
+            $httpListener.Prefixes.Add([Uri]'http://localhost:1242')
+        }
+
+        $httpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate
+        $httpListener.Start()
+
+        # Create a pipe to flag http/https client
+        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeClientStream' -ArgumentList @( '\\.\pipe\dsctest1' )
+        $pipe.Connect()
+        $pipe.Dispose()
+        
+        # Prepare binary buffer for http/https response
+        $fileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $args[0] )
+        $numBytes = $fileInfo.Length
+        $fileStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @(  $args[0], 'Open' )
+        $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
+        [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
+        $fileStream.Close()
+
+        # Send response
+        $response = ($httpListener.GetContext()).Response
+        $response.ContentType = 'application/octet-stream'
+        $response.ContentLength64 = $buf.Length
+        $response.OutputStream.Write($buf, 0, $buf.Length)
+        $response.OutputStream.Flush()
+
+        # Wait for client to finish downloading
+        $pipe = New-Object -TypeName 'System.IO.Pipes.NamedPipeServerStream' -ArgumentList @( '\\.\pipe\dsctest2' )
+        $pipe.WaitForConnection()
+        $pipe.Dispose()
+
+        $response.Dispose()
+        $httpListener.Stop()
+        $httpListener.Close()
+
+        # Close pipe
+    
+        # Use net shell command to clean up the certificate binding
+        netsh http delete sslcert ipport=0.0.0.0:1243
+    }
+
+    netsh advfirewall set allprofiles state on
+}
+
+<#
+    .SYNOPSIS
         Starts a simple mock http or https file server.
 
     .PARAMETER HttpListener
