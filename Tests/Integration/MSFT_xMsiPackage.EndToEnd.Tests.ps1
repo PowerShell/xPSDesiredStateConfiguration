@@ -40,6 +40,7 @@ Describe 'xMsiPackage End to End Tests' {
             $null = Remove-Item -Path $script:testDirectoryPath -Recurse -Force
         }
 
+        $script:logFile = 'C:\server.txt'
         $null = New-Item -Path $script:testDirectoryPath -ItemType 'Directory'
 
         $script:msiName = 'DSCSetupProject.msi'
@@ -246,7 +247,7 @@ Describe 'xMsiPackage End to End Tests' {
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
             
-            'Http tests:' > c:\server.txt
+            'Http tests first uninstall:' > $script:logFile
 
             $job = Start-Server -FilePath $script:msiLocation               
 
@@ -262,7 +263,6 @@ Describe 'xMsiPackage End to End Tests' {
         }
         catch
         {
-            "Error: $_" > C:\client.txt
             Throw $_
         }
         finally
@@ -273,6 +273,7 @@ Describe 'xMsiPackage End to End Tests' {
             }
 
             Stop-Job -Job $job
+            Remove-Job -Job $job
         }
 
         It 'Should return True from Test-TargetResource with the same parameters after configuration' {
@@ -304,7 +305,7 @@ Describe 'xMsiPackage End to End Tests' {
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
-            'Http tests:' > c:\server.txt
+            'Http tests intall:' >> $script:logFile
 
             $job = Start-Server -FilePath $script:msiLocation               
 
@@ -320,7 +321,6 @@ Describe 'xMsiPackage End to End Tests' {
         }
         catch
         {
-            "Error: $_" > C:\client.txt
             Throw $_
         }
         finally
@@ -331,6 +331,7 @@ Describe 'xMsiPackage End to End Tests' {
             }
 
             Stop-Job -Job $job
+            Remove-Job -Job $job
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -362,7 +363,7 @@ Describe 'xMsiPackage End to End Tests' {
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
-            'Http tests:' > c:\server.txt
+            'Http tests second uninstall:' >> $script:logFile
 
             $job = Start-Server -FilePath $script:msiLocation               
 
@@ -378,7 +379,6 @@ Describe 'xMsiPackage End to End Tests' {
         }
         catch
         {
-            "Error: $_" > C:\client.txt
             Throw $_
         }
         finally
@@ -389,6 +389,123 @@ Describe 'xMsiPackage End to End Tests' {
             }
 
             Stop-Job -Job $job
+            Remove-Job -Job $job
+        }
+
+        It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
+        }
+    }
+
+    Context 'Install Msi package from HTTPS Url' {
+        $configurationName = 'InstallMsiPackageFromHttpS'
+
+        $baseUrl = 'https://localhost:1243/'
+        $msiUrl = "$baseUrl" + 'package.msi'
+
+        $fileServerStarted = $null
+
+        $msiPackageParameters = @{
+            ProductId = $script:packageId
+            Path = $msiUrl
+            Ensure = 'Present'
+        }
+
+        It 'Should return False from Test-TargetResource with the same parameters before configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $false
+        }
+        
+        try
+        {
+            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        'HttpIntegrationTest.FileServerStarted')
+            $fileServerStarted.Reset()
+
+            'Https tests install:' >> $script:logFile
+
+            $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true
+
+            $fileServerStarted.WaitOne(30000)
+
+            It 'Should compile and run configuration' {
+                { 
+                    . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @msiPackageParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+            }
+        }
+        catch
+        {
+            Throw $_
+        }
+        finally
+        {
+            if ($fileServerStarted)
+            {
+                $fileServerStarted.Dispose()
+            }
+
+            Stop-Job -Job $job
+            Remove-Job -Job $job
+        }
+
+        It 'Should return true from Test-TargetResource with the same parameters after configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
+        }
+    }
+
+    Context 'Uninstall Msi package from HTTPS Url' {
+        $configurationName = 'UninstallMsiPackageFromHttps'
+
+        $baseUrl = 'https://localhost:1243/'
+        $msiUrl = "$baseUrl" + 'package.msi'
+
+        $fileServerStarted = $null
+
+        $msiPackageParameters = @{
+            ProductId = $script:packageId
+            Path = $msiUrl
+            Ensure = 'Absent'
+        }
+
+        It 'Should return False from Test-TargetResource with the same parameters before configuration' {
+            MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $false
+        }
+
+        try
+        {
+            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        'HttpIntegrationTest.FileServerStarted')
+            $fileServerStarted.Reset()
+
+            'Https tests uninstall:' >> $script:logFile
+
+            $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true              
+
+            $fileServerStarted.WaitOne(30000)
+
+            It 'Should compile and run configuration' {
+                { 
+                    . $script:configurationFilePathNoOptionalParameters -ConfigurationName $configurationName
+                    & $configurationName -OutputPath $TestDrive @msiPackageParameters
+                    Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
+                } | Should Not Throw
+            }
+        }
+        catch
+        {
+            Throw $_
+        }
+        finally
+        {
+            if ($fileServerStarted)
+            {
+                $fileServerStarted.Dispose()
+            }
+
+            Stop-Job -Job $job
+            Remove-Job -Job $job
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {

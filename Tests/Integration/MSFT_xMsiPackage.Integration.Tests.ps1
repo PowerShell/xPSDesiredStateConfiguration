@@ -23,9 +23,9 @@ try
                 # The common test helper file needs to be imported twice because of the InModuleScope
                 Import-Module -Name $commonTestHelperFilePath
 
-                $script:skipHttpsTest = $true ##### Make sure the https functionality does in fact work
-
+                $script:skipHttpsTest = $false
                 $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
+                $script:logFile = 'C:\server.txt'
 
                 if (Test-Path -Path $script:testDirectoryPath)
                 {
@@ -56,7 +56,7 @@ try
 
                 if (Test-PackageInstalledById -ProductId $script:packageId)
                 {
-                    throw 'Package could not be removed.'
+                    Throw 'Package could not be removed.'
                 }
             }
 
@@ -191,9 +191,9 @@ try
                                     'HttpIntegrationTest.FileServerStarted')
                         $fileServerStarted.Reset()
 
-                        'Http tests:' > c:\server.txt
+                        'Http tests:' > $script:logFile
 
-                        $job = Start-Server -FilePath $script:msiLocation               
+                        $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $false              
 
                         $fileServerStarted.WaitOne(30000)
 
@@ -207,7 +207,6 @@ try
                     }
                     catch
                     {
-                        "Error: $_" > C:\client.txt
                         Throw $_
                     }
                     finally
@@ -218,38 +217,11 @@ try
                         }
 
                         Stop-Job -Job $job
+                        Remove-Job -Job $job
                     }
                 }
 
                 It 'Should correctly install and remove a package from a HTTPS URL' -Skip:$script:skipHttpsTest {
-                <#
-                    if (-not ('ServerCertificateValidationCallback' -as [Type]))
-                    {
-                        Add-Type @"
-                            using System;
-                            using System.Net;
-                            using System.Net.Security;
-                            using System.Security.Cryptography.X509Certificates;
-                            public class ServerCertificateValidationCallback
-                            {
-                                public static void Ignore()
-                                {
-                                    ServicePointManager.ServerCertificateValidationCallback += 
-                                        delegate
-                                        (
-                                            Object obj, 
-                                            X509Certificate certificate, 
-                                            X509Chain chain, 
-                                            SslPolicyErrors errors
-                                        )
-                                        {
-                                            return true;
-                                        };
-                                }
-                            }
-"@
-                    }
-                    [ServerCertificateValidationCallback]::Ignore() #>
 
                     $baseUrl = 'https://localhost:1243/'
                     $msiUrl = "$baseUrl" + 'package.msi'
@@ -262,9 +234,9 @@ try
                                     'HttpIntegrationTest.FileServerStarted')
                         $fileServerStarted.Reset()
 
-                        'Https tests:' >> c:\server.txt
+                        'Https tests:' >> $script:logFile
 
-                        $job = Start-Server -FilePath $script:msiLocation -Https               
+                        $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true              
 
                         $fileServerStarted.WaitOne(30000)
 
@@ -278,7 +250,6 @@ try
                     }
                     catch
                     {
-                        "Error: $_" > C:\client.txt
                         Throw $_
                     }
                     finally
@@ -289,6 +260,7 @@ try
                         }
 
                         Stop-Job -Job $job
+                        Remove-Job -Job $job
                     }
                 }
 
