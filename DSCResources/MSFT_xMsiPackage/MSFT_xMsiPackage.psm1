@@ -554,7 +554,7 @@ function Convert-PathToUri
 
     if ($validUriSchemes -notcontains $uri.Scheme)
     {
-        Write-Verbose -Message ($Localized.TheUriSchemeWasUriScheme -f $uri.Scheme)
+        Write-Verbose -Message ($script:localizedData.TheUriSchemeWasUriScheme -f $uri.Scheme)
         New-InvalidArgumentException -ArgumentName 'Path' -Message ($script:localizedData.InvalidPath -f $Path)
     }
 

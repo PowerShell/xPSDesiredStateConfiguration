@@ -513,7 +513,7 @@ Describe 'xMsiPackage Unit Tests' {
                                               -MocksCalled $mocksCalled `
                                               -ExpectedReturnValue $true
             }
-        }
+        }#>
 
         Describe 'Assert-PathExtensionValid' {
             Context 'Path is a valid .msi path' {
@@ -537,17 +537,46 @@ Describe 'xMsiPackage Unit Tests' {
                     { Assert-PathExtensionValid -Path $invalidPath } | Should Throw $expectedErrorMessage
                 }
             }
-        }#>
+        }
 
         Describe 'Convert-PathToUri' {
-            Context 'Path has a valid URI' {
+            Context 'Path has a valid URI scheme' {
                 It 'Should return the expected URI when scheme is a file' {
                     $filePath = (Join-Path -Path $PSScriptRoot -ChildPath 'testMsi.msi')
                     $expectedReturnValue = [Uri] $filePath
 
                     Convert-PathToUri -Path $filePath | Should Be $expectedReturnValue
                 }
-            
+                
+                It 'Should return the expected URI when scheme is http' {
+                    $filePath = 'http://localhost:1242/testMsi.msi'
+                    $expectedReturnValue = [Uri] $filePath
+
+                    Convert-PathToUri -Path $filePath | Should Be $expectedReturnValue
+                }
+
+                It 'Should return the expected URI when scheme is https' {
+                    $filePath = 'https://localhost:1243/testMsi.msi'
+                    $expectedReturnValue = [Uri] $filePath
+
+                    Convert-PathToUri -Path $filePath | Should Be $expectedReturnValue
+                }
+            }
+
+            Context 'Invalid path passed in' {
+                It 'Should throw an error when uri scheme is invalid' {
+                    $filePath = 'ht://localhost:1243/testMsi.msi'
+                    $expectedErrorMessage = ($script:localizedData.InvalidPath -f $filePath)
+
+                    { Convert-PathToUri -Path $filePath } | Should Throw $expectedErrorMessage
+                }
+
+                It 'Should throw an error when path is not in valid format' {
+                    $filePath = 'mri'
+                    $expectedErrorMessage = ($script:localizedData.InvalidPath -f $filePath)
+
+                    { Convert-PathToUri -Path $filePath } | Should Throw $expectedErrorMessage
+                }
             }
         }
     }
