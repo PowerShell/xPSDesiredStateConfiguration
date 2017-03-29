@@ -85,6 +85,40 @@ function Get-TestName
 
 <#
     .SYNOPSIS
+        Tests that each mock in MocksCalled is called the expected number of times.
+
+    .PARAMETER MocksCalled
+        An array of the mocked commands that should be called.
+        Each item in the array is a hashtable that contains the name of the command
+        being mocked and the number of times it is called (can be 0).
+#>
+function Assert-ExpectedMocksAreCalled
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [Hashtable[]]
+        $MocksCalled
+    )
+
+    foreach ($mock in $MocksCalled)
+    {
+        $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
+
+        if ($mock.Keys -contains 'Custom')
+        {
+            $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times -Custom $mock.Custom
+        }
+
+        It $testName {
+            Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
+        }
+    }
+}
+
+<#
+    .SYNOPSIS
         Performs generic tests for Get-TargetResource, including checking that the
         function does not throw, checking that all mocks are called the expected
         number of times, and checking that the correct result is returned. If the function
@@ -123,14 +157,7 @@ function Invoke-GetTargetResourceTest
         { $null = Get-TargetResource @GetTargetResourceParameters } | Should Not Throw
     }
 
-    foreach ($mock in $MocksCalled)
-    {
-        $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
-
-        It $testName {
-            Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
-        }
-    }
+    Assert-ExpectedMocksAreCalled -MocksCalled $MocksCalled
 
     $getTargetResourceResult = Get-TargetResource @GetTargetResourceParameters
 
@@ -211,19 +238,7 @@ function Invoke-SetTargetResourceTest {
         }
     }
 
-    foreach ($mock in $MocksCalled)
-    {
-        $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
-
-        if ($mock.Keys -contains 'Custom')
-        {
-            $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times -Custom $mock.Custom
-        }
-
-        It $testName {
-            Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
-        }
-    }
+    Assert-ExpectedMocksAreCalled -MocksCalled $MocksCalled
 }
 
 <#
@@ -266,14 +281,7 @@ function Invoke-TestTargetResourceTest
         { $null = Test-TargetResource @TestTargetResourceParameters } | Should Not Throw
     }
 
-    foreach ($mock in $MocksCalled)
-    {
-        $testName = Get-TestName -Command $mock.Command -IsCalled $mock.Times
-
-        It $testName {
-            Assert-MockCalled -CommandName $mock.Command -Exactly $mock.Times -Scope 'Context'
-        }
-    }
+    Assert-ExpectedMocksAreCalled -MocksCalled $MocksCalled
 
     $testTargetResourceResult = Test-TargetResource @TestTargetResourceParameters
 
