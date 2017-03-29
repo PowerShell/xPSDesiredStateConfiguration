@@ -202,9 +202,15 @@ function New-MockFileServer
     .PARAMETER FilePath
         The path to the file to add on the mock file server. Should be an MSI file.
 
+    .PARAMETER LogPath
+        The path to the log file to write output to. This is important for debugging since
+        most of the work of this function is done within a separate process. Default value
+        will be in the script root and will be overwritten with each test.
+
     .PARAMETER Https
-        Indicates that the file server should use https.
+        If true then the file server will use https.
         Otherwise the file server will use http.
+        Default is False.
 #>
 
 # Start HTTP(s) listener
@@ -218,13 +224,16 @@ function Start-Server
         [String]
         $FilePath,
 
-        [Switch]
-        $Https
+        [String]
+        $LogPath = (Join-Path -Path $PSScriptRoot -ChildPath 'PackageTestLogFile.txt'),
+
+        [System.Boolean]
+        $Https = $false
     )
 
     $server =
     {
-        param($FilePath, $Https)
+        param($FilePath, $LogPath, $Https)
 
 
         # Stop HTTP(s) listener
@@ -235,18 +244,26 @@ function Start-Server
             (
                 [Parameter(Mandatory = $true)]
                 [System.Net.HttpListener]
-                $HttpListener
+                $HttpListener, 
+
+                [Parameter(Mandatory = $true)]
+                [System.Boolean]
+                $Https
             )
 
-            'Finished listening for requests. Shutting down HTTP server.' > C:\client.txt
+            Write-Log -LogFile $LogPath -Message 'Finished listening for requests. Shutting down HTTP server.'
+            
             $ipPort = '0.0.0.0:1243'
 
             if ($null -eq $HttpListener)
             {
-                'HttpListener was null when trying to close' >> C:\server.txt
+                Write-Log -LogFile $LogPath -Message 'HttpListener was null when trying to close'
 
-                Invoke-ConsoleCommand -Target $ipPort -Action 'removing SSL certificate binding' -ScriptBlock {
-                   netsh http delete sslcert ipPort="$ipPort"
+                if ($Https)
+                {
+                    Invoke-ConsoleCommand -Target $ipPort -Action 'removing SSL certificate binding' -ScriptBlock {
+                       netsh http delete sslcert ipPort="$ipPort"
+                    }
                 }
 
                 Throw 'HttpListener was null when trying to close'
@@ -254,15 +271,19 @@ function Start-Server
 
             if ($HttpListener.IsListening)
             {
-                'HttpListener is about to be stopped' >> C:\server.txt
+                Write-Log -LogFile $LogPath -Message 'HttpListener is about to be stopped'
                 $HttpListener.Stop()
             }
 
-            # Remove SSL Binding
-            Invoke-ConsoleCommand -Target $ipPort -Action 'removing SSL certificate binding' -ScriptBlock {
-               netsh http delete sslcert ipPort="$ipPort"
+            if ($Https)
+            {
+                Write-Log -LogFile $LogPath -Message 'Removing SSL binding'
+                # Remove SSL Binding
+                Invoke-ConsoleCommand -Target $ipPort -Action 'removing SSL certificate binding' -ScriptBlock {
+                   netsh http delete sslcert ipPort="$ipPort"
+                }
             }
-
+            Write-Log -LogFile $LogPath -Message 'Closing listener'
             $HttpListener.Close()
 
             $null = netsh advfirewall set allprofiles state on
@@ -276,30 +297,21 @@ function Start-Server
             Set-StrictMode -Off
 
             # Create certificate
-            #$certificate = Get-ChildItem -Path 'Cert:\LocalMachine\My\4EB6D578499B1CCF5F581EAD56BE3D9B6744A5E5' # -Recurse | Where-Object { $_.EnhancedKeyUsageList.FriendlyName -eq 'Server Authentication' }
-            $certificate = Get-ChildItem -Path 'Cert:\LocalMachine\My\' -Recurse | Where-Object { $_.EnhancedKeyUsageList.FriendlyName -eq 'Server Authentication' }
-            #$certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName $env:computerName
-
-            if ($certificate -is [System.Array] -and $certificate.Count -gt 0)
-            {
-                # Just use the first one
-                $certificate = $certificate[0]
-            }
-            elseif ($null -eq $certificate)
-            {
-                # Create a self-signed one
-                $certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName $env:computerName
-            }
-
+            $certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName localhost
+            Write-Log -LogFile $LogPath -Message 'Created certificate'
+            
             $hash = $certificate.Thumbprint
+            $certPassword = ConvertTo-SecureString -String 'password12345' -AsPlainText -Force
 
-            #Export-Certificate -Cert $certificate -FilePath 'C:\temp\certForTesting'
-
+            Export-PfxCertificate -Cert $certificate -FilePath 'C:\certForTesting' -Password $certPassword
+            Import-PfxCertificate -CertStoreLocation 'Cert:\LocalMachine\Root' -FilePath 'C:\certForTesting' -Password $certPassword
+            
+            Write-Log -LogFile $LogPath -Message 'Finished importing certificate into root. About to bind it to port.'
+             
             # Use net shell command to directly bind certificate to designated testing port
             $null = netsh http add sslcert ipport=0.0.0.0:1243 certhash=$hash appid='{833f13c2-319a-4799-9d1a-5b267a0c3593}' clientcertnegotiation=enable
         }
 
-        ###Need to put work done with response in here 
         function New-ScriptBlockCallback
         {
             [CmdletBinding()]
@@ -344,7 +356,7 @@ function Start-Server
             Register-ObjectEvent -InputObject $bridge -EventName callbackcomplete -Action $Callback -MessageData $args > $null
             $bridge.Callback
 
-            'Finished callback function' >> c:\server.txt
+            Write-Log -LogFile $LogPath -Message 'Finished callback function'
         }
 
         # Invoke a console command and capture exit code
@@ -373,153 +385,160 @@ function Start-Server
                 $output = $output -join [Environment]::NewLine
                 $message = ('Failed action ''{0}'' on target ''{1}'' (exit code {2}): {3}' -f $Action,$Target,$LASTEXITCODE,$output)
                 Write-Error -Message $message
-                "error from invoke-consolecommand: $message" >> C:\server.txt
+                Write-Log -LogFile $LogPath -Message "Error from Invoke-ConsoleCommand: $message"
             } 
             else
             {
                 $nonNullOutput = $output | Where-Object { $_ -ne $null }
-                "output from invoke-consolecommand: $nonNullOutput" >> C:\server.txt
+                Write-Log -LogFile $LogPath -Message "Output from Invoke-ConsoleCommand: $nonNullOutput"
             }
         }
 
-    if ($null -eq (Get-NetFirewallRule -DisplayName 'UnitTestRule' -ErrorAction 'SilentlyContinue'))
-    {
-        New-NetFirewallRule -DisplayName 'UnitTestRule' -Direction 'Inbound' -Program "$PSHome\powershell.exe" -Authentication 'NotRequired' -Action 'Allow'
-    }
-
-    $null = netsh advfirewall set allprofiles state off
-
-    Get-Date >> c:\server.txt
-
-    $HttpListener = New-Object 'System.Net.HttpListener'
-    $fileServerStarted = $null
-
-    try
-    {
-        if ($Https)
-        {
-            $HttpListener.Prefixes.Add([Uri]'https://localhost:1243')
-        }
-        else
-        {
-            $HttpListener.Prefixes.Add([Uri]'http://localhost:1242')
-        }
-
-        'Finished setting up listener - about to start listener' >> c:\server.txt
-        #$HttpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate
-        
-       <#
-        if ($null -ne $Token) {
-            Write-Log -Message "Starting HTTP(s) server listening at [$Endpoint] with [token-based] authentication..."
-        } else {
-            Write-Log -Message "Starting HTTP(s) server listening at ]$Endpoint] with [$Auth] authentication..."
-        }#>
-
-        $HttpListener.Start()
-
-        $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::AutoReset,
-                        'HttpIntegrationTest.FileServerStarted')
-        $fileServerStarted.Set()
-
-        try
-        {
-            Register-SSL
-        }
-        catch
-        {
-            Throw "Unable to bind SSL certificate to port. Error: $_"
-        }
-
-        'listener is started and certificate is registered' >> c:\server.txt
-        
-
-        # Send response
-        $requestListener =
+        function Write-Log
         {
             [CmdletBinding()]
             param
             (
-                [IAsyncResult]
-                $Result
+                [Parameter(Mandatory = $true)]
+                [String]
+                $LogFile,
+
+                [Parameter(Mandatory = $true)]
+                [String]
+                $Message
             )
-            'Starting request listener' >> C:\server.txt
-            $asyncState = $Result.AsyncState
-            [System.Net.HttpListener]$listener = $asyncState.Listener
-            $filepath = $asyncState.FilePath
-            ConvertTo-Json $asyncState >> C:\server.txt
-            # Call EndGetContext to complete the asynchronous operation.
-            $context = $listener.EndGetContext($Result)
-            $response = $null
+            
+            $Message >> $LogFile
+        }
 
-            try
-            {
-                # Prepare binary buffer for http/https response
-                $fileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $filePath )
-                $numBytes = $fileInfo.Length
-                $fileStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @( $filePath, 'Open' )
-                $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
-                [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
-                $fileStream.Close()
-                'Buffer prepared for response' >> c:\server.txt
+        # End of function declarations - Beginning of function execution
 
-                $response = $context.Response
-                "Response taken from context: $response" >> c:\server.txt
-                $response.ContentType = 'application/octet-stream'
-                $response.ContentLength64 = $buf.Length
-                "response about to be written to filepath: $filePath, buf length: $($buf.Length)" >> c:\server.txt
-                $response.OutputStream.Write($buf, 0, $buf.Length)
-                'response written' >> C:\server.txt
-                $response.OutputStream.Flush()
-                'Response finished writing and flushed' >> c:\server.txt
+        if ($null -eq (Get-NetFirewallRule -DisplayName 'UnitTestRule' -ErrorAction 'SilentlyContinue'))
+        {
+            New-NetFirewallRule -DisplayName 'UnitTestRule' -Direction 'Inbound' -Program "$PSHome\powershell.exe" -Authentication 'NotRequired' -Action 'Allow'
+        }
 
-                $listener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), $asyncState)
-            }
-            catch
+        $null = netsh advfirewall set allprofiles state off
+
+        Write-Log -LogFile $LogPath -Message (Get-Date)
+
+        $HttpListener = New-Object 'System.Net.HttpListener'
+        $fileServerStarted = $null
+
+        try
+        {
+            if ($Https)
             {
-                "catching error from request listener: $_" >> c:\server.txt
-                Throw "error writing response: $_"
-            }
-            finally
-            {
-                if ($null -ne $response)
+                $HttpListener.Prefixes.Add([Uri]'https://localhost:1243')
+            
+                try
                 {
-                    $response.Dispose()
+                    Register-SSL
+                }
+                catch
+                {
+                    Throw "Unable to bind SSL certificate to port. Error: $_"
+                }
+
+                Write-Log -LogFile $LogPath -Message 'Certificate is registered'
+            }
+            else
+            {
+                $HttpListener.Prefixes.Add([Uri]'http://localhost:1242')
+            }
+
+            Write-Log -LogFile $LogPath -Message 'Finished listener setup - about to start it'
+
+            $HttpListener.Start()
+
+            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::AutoReset,
+                            'HttpIntegrationTest.FileServerStarted')
+            $fileServerStarted.Set()
+
+            Write-Log -LogFile $LogPath -Message 'Listener is started'
+
+            # Send response
+            $requestListener =
+            {
+                [CmdletBinding()]
+                param
+                (
+                    [IAsyncResult]
+                    $Result
+                )
+
+                Write-Log -LogFile $LogPath -Message 'Starting request listener'
+                $asyncState = $Result.AsyncState
+                [System.Net.HttpListener]$listener = $asyncState.Listener
+                $filepath = $asyncState.FilePath
+                Write-Log -LogFile $LogPath -Message (ConvertTo-Json $asyncState)
+                # Call EndGetContext to complete the asynchronous operation.
+                $context = $listener.EndGetContext($Result)
+                $response = $null
+
+                try
+                {
+                    # Prepare binary buffer for http/https response
+                    $fileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $filePath )
+                    $numBytes = $fileInfo.Length
+                    $fileStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @( $filePath, 'Open' )
+                    $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
+                    [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
+                    $fileStream.Close()
+                    Write-Log -LogFile $LogPath -Message 'Buffer prepared for response'
+
+                    $response = $context.Response
+                    $response.ContentType = 'application/octet-stream'
+                    $response.ContentLength64 = $buf.Length
+                    $response.OutputStream.Write($buf, 0, $buf.Length)
+                    Write-Log -LogFile $LogPath -Message 'Response written'
+                    $response.OutputStream.Flush()
+
+                    $listener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), $asyncState)
+                }
+                catch
+                {
+                    Write-Log -LogFile $LogPath -Message "catching error from request listener: $_"
+                    Throw "error writing response: $_"
+                }
+                finally
+                {
+                    if ($null -ne $response)
+                    {
+                        $response.Dispose()
+                    }
                 }
             }
+
+            # Register the request listener scriptblock as the async callback
+            $HttpListener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), @{ Listener = $Httplistener; FilePath = $FilePath }) | Out-Null
+            Write-Log -LogFile $LogPath -Message 'First BeginGetContext called'
+
+            while ($true)
+            {
+                Start-Sleep -Milliseconds 100
+            }
         }
-
-        # Register the request listener scriptblock as the async callback
-        $HttpListener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), @{ Listener = $Httplistener; FilePath = $FilePath }) | Out-Null
-        'First BeginGetContext called' >> C:\server.txt
-
-        while ($true)
+        catch
         {
-            Start-Sleep -Milliseconds 100
+            Write-Log -LogFile $LogPath -Message "There were problems setting up the HTTP(s) listener. Error: $_"
+            Throw "There were problems setting up the HTTP(s) listener. Error: $_"
         }
-    }
-    catch
-    {
-        #Stop-Server -HttpListener $HttpListener
-        Throw "There were problems setting up the HTTP(s) listener. Error: $_"
-    }
-    finally
-    {
-        if ($fileServerStarted)
+        finally
         {
-            $fileServerStarted.Dispose()
+            if ($fileServerStarted)
+            {
+                $fileServerStarted.Dispose()
+            }
+            
+            Write-Log -LogFile $LogPath -Message 'Stopping the Server'
+
+            Stop-Server -HttpListener $HttpListener -Https $Https
         }
-        'Stopping the Server' >> C:\server.txt
-        Stop-Server -HttpListener $HttpListener
     }
+
+    return Start-Job -ScriptBlock $server -ArgumentList @( $FilePath, $LogPath, $Https )
 }
-
-return Start-Job -ScriptBlock $server -ArgumentList @( $FilePath, $Https.IsPresent )
-#Invoke-Command -ComputerName $env:COMPUTERNAME -UseSsl -ScriptBlock $server -ArgumentList @( $FilePath, $Https.IsPresent ) -Credential (Get-Credential)
-
-}
-
-
-
 
 <#
     .SYNOPSIS
