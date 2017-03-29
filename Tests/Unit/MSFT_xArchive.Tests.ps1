@@ -2094,12 +2094,12 @@ Describe 'xArchive Unit Tests' {
         }
 
         Describe 'Get-TimestampForChecksum' {
-            Mock -CommandName 'Get-Date' -MockWith { return $Date }
-
             # This is the actual file info of this file since we cannot set the properties of mock objects
             $testFileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $PSScriptRoot )
-            $testFileCreationTime = $testFileInfo.CreationTime.DateTime
-            $testFileLastWriteTime = $testFileInfo.LastWriteTime.DateTime
+            $testFileCreationTime = (Get-Date -Date $testFileInfo.CreationTime.DateTime -Format 'G')
+            $testFileLastWriteTime = (Get-Date -Date $testFileInfo.LastWriteTime.DateTime -Format 'G')
+
+            Mock -CommandName 'Get-Date' -MockWith { return $Date }
 
             Context 'Checksum specified as CreatedDate' {
                 $getTimestampForChecksumParameters = @{

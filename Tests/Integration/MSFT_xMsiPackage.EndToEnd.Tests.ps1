@@ -3,6 +3,7 @@
     They must be run in the order given - if one test fails, subsequent tests may
     also fail.
 #>
+
 $errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
@@ -40,7 +41,6 @@ Describe 'xMsiPackage End to End Tests' {
             $null = Remove-Item -Path $script:testDirectoryPath -Recurse -Force
         }
 
-        $script:logFile = 'C:\server.txt'
         $null = New-Item -Path $script:testDirectoryPath -ItemType 'Directory'
 
         $script:msiName = 'DSCSetupProject.msi'
@@ -50,7 +50,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         $null = New-TestMsi -DestinationPath $script:msiLocation
 
-        $null = Clear-xPackageCache
+        $null = Clear-PackageCache
     }
 
     AfterAll {
@@ -59,7 +59,7 @@ Describe 'xMsiPackage End to End Tests' {
             $null = Remove-Item -Path $script:testDirectoryPath -Recurse -Force
         }
 
-        $null = Clear-xPackageCache
+        $null = Clear-PackageCache
 
         if (Test-PackageInstalledById -ProductId $script:packageId)
         {
@@ -246,8 +246,6 @@ Describe 'xMsiPackage End to End Tests' {
             $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
-            
-            'Http tests first uninstall:' > $script:logFile
 
             $job = Start-Server -FilePath $script:msiLocation               
 
@@ -260,10 +258,6 @@ Describe 'xMsiPackage End to End Tests' {
                     Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
                 } | Should Not Throw
             }
-        }
-        catch
-        {
-            Throw $_
         }
         finally
         {
@@ -305,8 +299,6 @@ Describe 'xMsiPackage End to End Tests' {
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
-            'Http tests intall:' >> $script:logFile
-
             $job = Start-Server -FilePath $script:msiLocation               
 
             $fileServerStarted.WaitOne(30000)
@@ -318,10 +310,6 @@ Describe 'xMsiPackage End to End Tests' {
                     Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
                 } | Should Not Throw
             }
-        }
-        catch
-        {
-            Throw $_
         }
         finally
         {
@@ -363,8 +351,6 @@ Describe 'xMsiPackage End to End Tests' {
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
-            'Http tests second uninstall:' >> $script:logFile
-
             $job = Start-Server -FilePath $script:msiLocation               
 
             $fileServerStarted.WaitOne(30000)
@@ -376,10 +362,6 @@ Describe 'xMsiPackage End to End Tests' {
                     Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
                 } | Should Not Throw
             }
-        }
-        catch
-        {
-            Throw $_
         }
         finally
         {
@@ -421,9 +403,7 @@ Describe 'xMsiPackage End to End Tests' {
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
-            'Https tests install:' >> $script:logFile
-
-            $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true
+            $job = Start-Server -FilePath $script:msiLocation -Https $true
 
             $fileServerStarted.WaitOne(30000)
 
@@ -434,10 +414,6 @@ Describe 'xMsiPackage End to End Tests' {
                     Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
                 } | Should Not Throw
             }
-        }
-        catch
-        {
-            Throw $_
         }
         finally
         {
@@ -479,9 +455,7 @@ Describe 'xMsiPackage End to End Tests' {
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
-            'Https tests uninstall:' >> $script:logFile
-
-            $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true              
+            $job = Start-Server -FilePath $script:msiLocation -Https $true              
 
             $fileServerStarted.WaitOne(30000)
 
@@ -492,10 +466,6 @@ Describe 'xMsiPackage End to End Tests' {
                     Start-DscConfiguration -Path $TestDrive -ErrorAction 'Stop' -Wait -Force
                 } | Should Not Throw
             }
-        }
-        catch
-        {
-            Throw $_
         }
         finally
         {

@@ -5,15 +5,15 @@ Set-StrictMode -Version 'Latest'
     .SYNOPSIS
         Clears the xPackage cache.
 #>
-function Clear-xPackageCache
+function Clear-PackageCache
 {
     [CmdletBinding()]
     param ()
 
-    $xPackageCacheLocation = "$env:ProgramData\Microsoft\Windows\PowerShell\Configuration\" + `
-        "BuiltinProvCache\MSFT_xPackageResource"
+    $packageCacheLocation = "$env:ProgramData\Microsoft\Windows\PowerShell\Configuration\" + `
+        'BuiltinProvCache\MSFT_xPackageResource'
 
-    Remove-Item -Path $xPackageCacheLocation -ErrorAction 'SilentlyContinue' -Recurse
+    Remove-Item -Path $packageCacheLocation -ErrorAction 'SilentlyContinue' -Recurse
 }
 
 <#
@@ -90,8 +90,10 @@ function Test-PackageInstalledById
 <#
     .SYNOPSIS
         Mimics a simple http or https file server. Used only by the xPackage resource - xMsiPackage uses Start-Server instead
+
     .PARAMETER FilePath
         The path to the file to add on the mock file server.
+
     .PARAMETER Https
         Indicates that the new file server should use https.
         Otherwise the new file server will use http.
@@ -212,8 +214,6 @@ function New-MockFileServer
         Otherwise the file server will use http.
         Default is False.
 #>
-
-# Start HTTP(s) listener
 function Start-Server
 {
     [CmdletBinding()]
@@ -234,7 +234,6 @@ function Start-Server
     $server =
     {
         param($FilePath, $LogPath, $Https)
-
 
         # Stop HTTP(s) listener
         function Stop-Server
@@ -289,12 +288,11 @@ function Start-Server
             $null = netsh advfirewall set allprofiles state on
         }
 
+        # Register the SSL certificate for Https
         function Register-Ssl
         {
             [CmdletBinding()]
             param()
-
-            Set-StrictMode -Off
 
             # Create certificate
             $certificate = New-SelfSignedCertificate -CertStoreLocation 'Cert:\LocalMachine\My' -DnsName localhost
@@ -312,6 +310,7 @@ function Start-Server
             $null = netsh http add sslcert ipport=0.0.0.0:1243 certhash=$hash appid='{833f13c2-319a-4799-9d1a-5b267a0c3593}' clientcertnegotiation=enable
         }
 
+        # Callback function for starting the BeginGetContext
         function New-ScriptBlockCallback
         {
             [CmdletBinding()]
@@ -394,6 +393,7 @@ function Start-Server
             }
         }
 
+        # Writes the specified message to the specified log file
         function Write-Log
         {
             [CmdletBinding()]
@@ -437,7 +437,9 @@ function Start-Server
                 }
                 catch
                 {
-                    Throw "Unable to bind SSL certificate to port. Error: $_"
+                    $errorMessage = "Unable to bind SSL certificate to port. Error: $_"
+                    Write-Log -LogFile $LogPath -Message $errorMessage
+                    Throw $errorMessage
                 }
 
                 Write-Log -LogFile $LogPath -Message 'Certificate is registered'
@@ -468,10 +470,13 @@ function Start-Server
                 )
 
                 Write-Log -LogFile $LogPath -Message 'Starting request listener'
+
                 $asyncState = $Result.AsyncState
                 [System.Net.HttpListener]$listener = $asyncState.Listener
                 $filepath = $asyncState.FilePath
+
                 Write-Log -LogFile $LogPath -Message (ConvertTo-Json $asyncState)
+
                 # Call EndGetContext to complete the asynchronous operation.
                 $context = $listener.EndGetContext($Result)
                 $response = $null
@@ -485,15 +490,19 @@ function Start-Server
                     $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
                     [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
                     $fileStream.Close()
+
                     Write-Log -LogFile $LogPath -Message 'Buffer prepared for response'
 
                     $response = $context.Response
                     $response.ContentType = 'application/octet-stream'
                     $response.ContentLength64 = $buf.Length
                     $response.OutputStream.Write($buf, 0, $buf.Length)
+
                     Write-Log -LogFile $LogPath -Message 'Response written'
+
                     $response.OutputStream.Flush()
 
+                    # Open the response stream again to receive more requests
                     $listener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), $asyncState)
                 }
                 catch
@@ -521,8 +530,9 @@ function Start-Server
         }
         catch
         {
-            Write-Log -LogFile $LogPath -Message "There were problems setting up the HTTP(s) listener. Error: $_"
-            Throw "There were problems setting up the HTTP(s) listener. Error: $_"
+            $errorMessage = "There were problems setting up the HTTP(s) listener. Error: $_"
+            Write-Log -LogFile $LogPath -Message $errorMessage
+            Throw $errorMessage
         }
         finally
         {
@@ -1176,7 +1186,7 @@ function Get-LocalizedRegistryKeyValue
 
 Export-ModuleMember -Function `
     New-TestMsi, `
-    Clear-xPackageCache, `
+    Clear-PackageCache, `
     New-TestExecutable, `
     New-MockFileServer, `
     Start-Server, `
