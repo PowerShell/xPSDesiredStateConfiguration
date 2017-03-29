@@ -92,7 +92,7 @@ function Get-TestName
         Each item in the array is a hashtable that contains the name of the command
         being mocked and the number of times it is called (can be 0).
 #>
-function Assert-ExpectedMocksAreCalled
+function Invoke-ExpectedMocksAreCalledTest
 {
     [CmdletBinding()]
     param
@@ -157,7 +157,7 @@ function Invoke-GetTargetResourceTest
         { $null = Get-TargetResource @GetTargetResourceParameters } | Should Not Throw
     }
 
-    Assert-ExpectedMocksAreCalled -MocksCalled $MocksCalled
+    Invoke-ExpectedMocksAreCalledTest -MocksCalled $MocksCalled
 
     $getTargetResourceResult = Get-TargetResource @GetTargetResourceParameters
 
@@ -238,7 +238,7 @@ function Invoke-SetTargetResourceTest {
         }
     }
 
-    Assert-ExpectedMocksAreCalled -MocksCalled $MocksCalled
+    Invoke-ExpectedMocksAreCalledTest -MocksCalled $MocksCalled
 }
 
 <#
@@ -281,7 +281,7 @@ function Invoke-TestTargetResourceTest
         { $null = Test-TargetResource @TestTargetResourceParameters } | Should Not Throw
     }
 
-    Assert-ExpectedMocksAreCalled -MocksCalled $MocksCalled
+    Invoke-ExpectedMocksAreCalledTest -MocksCalled $MocksCalled
 
     $testTargetResourceResult = Test-TargetResource @TestTargetResourceParameters
 

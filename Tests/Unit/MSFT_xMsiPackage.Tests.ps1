@@ -90,7 +90,7 @@ Describe 'xMsiPackage Unit Tests' {
             CouldNotStartProcess = 'not being able to start the process'
             PostValidationError = 'not being able to find the package after installation'
         }
-
+        <#
         Describe 'Get-TargetResource' {
 
             Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
@@ -512,6 +512,42 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-TestTargetResourceTest -TestTargetResourceParameters $testTargetResourceParameters `
                                               -MocksCalled $mocksCalled `
                                               -ExpectedReturnValue $true
+            }
+        }
+
+        Describe 'Assert-PathExtensionValid' {
+            Context 'Path is a valid .msi path' {
+                It 'Should not throw' {
+                    { Assert-PathExtensionValid -Path 'testMsiFile.msi' } | Should Not Throw
+                }
+            }
+
+            Context 'Path is not a valid .msi path' {
+                It 'Should throw an invalid argument exception when an EXE file is passed in' {
+                    $invalidPath = 'testMsiFile.exe'
+                    $expectedErrorMessage = ($script:localizedData.InvalidBinaryType -f $invalidPath)
+
+                    { Assert-PathExtensionValid -Path $invalidPath } | Should Throw $expectedErrorMessage
+                }
+
+                It 'Should throw an invalid argument exception when an invalid file type is passed in' {
+                    $invalidPath = 'testMsiFilemsi'
+                    $expectedErrorMessage = ($script:localizedData.InvalidBinaryType -f $invalidPath)
+
+                    { Assert-PathExtensionValid -Path $invalidPath } | Should Throw $expectedErrorMessage
+                }
+            }
+        }#>
+
+        Describe 'Convert-PathToUri' {
+            Context 'Path has a valid URI' {
+                It 'Should return the expected URI when scheme is a file' {
+                    $filePath = (Join-Path -Path $PSScriptRoot -ChildPath 'testMsi.msi')
+                    $expectedReturnValue = [Uri] $filePath
+
+                    Convert-PathToUri -Path $filePath | Should Be $expectedReturnValue
+                }
+            
             }
         }
     }
