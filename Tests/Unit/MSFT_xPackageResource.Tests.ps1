@@ -44,11 +44,11 @@ try
 
                 $null = New-TestExecutable -DestinationPath $script:testExecutablePath
 
-                $null = Clear-xPackageCache
+                $null = Clear-PackageCache
             }
 
             BeforeEach {
-                $null = Clear-xPackageCache
+                $null = Clear-PackageCache
 
                 if (Test-PackageInstalledByName -Name $script:packageName)
                 {
@@ -68,7 +68,7 @@ try
                     $null = Remove-Item -Path $script:testDirectoryPath -Recurse -Force
                 }
 
-                $null = Clear-xPackageCache
+                $null = Clear-PackageCache
 
                 if (Test-PackageInstalledByName -Name $script:packageName)
                 {
@@ -112,7 +112,7 @@ try
 
                     try
                     {
-                        Clear-xPackageCache
+                        Clear-PackageCache
 
                         $getTargetResourceResult = Get-TargetResource @packageParameters
                         $getTargetResourceResultProperties = @( 'Ensure', 'Name', 'ProductId', 'Installed', 'CreateCheckRegValue', 'InstalledCheckRegHive', 'InstalledCheckRegKey', 'InstalledCheckRegValueName', 'InstalledCheckRegValueData' )
@@ -138,7 +138,7 @@ try
                     }
 
                     Set-TargetResource -Ensure 'Present' @packageParameters
-                    Clear-xPackageCache
+                    Clear-PackageCache
 
                     $getTargetResourceResult = Get-TargetResource @packageParameters
                     $getTargetResourceResultProperties = @( 'Ensure', 'Name', 'ProductId', 'Installed', 'Path', 'InstalledOn', 'Size', 'Version', 'PackageDescription', 'Publisher' )
@@ -154,7 +154,7 @@ try
                     }
 
                     Set-TargetResource -Ensure 'Present' @packageParameters
-                    Clear-xPackageCache
+                    Clear-PackageCache
 
                     $getTargetResourceResult = Get-TargetResource @packageParameters
                     $getTargetResourceResultProperties = @( 'Ensure', 'Name', 'ProductId', 'Installed', 'Path', 'InstalledOn', 'Size', 'Version', 'PackageDescription', 'Publisher' )
@@ -201,7 +201,7 @@ try
                 It 'Should return correct value when package is present without registry parameters' {
                     Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $script:packageId -Name ([String]::Empty)
 
-                    Clear-xPackageCache
+                    Clear-PackageCache
 
                     Test-PackageInstalledByName -Name $script:packageName | Should Be $true
 
