@@ -27,11 +27,11 @@ try
 
             New-TestMsi -DestinationPath $script:msiLocation | Out-Null
 
-            Clear-xPackageCache | Out-Null
+            Clear-PackageCache | Out-Null
         }
 
         BeforeEach {
-            Clear-xPackageCache | Out-Null
+            Clear-PackageCache | Out-Null
 
             if (Test-PackageInstalledByName -Name $script:packageName)
             {
@@ -51,7 +51,7 @@ try
                 Remove-Item -Path $script:testDirectoryPath -Recurse -Force | Out-Null
             }
 
-            Clear-xPackageCache | Out-Null
+            Clear-PackageCache | Out-Null
 
             if (Test-PackageInstalledByName -Name $script:packageName)
             {
