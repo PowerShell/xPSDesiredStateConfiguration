@@ -189,13 +189,14 @@ try
                     {
                         $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                                     'HttpIntegrationTest.FileServerStarted')
+                        $fileServerStarted.Reset()
 
                         'Http tests:' > c:\server.txt
 
                         $job = Start-Server -FilePath $script:msiLocation               
 
                         $fileServerStarted.WaitOne(30000)
-                        Start-Sleep -Seconds 3
+
                         { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
 
                         Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId
@@ -259,13 +260,14 @@ try
                     {
                         $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
                                     'HttpIntegrationTest.FileServerStarted')
+                        $fileServerStarted.Reset()
 
                         'Https tests:' >> c:\server.txt
 
                         $job = Start-Server -FilePath $script:msiLocation -Https               
 
                         $fileServerStarted.WaitOne(30000)
-                        start-sleep -Seconds 3
+
                         { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
 
                         Set-TargetResource -Ensure 'Present' -Path $msiUrl -ProductId $script:packageId

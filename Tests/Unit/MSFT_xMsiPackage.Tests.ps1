@@ -6,7 +6,7 @@ Describe 'xMsiPackage Unit Tests' {
         # Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
         $script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
         $script:commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
-        Import-Module -Name $commonTestHelperFilePath
+        Import-Module -Name $commonTestHelperFilePath -Force
 
         $script:testEnvironment = Enter-DscResourceTestEnvironment `
             -DscResourceModuleName 'xPSDesiredStateConfiguration' `
@@ -40,6 +40,9 @@ Describe 'xMsiPackage Unit Tests' {
     }
 
     InModuleScope 'MSFT_xMsiPackage' {
+        $script:testsFolderFilePath = Split-Path $PSScriptRoot -Parent
+        $script:commonTestHelperFilePath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
+        Import-Module -Name $commonTestHelperFilePath
 
         $testUsername = 'TestUsername'
         $testPassword = 'TestPassword'
