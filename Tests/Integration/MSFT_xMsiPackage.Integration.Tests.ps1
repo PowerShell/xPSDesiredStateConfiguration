@@ -42,11 +42,11 @@ try
 
                 $null = New-TestMsi -DestinationPath $script:msiLocation
 
-                $null = Clear-xPackageCache
+                $null = Clear-PackageCache
             }
 
             BeforeEach {
-                $null = Clear-xPackageCache
+                $null = Clear-PackageCache
 
                 if (Test-PackageInstalledById -ProductId $script:packageId)
                 {
@@ -66,7 +66,7 @@ try
                     $null = Remove-Item -Path $script:testDirectoryPath -Recurse -Force
                 }
 
-                $null = Clear-xPackageCache
+                $null = Clear-PackageCache
 
                 if (Test-PackageInstalledById -ProductId $script:packageId)
                 {
@@ -93,8 +93,6 @@ try
                     Test-GetTargetResourceResult -GetTargetResourceResult $getTargetResourceResult -GetTargetResourceResultProperties $getTargetResourceResultProperties
                 }
 
-                
-
                 It 'Should return full package properties for present package without registry check parameters specified' {
                     $packageParameters = @{
                         Path = $script:msiLocation
@@ -102,7 +100,7 @@ try
                     }
 
                     Set-TargetResource -Ensure 'Present' @packageParameters
-                    Clear-xPackageCache
+                    Clear-PackageCache
 
                     $getTargetResourceResult = Get-TargetResource @packageParameters
                     $getTargetResourceResultProperties = @( 'Ensure', 'Name', 'InstallSource', 'InstalledOn', 'ProductId', 'Size', 'Version', 'PackageDescription', 'Publisher' )
@@ -131,7 +129,7 @@ try
                 It 'Should return correct value when package is present' {
                     Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $script:packageId
 
-                    Clear-xPackageCache
+                    Clear-PackageCache
 
                     Test-PackageInstalledById -ProductId $script:packageId | Should Be $true
 
@@ -205,10 +203,6 @@ try
                         Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                         Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
                     }
-                    catch
-                    {
-                        Throw $_
-                    }
                     finally
                     {
                         if ($fileServerStarted)
@@ -247,10 +241,6 @@ try
 
                         Set-TargetResource -Ensure 'Absent' -Path $msiUrl -ProductId $script:packageId
                         Test-PackageInstalledById -ProductId $script:packageId | Should Be $false
-                    }
-                    catch
-                    {
-                        Throw $_
                     }
                     finally
                     {
