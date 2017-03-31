@@ -719,7 +719,7 @@ function Get-ProductEntryValue
 
 function Get-WebRequestResponse
 {
-    [OutputType([System.IO.FileStream])]
+    [OutputType([System.Net.ConnectStream])]
     [CmdletBinding()]
     param
     (
@@ -772,7 +772,7 @@ function Copy-StreamToStream
     param
     (
         [Parameter(Mandatory = $true)]
-        [System.IO.FileStream]
+        [System.Net.ConnectStream]
         $InStream,
 
         [Parameter(Mandatory = $true)]
@@ -799,7 +799,6 @@ function Close-Stream
     param
     (
         [Parameter(Mandatory = $true)]
-        [System.IO.FileStream]
         $Stream
     )
 

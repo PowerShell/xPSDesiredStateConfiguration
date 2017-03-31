@@ -89,14 +89,17 @@ function Test-PackageInstalledById
 
 <#
     .SYNOPSIS
-        Mimics a simple http or https file server. Used only by the xPackage resource - xMsiPackage uses Start-Server instead
+        Mimics a simple http or https file server.
+        Used only by the xPackage resource - xMsiPackage uses Start-Server instead
 
     .PARAMETER FilePath
-        The path to the file to add on the mock file server.
+        The path to the file to add to the mock file server.
 
     .PARAMETER Https
         Indicates that the new file server should use https.
         Otherwise the new file server will use http.
+        Https functionality is not currently implemented in
+        this function - Start-Server should be used instead.
 #>
 function New-MockFileServer
 {

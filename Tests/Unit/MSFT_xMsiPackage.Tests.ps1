@@ -61,6 +61,7 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testUriFile = [Uri] 'file://testPath'
 
         $script:testFileOutStream = New-MockObject -Type 'System.IO.FileStream'
+        $script:testFileResponseStream = New-MockObject -Type 'System.Net.ResponseStream'
         $script:mockPSDrive = @{
             Root = 'mockRoot'
         }
@@ -169,7 +170,7 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
             Mock -CommandName 'New-Object' -MockWith { Throw } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
             Mock -CommandName 'Close-Stream' -MockWith {}
-            Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:testFileOutStream }
+            Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:testFileResponseStream }
             Mock -CommandName 'Copy-StreamToStream' -MockWith {}
             Mock -CommandName 'Assert-FileValid' -MockWith {}
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testWrongProductId }
