@@ -30,7 +30,8 @@ Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
 Invoke-Process = attempt to install/uninstall the MSI package under the process
 Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
 Close-Stream = close the stream
-Copy-WebResponseToFileStream = copy the web response to the file stream
+Get-WebRequestResponse = get the web request response
+Copy-StreamToStream = copy the instream to the outstream
 Get-ItemProperty = retrieve the registry data
 '@
         }
