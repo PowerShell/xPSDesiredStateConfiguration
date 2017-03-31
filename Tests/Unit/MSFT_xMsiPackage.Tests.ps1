@@ -31,7 +31,8 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-Process = attempt to install/uninstall the MSI package under the process
                 Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
                 Close-Stream = close the stream
-                Copy-WebResponseToFileStream = copy the web response to the file stream
+                Get-WebRequestResponse = get the web request response
+                CopyStreamToStream = copy the instream to the outstream
                 Get-ItemProperty = retrieve the registry data
 '@#>
     }
@@ -90,7 +91,7 @@ Describe 'xMsiPackage Unit Tests' {
             CouldNotStartProcess = 'not being able to start the process'
             PostValidationError = 'not being able to find the package after installation'
         }
-        <#
+        
         Describe 'Get-TargetResource' {
 
             Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
@@ -168,7 +169,8 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
             Mock -CommandName 'New-Object' -MockWith { Throw } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
             Mock -CommandName 'Close-Stream' -MockWith {}
-            Mock -CommandName 'Copy-WebResponseToFileStream' -MockWith {}
+            Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:testFileOutStream }
+            Mock -CommandName 'Copy-StreamToStream' -MockWith {}
             Mock -CommandName 'Assert-FileValid' -MockWith {}
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testWrongProductId }
             Mock -CommandName 'Invoke-PInvoke' -MockWith { Throw }
@@ -223,7 +225,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Remove-Item'; Times = 1; Custom = $setTargetResourceParameters.LogPath }
                     @{ Command = 'New-Item'; Times = 1; Custom = $setTargetResourceParameters.LogPath }
                     @{ Command = 'New-PSDrive'; Times = 1 }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
                 )
@@ -273,8 +275,9 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Test-Path'; Times = 2; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'New-Object'; Times = 1; Custom = 'System.IO.FileStream' }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 1 }
-                    @{ Command = 'Close-Stream'; Times = 1 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 1 }
+                    @{ Command = 'Copy-StreamToStream'; Times = 1 }
+                    @{ Command = 'Close-Stream'; Times = 2 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
@@ -296,7 +299,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Get-ProductEntry'; Times = 0 }
                     @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
                     @{ Command = 'Invoke-PInvoke'; Times = 1 }
@@ -320,7 +323,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Get-ProductEntry'; Times = 0 }
                     @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
                     @{ Command = 'Invoke-Process'; Times = 1 }
@@ -344,7 +347,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Get-ProductEntry'; Times = 1 }
                     @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
                     @{ Command = 'Invoke-Process'; Times = 1 }
@@ -373,13 +376,14 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Remove-Item'; Times = 1; Custom = $destinationPath }
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'New-Object'; Times = 1; Custom = 'System.IO.FileStream' }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 1 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 1 }
+                    @{ Command = 'Copy-StreamToStream'; Times = 1 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
                     @{ Command = 'Invoke-Process'; Times = 1 }
                     @{ Command = 'Invoke-CimMethod'; Times = 1 }
                     @{ Command = 'Get-ItemProperty'; Times = 1 }
-                    @{ Command = 'Close-Stream'; Times = 1 }
+                    @{ Command = 'Close-Stream'; Times = 2 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
@@ -401,7 +405,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Get-ProductEntry'; Times = 1 }
                     @{ Command = 'Test-Path'; Times = 1; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
                     @{ Command = 'Invoke-Process'; Times = 1 }
@@ -425,7 +429,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Get-ProductEntry'; Times = 1 }
                     @{ Command = 'Test-Path'; Times = 0; Custom = 'Path' }
                     @{ Command = 'New-PSDrive'; Times = 0 }
-                    @{ Command = 'Copy-WebResponseToFileStream'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponse'; Times = 0 }
                     @{ Command = 'Assert-FileValid'; Times = 0 }
                     @{ Command = 'Get-MsiProductCode'; Times = 0 }
                     @{ Command = 'Invoke-Process'; Times = 1 }
@@ -513,7 +517,7 @@ Describe 'xMsiPackage Unit Tests' {
                                               -MocksCalled $mocksCalled `
                                               -ExpectedReturnValue $true
             }
-        }#>
+        }
 
         Describe 'Assert-PathExtensionValid' {
             Context 'Path is a valid .msi path' {

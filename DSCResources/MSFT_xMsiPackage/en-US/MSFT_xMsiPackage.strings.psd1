@@ -12,8 +12,8 @@ ConvertFrom-StringData @'
     UnexpectedReturnCode = The return code {0} was not expected. Configuration is likely not correct
     PathDoesNotExist = The given Path ({0}) could not be found
     CouldNotOpenDestFile = Could not open the file {0} for writing
-    CouldNotGetHttpStream = Could not get the {0} stream for file {1}
-    ErrorCopyingDataToFile = Encountered error while copying the contents of {0} over to the destination
+    CouldNotGetResponseFromWebRequest = An error occurred while trying to get the {0} response for file {1}
+    ErrorCopyingDataToFile = Encountered error while copying the response to the output stream
     PackageConfigurationComplete = Package configuration finished
     PackageConfigurationStarting = Package configuration starting
     InstalledPackage = Installed package
@@ -55,7 +55,7 @@ ConvertFrom-StringData @'
     Ignoringbadcertificates = Ignoring bad certificates
     Gettingtheschemeresponsestream = Getting the {0} response stream
     ErrorOutString = Error: {0}
-    Copyingtheschemestreambytestothediskcache = Copying the {0} stream bytes to the disk cache
+    Copyingtheschemestreambytestothediskcache = Copying the stream bytes to the disk cache
     Redirectingpackagepathtocachefilelocation = Redirecting package path to cache file location
     ThebinaryisanEXE = The binary is an EXE
     Userhasrequestedloggingneedtoattacheventhandlerstotheprocess = User has requested logging, need to attach event handlers to the process

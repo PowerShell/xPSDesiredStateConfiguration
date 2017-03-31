@@ -241,7 +241,19 @@ function Set-TargetResource
                         New-InvalidOperationException -Message ($script:localizedData.CouldNotOpenDestFile -f $destinationPath) -ErrorRecord $_
                     }
 
-                    Copy-WebResponseToFileStream -Uri $uri -OutStream $outStream -ServerCertificateValidationCallback $ServerCertificateValidationCallback
+                    try
+                    {
+                        $responseStream = Get-WebRequestResponse -Uri $uri -ServerCertificateValidationCallback $ServerCertificateValidationCallback
+
+                        Copy-StreamToStream -InStream $responseStream -OutStream $outStream
+                    }
+                    finally
+                    {
+                        if ($null -ne $responseStream)
+                        {
+                            Close-Stream -Stream $responseStream
+                        }
+                    }
                 }
                 finally
                 {
@@ -644,7 +656,7 @@ function Get-ProductEntryInfo
         $ProductEntry
     )
 
-    $installDate = $productEntry.GetValue('InstallDate')
+    $installDate = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'InstallDate'
 
     if ($null -ne $installDate)
     {
@@ -658,22 +670,22 @@ function Get-ProductEntryInfo
         }
     }
 
-    $publisher = $productEntry.GetValue('Publisher')
+    $publisher = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'Publisher'
 
-    $estimatedSize = $productEntry.GetValue('EstimatedSize')
+    $estimatedSize = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'EstimatedSize'
 
     if ($null -ne $estimatedSize)
     {
         $estimatedSize = $estimatedSize / 1024
     }
 
-    $displayVersion = $productEntry.GetValue('DisplayVersion')
+    $displayVersion = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'DisplayVersion'
 
-    $comments = $productEntry.GetValue('Comments')
+    $comments = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'Comments'
 
-    $displayName = $productEntry.GetValue('DisplayName')
+    $displayName = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'DisplayName'
 
-    $installSource = $productEntry.GetValue('InstallSource')
+    $installSource = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'InstallSource'
 
     return @{
         Ensure = 'Present'
@@ -687,8 +699,27 @@ function Get-ProductEntryInfo
     }
 }
 
-function Copy-WebResponseToFileStream
+function Get-ProductEntryValue
 {
+    [OutputType([Object])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [Microsoft.Win32.RegistryKey]
+        $ProductEntry,
+
+        [Parameter(Mandatory = $true)]
+        [String]
+        $ItemToRetrieve
+    )
+
+    return $ProductEntry.GetValue($ItemToRetrieve)
+}
+
+function Get-WebRequestResponse
+{
+    [OutputType([System.IO.FileStream])]
     [CmdletBinding()]
     param
     (
@@ -696,69 +727,70 @@ function Copy-WebResponseToFileStream
         [Uri]
         $Uri,
 
-        [Parameter(Mandatory = $true)]
-        [System.IO.FileStream]
-        $OutStream,
-
         [String]
         $ServerCertificateValidationCallback
     )
 
-    $responseStream = $null
-
     try
     {
-        try
-        {
-            $uriScheme = $Uri.Scheme
+        $uriScheme = $Uri.Scheme
 
-            Write-Verbose -Message ($script:localizedData.CreatingTheSchemeStream -f $uriScheme)
-            $webRequest = [System.Net.WebRequest]::Create($Uri)
-        
-            Write-Verbose -Message ($script:localizedData.SettingDefaultCredential)
-            $webRequest.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+        Write-Verbose -Message ($script:localizedData.CreatingTheSchemeStream -f $uriScheme)
+        $webRequest = [System.Net.WebRequest]::Create($Uri)
+    
+        Write-Verbose -Message ($script:localizedData.SettingDefaultCredential)
+        $webRequest.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+        $webRequest.AuthenticationLevel = [System.Net.Security.AuthenticationLevel]::None
+    
+        if ($uriScheme -eq 'http')
+        {
+            # Default value is MutualAuthRequested, which applies to the https scheme
+            Write-Verbose -Message ($script:localizedData.SettingAuthenticationLevel)
             $webRequest.AuthenticationLevel = [System.Net.Security.AuthenticationLevel]::None
-        
-            if ($uriScheme -eq 'http')
-            {
-                # Default value is MutualAuthRequested, which applies to the https scheme
-                Write-Verbose -Message ($script:localizedData.SettingAuthenticationLevel)
-                $webRequest.AuthenticationLevel = [System.Net.Security.AuthenticationLevel]::None
-            }
-            elseif ($uriScheme -eq 'https' -and -not [String]::IsNullOrEmpty($ServerCertificateValidationCallback))
-            {
-                Write-Verbose -Message $script:localizedData.SettingCertificateValidationCallback
-                $serverCertificateValidationScriptBlock = [ScriptBlock]::Create($ServerCertificateValidationCallback)
-                $webRequest.ServerCertificateValidationCallBack = $serverCertificateValidationScriptBlock
-            }
-        
-            Write-Verbose -Message ($script:localizedData.Gettingtheschemeresponsestream -f $uriScheme)
-            $responseStream = (([System.Net.HttpWebRequest]$webRequest).GetResponse()).GetResponseStream()
         }
-        catch
+        elseif ($uriScheme -eq 'https' -and -not [String]::IsNullOrEmpty($ServerCertificateValidationCallback))
         {
-             New-InvalidOperationException -Message ($script:localizedData.CouldNotGetHttpStream -f $uriScheme, $Uri.OriginalString) -ErrorRecord $_
+            Write-Verbose -Message $script:localizedData.SettingCertificateValidationCallback
+            $serverCertificateValidationScriptBlock = [ScriptBlock]::Create($ServerCertificateValidationCallback)
+            $webRequest.ServerCertificateValidationCallBack = $serverCertificateValidationScriptBlock
         }
+    
+        Write-Verbose -Message ($script:localizedData.Gettingtheschemeresponsestream -f $uriScheme)
+        $responseStream = (([System.Net.HttpWebRequest]$webRequest).GetResponse()).GetResponseStream()
 
-        try
+        return $responseStream
+    }
+    catch
+    {
+         New-InvalidOperationException -Message ($script:localizedData.CouldNotGetResponseFromWebRequest -f $uriScheme, $Uri.OriginalString) -ErrorRecord $_
+    }
+}
+
+function Copy-StreamToStream
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.IO.FileStream]
+        $InStream,
+
+        [Parameter(Mandatory = $true)]
+        [System.IO.FileStream]
+        $OutStream
+    )
+
+    try
         {
-            Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache -f $uriScheme)
-            $responseStream.CopyTo($OutStream)
-            $responseStream.Flush()
+            Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache)
+            $InStream.CopyTo($OutStream)
+            $InStream.Flush()
             $OutStream.Flush()
         }
         catch
         {
-            New-InvalidOperationException -Message ($script:localizedData.ErrorCopyingDataToFile -f $Uri.OriginalString) -ErrorRecord $_
+            New-InvalidOperationException -Message ($script:localizedData.ErrorCopyingDataToFile) -ErrorRecord $_
         }
-    }
-    finally
-    {
-        if ($null -ne $responseStream)
-        {
-            $responseStream.Close()
-        }
-    }
 }
 
 function Close-Stream
