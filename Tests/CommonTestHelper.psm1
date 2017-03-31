@@ -89,7 +89,7 @@ function Get-TestName
         Tests that each mock in MocksCalled is called the expected number of times.
 
     .PARAMETER MocksCalled
-        An array of the mocked commands that should be called.
+        An array of the mocked commands that should be called or not called.
         Each item in the array is a hashtable that contains the name of the command
         being mocked and the number of times it is called (can be 0).
 #>
