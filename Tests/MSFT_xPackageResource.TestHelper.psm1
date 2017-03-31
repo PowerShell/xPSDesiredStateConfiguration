@@ -200,22 +200,18 @@ function New-MockFileServer
     .SYNOPSIS
         Starts a simple mock http or https file server.
 
-    .PARAMETER HttpListener
-        Reference to the listener object created by the clinet that will be used to send
-        and receive the request response.
-
     .PARAMETER FilePath
-        The path to the file to add on the mock file server. Should be an MSI file.
+        The path to the file to add to the mock file server. Should be an MSI file.
 
     .PARAMETER LogPath
         The path to the log file to write output to. This is important for debugging since
         most of the work of this function is done within a separate process. Default value
-        will be in the script root and will be overwritten with each test.
+        will be in the script root and will be overwritten with each test run.
 
     .PARAMETER Https
-        If true then the file server will use https.
+        Indicates whether the server should use https. If True then the file server will use https.
         Otherwise the file server will use http.
-        Default is False.
+        Default value is False (http).
 #>
 function Start-Server
 {
@@ -234,11 +230,26 @@ function Start-Server
         $Https = $false
     )
 
+    <# 
+        The server is run on a separate process so that it can receive requests
+        while the tests continue to run. It takes in the same params that are passed
+        in to this function. All helper functions that the server uses need to be
+        defined within the scope of this script.
+    #>
     $server =
     {
         param($FilePath, $LogPath, $Https)
 
-        # Stop HTTP(s) listener
+        <#
+            .SYNOPSIS
+                Stops the listener, removes the SSL binding if applicable, and closes the listener.
+
+            .PARAMETER HttpListener
+                The listner to stop and close.
+
+            .PARAMETER Https
+                Indicates whether https was used and if so, removes the SSL binding.
+        #>
         function Stop-Server
         {
             [CmdletBinding()]
@@ -285,13 +296,17 @@ function Start-Server
                    netsh http delete sslcert ipPort="$ipPort"
                 }
             }
+
             Write-Log -LogFile $LogPath -Message 'Closing listener'
             $HttpListener.Close()
 
             $null = netsh advfirewall set allprofiles state on
         }
 
-        # Register the SSL certificate for Https
+        <#
+            .SYNOPSIS
+                Creates and registers the SSL certificate for Https.
+        #>
         function Register-Ssl
         {
             [CmdletBinding()]
@@ -313,7 +328,13 @@ function Start-Server
             $null = netsh http add sslcert ipport=0.0.0.0:1243 certhash=$hash appid='{833f13c2-319a-4799-9d1a-5b267a0c3593}' clientcertnegotiation=enable
         }
 
-        # Callback function for starting the BeginGetContext
+        <#
+            .SYNOPSIS
+                Defines the callback function required for BeginGetContext.
+
+            .PARAMETER Callback
+                The callback script - in this case the request listener.
+        #>
         function New-ScriptBlockCallback
         {
             [CmdletBinding()]
@@ -361,7 +382,20 @@ function Start-Server
             Write-Log -LogFile $LogPath -Message 'Finished callback function'
         }
 
-        # Invoke a console command and capture exit code
+        <#
+            .SYNOPSIS
+                Invokes a console command and captures the exit code.
+
+            .PARAMETER Target
+                Where the command is being executed.
+
+            .PARAMETER Action
+                A description of the action being performed.
+
+            .PARAMETER ScriptBlock
+                The code to execute.
+                
+        #>
         function Invoke-ConsoleCommand
         {
             [CmdletBinding()]
@@ -396,7 +430,17 @@ function Start-Server
             }
         }
 
-        # Writes the specified message to the specified log file
+        <#
+            .SYNOPSIS
+                Writes the specified message to the specified log file.
+                Does NOT overwrite what is already written there.
+
+            .PARAMETER LogFile
+                The path to the file to write to.
+
+            .PARAMETER Message
+                The message to write to the file.
+        #>
         function Write-Log
         {
             [CmdletBinding()]
@@ -430,6 +474,8 @@ function Start-Server
 
         try
         {
+            # Set up the listener
+
             if ($Https)
             {
                 $HttpListener.Prefixes.Add([Uri]'https://localhost:1243')
@@ -456,6 +502,7 @@ function Start-Server
 
             $HttpListener.Start()
 
+            # Cue the tests that the listener is started and can begin receiving requests
             $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::AutoReset,
                             'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Set()
@@ -482,6 +529,7 @@ function Start-Server
 
                 # Call EndGetContext to complete the asynchronous operation.
                 $context = $listener.EndGetContext($Result)
+
                 $response = $null
 
                 try
@@ -510,8 +558,9 @@ function Start-Server
                 }
                 catch
                 {
-                    Write-Log -LogFile $LogPath -Message "catching error from request listener: $_"
-                    Throw "error writing response: $_"
+                    $errorMessage = "error writing response: $_"
+                    Write-Log -LogFile $LogPath -Message $errorMessage
+                    Throw $errorMessage
                 }
                 finally
                 {
@@ -526,6 +575,7 @@ function Start-Server
             $HttpListener.BeginGetContext((New-ScriptBlockCallback -Callback $requestListener), @{ Listener = $Httplistener; FilePath = $FilePath }) | Out-Null
             Write-Log -LogFile $LogPath -Message 'First BeginGetContext called'
 
+            # Ensure that the request listener stays on until the server is done receiving responses
             while ($true)
             {
                 Start-Sleep -Milliseconds 100
@@ -545,11 +595,11 @@ function Start-Server
             }
             
             Write-Log -LogFile $LogPath -Message 'Stopping the Server'
-
             Stop-Server -HttpListener $HttpListener -Https $Https
         }
     }
 
+    # Return the job object so that the client can stop the job once it is done sending responses.
     return Start-Job -ScriptBlock $server -ArgumentList @( $FilePath, $LogPath, $Https )
 }
 

@@ -245,13 +245,13 @@ function Set-TargetResource
                     {
                         $responseStream = Get-WebRequestResponse -Uri $uri -ServerCertificateValidationCallback $ServerCertificateValidationCallback
 
-                        Copy-StreamToStream -InStream $responseStream -OutStream $outStream
+                        Copy-ConnectStreamToFileStream -InStream $responseStream -OutStream $outStream
                     }
                     finally
                     {
                         if ($null -ne $responseStream)
                         {
-                            Close-Stream -Stream $responseStream
+                            Close-ConnectStream -Stream $responseStream
                         }
                     }
                 }
@@ -259,7 +259,7 @@ function Set-TargetResource
                 {
                     if ($null -ne $outStream)
                     {
-                        Close-Stream -Stream $outStream
+                        Close-FileStream -Stream $outStream
                     }
                 }
 
@@ -511,7 +511,7 @@ function Test-TargetResource
         Asserts that the path extension is '.msi'
 
     .PARAMETER Path
-        The path to validate the extension of.
+        The path to the file to validate the extension of.
 #>
 function Assert-PathExtensionValid
 {
@@ -535,11 +535,11 @@ function Assert-PathExtensionValid
 
 <#
     .SYNOPSIS
-        Converts the given path to a URI.
+        Converts the given path to a URI and returns the URI object.
         Throws an exception if the path's scheme as a URI is not valid.
 
     .PARAMETER Path
-        The path to retrieve as a URI.
+        The path to the file to retrieve as a URI.
 #>
 function Convert-PathToUri
 {
@@ -645,6 +645,13 @@ function Get-ProductEntry
     return $productEntry
 }
 
+<#
+    .SYNOPSIS
+        Retrieves the information for the given product entry and returns it as a hashtable.
+
+    .PARAMETER ProductEntry
+        The product entry to retrieve the information for.
+#>
 function Get-ProductEntryInfo
 {
     [OutputType([Hashtable])]
@@ -699,6 +706,10 @@ function Get-ProductEntryInfo
     }
 }
 
+<#
+    .SYNOPSIS
+        Retrieves the value of the product entry for 
+#>
 function Get-ProductEntryValue
 {
     [OutputType([Object])]
@@ -766,7 +777,7 @@ function Get-WebRequestResponse
     }
 }
 
-function Copy-StreamToStream
+function Copy-ConnectStreamToFileStream
 {
     [CmdletBinding()]
     param
@@ -793,12 +804,26 @@ function Copy-StreamToStream
         }
 }
 
-function Close-Stream
+function Close-FileStream
 {
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
+        [System.IO.FileStream]
+        $Stream
+    )
+
+    $Stream.Close()
+}
+
+function Close-ConnectStream
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.Net.ConnectStream]
         $Stream
     )
 

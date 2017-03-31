@@ -30,9 +30,10 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
                 Invoke-Process = attempt to install/uninstall the MSI package under the process
                 Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
-                Close-Stream = close the stream
+                Close-FileStream = close the file stream
+                Close-ResponseStream = close the response stream
                 Get-WebRequestResponse = get the web request response
-                CopyStreamToStream = copy the instream to the outstream
+                Copy-ResponseStreamToFileStream = copy the response stream to the file stream
                 Get-ItemProperty = retrieve the registry data
 '@#>
     }
@@ -169,9 +170,10 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'New-Item' -MockWith {}
             Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
             Mock -CommandName 'New-Object' -MockWith { Throw } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
-            Mock -CommandName 'Close-Stream' -MockWith {}
+            Mock -CommandName 'Close-ResponseStream' -MockWith {}
+            Mock -CommandName 'Close-FileStream' -MockWith {}
             Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:testFileResponseStream }
-            Mock -CommandName 'Copy-StreamToStream' -MockWith {}
+            Mock -CommandName 'Copy-ResponseStreamToFileStream' -MockWith {}
             Mock -CommandName 'Assert-FileValid' -MockWith {}
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testWrongProductId }
             Mock -CommandName 'Invoke-PInvoke' -MockWith { Throw }
@@ -277,8 +279,9 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'New-Object'; Times = 1; Custom = 'System.IO.FileStream' }
                     @{ Command = 'Get-WebRequestResponse'; Times = 1 }
-                    @{ Command = 'Copy-StreamToStream'; Times = 1 }
-                    @{ Command = 'Close-Stream'; Times = 2 }
+                    @{ Command = 'Copy-ResponseStreamToFileStream'; Times = 1 }
+                    @{ Command = 'Close-ResponseStream'; Times = 1 }
+                    @{ Command = 'Close-FileStream'; Times = 1 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
@@ -378,13 +381,14 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'New-PSDrive'; Times = 0 }
                     @{ Command = 'New-Object'; Times = 1; Custom = 'System.IO.FileStream' }
                     @{ Command = 'Get-WebRequestResponse'; Times = 1 }
-                    @{ Command = 'Copy-StreamToStream'; Times = 1 }
+                    @{ Command = 'Copy-ResponseStreamToFileStream'; Times = 1 }
                     @{ Command = 'Assert-FileValid'; Times = 1 }
                     @{ Command = 'Get-MsiProductCode'; Times = 1 }
                     @{ Command = 'Invoke-Process'; Times = 1 }
                     @{ Command = 'Invoke-CimMethod'; Times = 1 }
                     @{ Command = 'Get-ItemProperty'; Times = 1 }
-                    @{ Command = 'Close-Stream'; Times = 2 }
+                    @{ Command = 'Close-ResponseStream'; Times = 1 }
+                    @{ Command = 'Close-FileStream'; Times = 1 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
