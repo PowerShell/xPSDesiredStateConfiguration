@@ -74,18 +74,37 @@ function Get-TargetResource
 
 <#
     .SYNOPSIS
-    .PARAMETER ProductId   
+        Installs or uninstalls the MSI file at the given path.
+
+    .PARAMETER ProductId
+        The product ID of the MSI file to install or uninstall.
+
     .PARAMETER Path
+        The path to the MSI file to install or uninstall.
+
     .PARAMETER Ensure
+        Indicates whether to given MSI should be installed or uninstalled.
+        Set this property to Present to install the MSI, and Absent to uninstall
+        the MSI.
+
     .PARAMETER Arguments
+        
     .PARAMETER Credential
+
     .PARAMETER LogPath
+
     .PARAMETER FileHash
+
     .PARAMETER HashAlgorithm
+
     .PARAMETER SignerSubject
+
     .PARAMETER SignerThumbprint
+
     .PARAMETER ServerCertificateValidationCallback
+
     .PARAMETER RunAsCredential
+
 #>
 function Set-TargetResource
 {
@@ -391,26 +410,43 @@ function Set-TargetResource
 
 <#
     .SYNOPSIS
-    .PARAMETER ProductId   
+        Tests if the MSI file with the given product ID is installed or uninstalled.
+
+    .PARAMETER ProductId
+        The product ID of the MSI file to check the state of.
+          
     .PARAMETER Path
         Not Used in Test-TargetResource
+
     .PARAMETER Ensure
+        Indicates whether the MSI file should be installed or uninstalled.
+        Set this property to Present if the MSI file should be installed. Set
+        this property to Absent if the MSI file should be uninstalled.
+
     .PARAMETER Arguments
         Not Used in Test-TargetResource
+
     .PARAMETER Credential
         Not Used in Test-TargetResource
+
     .PARAMETER LogPath
         Not Used in Test-TargetResource
+
     .PARAMETER FileHash
         Not Used in Test-TargetResource
+
     .PARAMETER HashAlgorithm
         Not Used in Test-TargetResource
+
     .PARAMETER SignerSubject
         Not Used in Test-TargetResource
+
     .PARAMETER SignerThumbprint
         Not Used in Test-TargetResource
+
     .PARAMETER ServerCertificateValidationCallback
         Not Used in Test-TargetResource
+
     .PARAMETER RunAsCredential
         Not Used in Test-TargetResource
 #>
@@ -485,6 +521,7 @@ function Test-TargetResource
 <#
     .SYNOPSIS
         Asserts that the path extension is '.msi'
+
     .PARAMETER Path
         The path to the file to validate the extension of.
 #>
@@ -512,6 +549,7 @@ function Assert-PathExtensionValid
     .SYNOPSIS
         Converts the given path to a URI and returns the URI object.
         Throws an exception if the path's scheme as a URI is not valid.
+
     .PARAMETER Path
         The path to the file to retrieve as a URI.
 #>
@@ -550,6 +588,7 @@ function Convert-PathToUri
 <#
     .SYNOPSIS
         Retrieves the product ID as an identifying number.
+
     .PARAMETER ProductId
         The product ID to retrieve as an identifying number.
 #>
@@ -583,6 +622,7 @@ function Convert-ProductIdToIdentifyingNumber
 <#
     .SYNOPSIS
         Retrieves the product entry for the package with the given identifying number.
+
     .PARAMETER IdentifyingNumber
         The identifying number of the product entry to retrieve.
 #>
@@ -620,6 +660,7 @@ function Get-ProductEntry
 <#
     .SYNOPSIS
         Retrieves the information for the given product entry and returns it as a hashtable.
+
     .PARAMETER ProductEntry
         The product entry to retrieve the information for.
 #>
@@ -634,7 +675,7 @@ function Get-ProductEntryInfo
         $ProductEntry
     )
 
-    $installDate = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'InstallDate'
+    $installDate = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'InstallDate'
 
     if ($null -ne $installDate)
     {
@@ -648,22 +689,22 @@ function Get-ProductEntryInfo
         }
     }
 
-    $publisher = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'Publisher'
+    $publisher = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'Publisher'
 
-    $estimatedSize = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'EstimatedSize'
+    $estimatedSize = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'EstimatedSize'
 
     if ($null -ne $estimatedSize)
     {
         $estimatedSize = $estimatedSize / 1024
     }
 
-    $displayVersion = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'DisplayVersion'
+    $displayVersion = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'DisplayVersion'
 
-    $comments = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'Comments'
+    $comments = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'Comments'
 
-    $displayName = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'DisplayName'
+    $displayName = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'DisplayName'
 
-    $installSource = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'InstallSource'
+    $installSource = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'InstallSource'
 
     return @{
         Ensure = 'Present'
@@ -679,7 +720,14 @@ function Get-ProductEntryInfo
 
 <#
     .SYNOPSIS
-        Retrieves the value of the product entry for 
+        Retrieves the value of the given property for the given product entry.
+        This is a wrapper for unit testing.
+
+    .PARAMETER ProductEntry
+        The product entry object to retrieve the property value from.
+
+    .PARAMETER Property
+        The property to retrieve the value of from the product entry.
 #>
 function Get-ProductEntryValue
 {
@@ -693,12 +741,22 @@ function Get-ProductEntryValue
 
         [Parameter(Mandatory = $true)]
         [String]
-        $ItemToRetrieve
+        $Property
     )
 
-    return $ProductEntry.GetValue($ItemToRetrieve)
+    return $ProductEntry.GetValue($Property)
 }
 
+<#
+    .SYNOPSIS
+        Retrieves the web requet response as a stream for the MSI file with the given URI.
+
+    .PARAMETER Uri
+        The Uri to retrieve the web request from.
+
+    .PARAMETER ServerCertificationValidationCallback
+        The callback ....
+#>
 function Get-WebRequestResponse
 {
     [OutputType([System.IO.Stream])]
@@ -747,7 +805,16 @@ function Get-WebRequestResponse
          New-InvalidOperationException -Message ($script:localizedData.CouldNotGetResponseFromWebRequest -f $uriScheme, $Uri.OriginalString) -ErrorRecord $_
     }
 }
+<#
+    .SYNOPSIS
+        Copies the given response stream to the given file stream.
 
+    .PARAMETER ResponseStream
+        The response stream to copy over.
+
+    .PARAMETER FileStream
+        The file stream to copy to.
+#>
 function Copy-ResponseStreamToFileStream
 {
     [CmdletBinding()]
@@ -763,18 +830,26 @@ function Copy-ResponseStreamToFileStream
     )
 
     try
-        {
-            Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache)
-            $ResponseStream.CopyTo($FileStream)
-            $ResponseStream.Flush()
-            $FileStream.Flush()
-        }
-        catch
-        {
-            New-InvalidOperationException -Message ($script:localizedData.ErrorCopyingDataToFile) -ErrorRecord $_
-        }
+    {
+        Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache)
+        $ResponseStream.CopyTo($FileStream)
+        $ResponseStream.Flush()
+        $FileStream.Flush()
+    }
+    catch
+    {
+        New-InvalidOperationException -Message ($script:localizedData.ErrorCopyingDataToFile) -ErrorRecord $_
+    }
 }
 
+<#
+    .SYNOPSIS
+        Closes the given stream.
+        Wrapper function for unit testing.
+
+    .PARAMETER Stream
+        The stream to close.
+#>
 function Close-Stream
 {
     [CmdletBinding()]
@@ -792,15 +867,21 @@ function Close-Stream
     .SYNOPSIS
         Asserts that the file at the given path has a valid hash, signer thumbprint, and/or
         signer subject. If only Path is provided, then this function will never throw.
-        If FileHash is provide and HashAlgorithm is not, then Sha-256 will be used by default.
+        If FileHash is provided and HashAlgorithm is not, then Sha-256 will be used as the hash
+        algorithm by default.
+
     .PARAMETER Path
-        The path of the file to check.
+        The path to the file to check.
+
     .PARAMETER FileHash
         The hash that should match the hash of the file.
+
     .PARAMETER HashAlgorithm
         The algorithm to use to retrieve the file hash.
+
     .PARAMETER SignerThumbprint
         The certificate thumbprint that should match the file's signer certificate.
+
     .PARAMETER SignerSubject
         The certificate subject that should match the file's signer certificate.
 #>
@@ -840,10 +921,13 @@ function Assert-FileValid
 <#
     .SYNOPSIS
         Asserts that the hash of the file at the given path matches the given hash.
+
     .PARAMETER Path
         The path to the file to check the hash of.
+
     .PARAMETER Hash
         The hash to check against.
+
     .PARAMETER Algorithm
         The algorithm to use to retrieve the file's hash.
 #>
@@ -877,10 +961,13 @@ function Assert-FileHashValid
 <#
     .SYNOPSIS
         Asserts that the signature of the file at the given path is valid.
+
     .PARAMETER Path
         The path to the file to check the signature of
+
     .PARAMETER Thumbprint
         The certificate thumbprint that should match the file's signer certificate.
+
     .PARAMETER Subject
         The certificate subject that should match the file's signer certificate.
 #>
@@ -926,9 +1013,10 @@ function Assert-FileSignatureValid
 
 <#
     .SYNOPSIS
-        Retrieves the name of a product from an msi.
+        Retrieves the name of a product from the MSI at the givin path.
+
     .PARAMETER Path
-        The path to the msi to retrieve the name from.
+        The path to the MSI to retrieve the name from.
 #>
 function Get-MsiProductName
 {
@@ -951,9 +1039,10 @@ function Get-MsiProductName
 
 <#
     .SYNOPSIS
-        Retrieves the code of a product from an msi.
+        Retrieves the code of a product from the MSI at the given path.
+
     .PARAMETER Path
-        The path to the msi to retrieve the code from.
+        The path to the MSI to retrieve the code from.
 #>
 function Get-MsiProductCode
 {
@@ -1050,8 +1139,10 @@ function Get-MsiTool
     .SYNOPSIS
         Runs a process as the specified user via PInvoke. Returns the exitCode that
         PInvoke returns.
+
     .PARAMETER CommandLine
         The command line (including arguments) of the process to start.
+
     .PARAMETER RunAsCredential
         The user credential to start the process as.
 #>
@@ -1087,8 +1178,10 @@ function Invoke-PInvoke
 <#
     .SYNOPSIS
         Starts and waits for a process.
+
     .DESCRIPTION
         Allows mocking and testing of process arguments.
+
     .PARAMETER Process
         The System.Diagnositics.Process object to start.
 #>
