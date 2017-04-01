@@ -2099,9 +2099,9 @@ Describe 'xArchive Unit Tests' {
             $testFileCreationTime = (Get-Date -Date $testFileInfo.CreationTime.DateTime -Format 'G')
             $testFileLastWriteTime = (Get-Date -Date $testFileInfo.LastWriteTime.DateTime -Format 'G')
 
-            Context 'Checksum specified as CreatedDate' {
-                Mock -CommandName 'Get-Date' -MockWith { return $testFileCreationTime }
+            Mock -CommandName 'Get-Date' -MockWith { return $testFileCreationTime }
 
+            Context 'Checksum specified as CreatedDate' {
                 $getTimestampForChecksumParameters = @{
                     File = $testFileInfo
                     Checksum = 'CreatedDate'
@@ -2127,8 +2127,9 @@ Describe 'xArchive Unit Tests' {
                 }
             }
 
+            Mock -CommandName 'Get-Date' -MockWith { return $testFileLastWriteTime }
+
             Context 'Checksum specified as ModifiedDate' {
-                Mock -CommandName 'Get-Date' -MockWith { return $testFileLastWriteTime }
                 $getTimestampForChecksumParameters = @{
                     File = $testFileInfo
                     Checksum = 'ModifiedDate'

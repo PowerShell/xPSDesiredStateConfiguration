@@ -30,8 +30,7 @@ Describe 'xMsiPackage Unit Tests' {
                 Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
                 Invoke-Process = attempt to install/uninstall the MSI package under the process
                 Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
-                Close-FileStream = close the file stream
-                Close-ResponseStream = close the response stream
+                Close-Stream = close the stream
                 Get-WebRequestResponse = get the web request response
                 Copy-ResponseStreamToFileStream = copy the response stream to the file stream
                 Get-ItemProperty = retrieve the registry data
@@ -61,8 +60,7 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testUriHttps = [Uri] 'https://testPath'
         $script:testUriFile = [Uri] 'file://testPath'
 
-        $script:testFileOutStream = New-MockObject -Type 'System.IO.FileStream'
-        $script:testFileResponseStream = New-MockObject -Type 'System.Net.ResponseStream'
+        $script:testStream = New-MockObject -Type 'System.IO.FileStream'
 
         $script:mockPSDrive = @{
             Root = 'mockRoot'
@@ -171,9 +169,8 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'New-Item' -MockWith {}
             Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
             Mock -CommandName 'New-Object' -MockWith { Throw } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
-            Mock -CommandName 'Close-ResponseStream' -MockWith {}
-            Mock -CommandName 'Close-FileStream' -MockWith {}
-            Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:testFileResponseStream }
+            Mock -CommandName 'Close-Stream' -MockWith {}
+            Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:testStream }
             Mock -CommandName 'Copy-ResponseStreamToFileStream' -MockWith {}
             Mock -CommandName 'Assert-FileValid' -MockWith {}
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testWrongProductId }
@@ -264,7 +261,7 @@ Describe 'xMsiPackage Unit Tests' {
             }
 
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttps }
-            Mock -CommandName 'New-Object' -MockWith { return $script:testFileOutStream } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
+            Mock -CommandName 'New-Object' -MockWith { return $script:testStream } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
             Mock -CommandName 'Test-Path' -MockWith { return $false } -ParameterFilter { $Path -eq $script:destinationPath }
             $setTargetResourceParameters.Remove('LogPath')
 
@@ -281,8 +278,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'New-Object'; Times = 1; Custom = 'System.IO.FileStream' }
                     @{ Command = 'Get-WebRequestResponse'; Times = 1 }
                     @{ Command = 'Copy-ResponseStreamToFileStream'; Times = 1 }
-                    @{ Command = 'Close-ResponseStream'; Times = 1 }
-                    @{ Command = 'Close-FileStream'; Times = 1 }
+                    @{ Command = 'Close-Stream'; Times = 2 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
@@ -388,8 +384,7 @@ Describe 'xMsiPackage Unit Tests' {
                     @{ Command = 'Invoke-Process'; Times = 1 }
                     @{ Command = 'Invoke-CimMethod'; Times = 1 }
                     @{ Command = 'Get-ItemProperty'; Times = 1 }
-                    @{ Command = 'Close-ResponseStream'; Times = 1 }
-                    @{ Command = 'Close-FileStream'; Times = 1 }
+                    @{ Command = 'Close-Stream'; Times = 2 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `

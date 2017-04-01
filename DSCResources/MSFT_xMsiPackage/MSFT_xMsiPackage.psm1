@@ -74,29 +74,17 @@ function Get-TargetResource
 
 <#
     .SYNOPSIS
-
     .PARAMETER ProductId   
-
     .PARAMETER Path
-
     .PARAMETER Ensure
-
     .PARAMETER Arguments
-
     .PARAMETER Credential
-
     .PARAMETER LogPath
-
     .PARAMETER FileHash
-
     .PARAMETER HashAlgorithm
-
     .PARAMETER SignerSubject
-
     .PARAMETER SignerThumbprint
-
     .PARAMETER ServerCertificateValidationCallback
-
     .PARAMETER RunAsCredential
 #>
 function Set-TargetResource
@@ -245,13 +233,13 @@ function Set-TargetResource
                     {
                         $responseStream = Get-WebRequestResponse -Uri $uri -ServerCertificateValidationCallback $ServerCertificateValidationCallback
 
-                        Copy-ConnectStreamToFileStream -InStream $responseStream -OutStream $outStream
+                        Copy-ResponseStreamToFileStream -ResponseStream $responseStream -FileStream $outStream
                     }
                     finally
                     {
                         if ($null -ne $responseStream)
                         {
-                            Close-ConnectStream -Stream $responseStream
+                            Close-Stream -Stream $responseStream
                         }
                     }
                 }
@@ -259,7 +247,7 @@ function Set-TargetResource
                 {
                     if ($null -ne $outStream)
                     {
-                        Close-FileStream -Stream $outStream
+                        Close-Stream -Stream $outStream
                     }
                 }
 
@@ -403,38 +391,26 @@ function Set-TargetResource
 
 <#
     .SYNOPSIS
-
     .PARAMETER ProductId   
-
     .PARAMETER Path
         Not Used in Test-TargetResource
-
     .PARAMETER Ensure
-
     .PARAMETER Arguments
         Not Used in Test-TargetResource
-
     .PARAMETER Credential
         Not Used in Test-TargetResource
-
     .PARAMETER LogPath
         Not Used in Test-TargetResource
-
     .PARAMETER FileHash
         Not Used in Test-TargetResource
-
     .PARAMETER HashAlgorithm
         Not Used in Test-TargetResource
-
     .PARAMETER SignerSubject
         Not Used in Test-TargetResource
-
     .PARAMETER SignerThumbprint
         Not Used in Test-TargetResource
-
     .PARAMETER ServerCertificateValidationCallback
         Not Used in Test-TargetResource
-
     .PARAMETER RunAsCredential
         Not Used in Test-TargetResource
 #>
@@ -509,7 +485,6 @@ function Test-TargetResource
 <#
     .SYNOPSIS
         Asserts that the path extension is '.msi'
-
     .PARAMETER Path
         The path to the file to validate the extension of.
 #>
@@ -537,7 +512,6 @@ function Assert-PathExtensionValid
     .SYNOPSIS
         Converts the given path to a URI and returns the URI object.
         Throws an exception if the path's scheme as a URI is not valid.
-
     .PARAMETER Path
         The path to the file to retrieve as a URI.
 #>
@@ -576,7 +550,6 @@ function Convert-PathToUri
 <#
     .SYNOPSIS
         Retrieves the product ID as an identifying number.
-
     .PARAMETER ProductId
         The product ID to retrieve as an identifying number.
 #>
@@ -610,7 +583,6 @@ function Convert-ProductIdToIdentifyingNumber
 <#
     .SYNOPSIS
         Retrieves the product entry for the package with the given identifying number.
-
     .PARAMETER IdentifyingNumber
         The identifying number of the product entry to retrieve.
 #>
@@ -648,7 +620,6 @@ function Get-ProductEntry
 <#
     .SYNOPSIS
         Retrieves the information for the given product entry and returns it as a hashtable.
-
     .PARAMETER ProductEntry
         The product entry to retrieve the information for.
 #>
@@ -663,7 +634,7 @@ function Get-ProductEntryInfo
         $ProductEntry
     )
 
-    $installDate = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'InstallDate'
+    $installDate = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'InstallDate'
 
     if ($null -ne $installDate)
     {
@@ -677,22 +648,22 @@ function Get-ProductEntryInfo
         }
     }
 
-    $publisher = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'Publisher'
+    $publisher = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'Publisher'
 
-    $estimatedSize = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'EstimatedSize'
+    $estimatedSize = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'EstimatedSize'
 
     if ($null -ne $estimatedSize)
     {
         $estimatedSize = $estimatedSize / 1024
     }
 
-    $displayVersion = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'DisplayVersion'
+    $displayVersion = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'DisplayVersion'
 
-    $comments = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'Comments'
+    $comments = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'Comments'
 
-    $displayName = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'DisplayName'
+    $displayName = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'DisplayName'
 
-    $installSource = Get-ProductEntryValue -ProdcutEntry $ProductEntry -ItemToRetrieve 'InstallSource'
+    $installSource = Get-ProductEntryValue -ProductEntry $ProductEntry -ItemToRetrieve 'InstallSource'
 
     return @{
         Ensure = 'Present'
@@ -730,7 +701,7 @@ function Get-ProductEntryValue
 
 function Get-WebRequestResponse
 {
-    [OutputType([System.Net.ConnectStream])]
+    [OutputType([System.IO.Stream])]
     [CmdletBinding()]
     param
     (
@@ -777,26 +748,26 @@ function Get-WebRequestResponse
     }
 }
 
-function Copy-ConnectStreamToFileStream
+function Copy-ResponseStreamToFileStream
 {
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [System.Net.ConnectStream]
-        $InStream,
+        [System.IO.Stream]
+        $ResponseStream,
 
         [Parameter(Mandatory = $true)]
-        [System.IO.FileStream]
-        $OutStream
+        [System.IO.Stream]
+        $FileStream
     )
 
     try
         {
             Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache)
-            $InStream.CopyTo($OutStream)
-            $InStream.Flush()
-            $OutStream.Flush()
+            $ResponseStream.CopyTo($FileStream)
+            $ResponseStream.Flush()
+            $FileStream.Flush()
         }
         catch
         {
@@ -804,26 +775,13 @@ function Copy-ConnectStreamToFileStream
         }
 }
 
-function Close-FileStream
+function Close-Stream
 {
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [System.IO.FileStream]
-        $Stream
-    )
-
-    $Stream.Close()
-}
-
-function Close-ConnectStream
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [System.Net.ConnectStream]
+        [System.IO.Stream]
         $Stream
     )
 
@@ -835,19 +793,14 @@ function Close-ConnectStream
         Asserts that the file at the given path has a valid hash, signer thumbprint, and/or
         signer subject. If only Path is provided, then this function will never throw.
         If FileHash is provide and HashAlgorithm is not, then Sha-256 will be used by default.
-
     .PARAMETER Path
         The path of the file to check.
-
     .PARAMETER FileHash
         The hash that should match the hash of the file.
-
     .PARAMETER HashAlgorithm
         The algorithm to use to retrieve the file hash.
-
     .PARAMETER SignerThumbprint
         The certificate thumbprint that should match the file's signer certificate.
-
     .PARAMETER SignerSubject
         The certificate subject that should match the file's signer certificate.
 #>
@@ -887,13 +840,10 @@ function Assert-FileValid
 <#
     .SYNOPSIS
         Asserts that the hash of the file at the given path matches the given hash.
-
     .PARAMETER Path
         The path to the file to check the hash of.
-
     .PARAMETER Hash
         The hash to check against.
-
     .PARAMETER Algorithm
         The algorithm to use to retrieve the file's hash.
 #>
@@ -927,13 +877,10 @@ function Assert-FileHashValid
 <#
     .SYNOPSIS
         Asserts that the signature of the file at the given path is valid.
-
     .PARAMETER Path
         The path to the file to check the signature of
-
     .PARAMETER Thumbprint
         The certificate thumbprint that should match the file's signer certificate.
-
     .PARAMETER Subject
         The certificate subject that should match the file's signer certificate.
 #>
@@ -980,7 +927,6 @@ function Assert-FileSignatureValid
 <#
     .SYNOPSIS
         Retrieves the name of a product from an msi.
-
     .PARAMETER Path
         The path to the msi to retrieve the name from.
 #>
@@ -1006,7 +952,6 @@ function Get-MsiProductName
 <#
     .SYNOPSIS
         Retrieves the code of a product from an msi.
-
     .PARAMETER Path
         The path to the msi to retrieve the code from.
 #>
@@ -1047,13 +992,10 @@ function Get-MsiTool
     $msiToolsCodeDefinition = @'
     [DllImport("msi.dll", CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true, ExactSpelling = true)]
     private static extern UInt32 MsiOpenPackageExW(string szPackagePath, int dwOptions, out IntPtr hProduct);
-
     [DllImport("msi.dll", CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true, ExactSpelling = true)]
     private static extern uint MsiCloseHandle(IntPtr hAny);
-
     [DllImport("msi.dll", CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true, ExactSpelling = true)]
     private static extern uint MsiGetPropertyW(IntPtr hAny, string name, StringBuilder buffer, ref int bufferLength);
-
     private static string GetPackageProperty(string msi, string property)
     {
         IntPtr MsiHandle = IntPtr.Zero;
@@ -1064,7 +1006,6 @@ function Get-MsiTool
             {
                 return null;
             }
-
             int length = 256;
             var buffer = new StringBuilder(length);
             res = MsiGetPropertyW(MsiHandle, property, buffer, ref length);
@@ -1082,7 +1023,6 @@ function Get-MsiTool
     {
         return GetPackageProperty(msi, "ProductCode");
     }
-
     public static string GetProductName(string msi)
     {
         return GetPackageProperty(msi, "ProductName");
@@ -1110,10 +1050,8 @@ function Get-MsiTool
     .SYNOPSIS
         Runs a process as the specified user via PInvoke. Returns the exitCode that
         PInvoke returns.
-
     .PARAMETER CommandLine
         The command line (including arguments) of the process to start.
-
     .PARAMETER RunAsCredential
         The user credential to start the process as.
 #>
@@ -1149,10 +1087,8 @@ function Invoke-PInvoke
 <#
     .SYNOPSIS
         Starts and waits for a process.
-
     .DESCRIPTION
         Allows mocking and testing of process arguments.
-
     .PARAMETER Process
         The System.Diagnositics.Process object to start.
 #>
@@ -1188,14 +1124,12 @@ function Register-PInvoke
         using System.Security.Principal;
         using System.ComponentModel;
         using System.IO;
-
         namespace Source
         {
             [SuppressUnmanagedCodeSecurity]
             public static class NativeMethods
             {
                 //The following structs and enums are used by the various Win32 API's that are used in the code below
-
                 [StructLayout(LayoutKind.Sequential)]
                 public struct STARTUPINFO
                 {
@@ -1217,7 +1151,6 @@ function Register-PInvoke
                     public IntPtr hStdOutput;
                     public IntPtr hStdError;
                 }
-
                 [StructLayout(LayoutKind.Sequential)]
                 public struct PROCESS_INFORMATION
                 {
@@ -1226,7 +1159,6 @@ function Register-PInvoke
                     public Int32 dwProcessID;
                     public Int32 dwThreadID;
                 }
-
                 [Flags]
                 public enum LogonType
                 {
@@ -1238,7 +1170,6 @@ function Register-PInvoke
                     LOGON32_LOGON_NETWORK_CLEARTEXT = 8,
                     LOGON32_LOGON_NEW_CREDENTIALS = 9
                 }
-
                 [Flags]
                 public enum LogonProvider
                 {
@@ -1254,7 +1185,6 @@ function Register-PInvoke
                     public IntPtr lpSecurityDescriptor;
                     public bool bInheritHandle;
                 }
-
                 public enum SECURITY_IMPERSONATION_LEVEL
                 {
                     SecurityAnonymous,
@@ -1262,13 +1192,11 @@ function Register-PInvoke
                     SecurityImpersonation,
                     SecurityDelegation
                 }
-
                 public enum TOKEN_TYPE
                 {
                     TokenPrimary = 1,
                     TokenImpersonation
                 }
-
                 [StructLayout(LayoutKind.Sequential, Pack = 1)]
                 internal struct TokPriv1Luid
                 {
@@ -1276,19 +1204,16 @@ function Register-PInvoke
                     public long Luid;
                     public int Attr;
                 }
-
                 public const int GENERIC_ALL_ACCESS = 0x10000000;
                 public const int CREATE_NO_WINDOW = 0x08000000;
                 internal const int SE_PRIVILEGE_ENABLED = 0x00000002;
                 internal const int TOKEN_QUERY = 0x00000008;
                 internal const int TOKEN_ADJUST_PRIVILEGES = 0x00000020;
                 internal const string SE_INCRASE_QUOTA = "SeIncreaseQuotaPrivilege";
-
                 [DllImport("kernel32.dll",
                     EntryPoint = "CloseHandle", SetLastError = true,
                     CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
                 public static extern bool CloseHandle(IntPtr handle);
-
                 [DllImport("advapi32.dll",
                     EntryPoint = "CreateProcessAsUser", SetLastError = true,
                     CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
@@ -1305,7 +1230,6 @@ function Register-PInvoke
                     ref STARTUPINFO lpStartupInfo,
                     ref PROCESS_INFORMATION lpProcessInformation
                     );
-
                 [DllImport("advapi32.dll", EntryPoint = "DuplicateTokenEx")]
                 public static extern bool DuplicateTokenEx(
                     IntPtr hExistingToken,
@@ -1315,7 +1239,6 @@ function Register-PInvoke
                     Int32 dwTokenType,
                     ref IntPtr phNewToken
                     );
-
                 [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
                 public static extern Boolean LogonUser(
                     String lpszUserName,
@@ -1325,7 +1248,6 @@ function Register-PInvoke
                     LogonProvider dwLogonProvider,
                     out IntPtr phToken
                     );
-
                 [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
                 internal static extern bool AdjustTokenPrivileges(
                     IntPtr htok,
@@ -1335,36 +1257,30 @@ function Register-PInvoke
                     IntPtr prev,
                     IntPtr relen
                     );
-
                 [DllImport("kernel32.dll", ExactSpelling = true)]
                 internal static extern IntPtr GetCurrentProcess();
-
                 [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)]
                 internal static extern bool OpenProcessToken(
                     IntPtr h,
                     int acc,
                     ref IntPtr phtok
                     );
-
                 [DllImport("kernel32.dll", ExactSpelling = true)]
                 internal static extern int WaitForSingleObject(
                     IntPtr h,
                     int milliseconds
                     );
-
                 [DllImport("kernel32.dll", ExactSpelling = true)]
                 internal static extern bool GetExitCodeProcess(
                     IntPtr h,
                     out int exitcode
                     );
-
                 [DllImport("advapi32.dll", SetLastError = true)]
                 internal static extern bool LookupPrivilegeValue(
                     string host,
                     string name,
                     ref long pluid
                     );
-
                 public static void CreateProcessAsUser(string strCommand, string strDomain, string strName, string strPassword, ref int ExitCode )
                 {
                     var hToken = IntPtr.Zero;
@@ -1423,7 +1339,6 @@ function Register-PInvoke
                         {
                             throw new Win32Exception("Token elevation error #" + Marshal.GetLastWin32Error().ToString());
                         }
-
                         bResult = DuplicateTokenEx(
                             hToken,
                             GENERIC_ALL_ACCESS,
@@ -1456,13 +1371,11 @@ function Register-PInvoke
                         {
                             throw new Win32Exception("Create process as user error #" + Marshal.GetLastWin32Error().ToString());
                         }
-
                         int status = WaitForSingleObject(pi.hProcess, -1);
                         if(status == -1)
                         {
                             throw new Win32Exception("Wait during create process failed user error #" + Marshal.GetLastWin32Error().ToString());
                         }
-
                         bResult = GetExitCodeProcess(pi.hProcess, out ExitCode);
                         if(!bResult)
                         {
