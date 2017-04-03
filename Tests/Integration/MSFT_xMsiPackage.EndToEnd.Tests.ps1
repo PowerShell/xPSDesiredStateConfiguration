@@ -9,7 +9,7 @@ Set-StrictMode -Version 'Latest'
 
 Describe 'xMsiPackage End to End Tests' {
     BeforeAll {
-        # Import CommonTestHelper for Enter-DscResourceTestEnvironment, Exit-DscResourceTestEnvironment
+        # Import CommonTestHelper
         $testsFolderFilePath = Split-Path $PSScriptRoot -Parent
         $commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
         Import-Module -Name $commonTestHelperFilePath
@@ -49,8 +49,6 @@ Describe 'xMsiPackage End to End Tests' {
         $script:packageId = '{deadbeef-80c6-41e6-a1b9-8bdb8a05027f}'
 
         $null = New-TestMsi -DestinationPath $script:msiLocation
-
-        $null = Clear-PackageCache
     }
 
     AfterAll {
@@ -59,8 +57,7 @@ Describe 'xMsiPackage End to End Tests' {
             $null = Remove-Item -Path $script:testDirectoryPath -Recurse -Force
         }
 
-        $null = Clear-PackageCache
-
+        # Remove the test MSI if it is still installed
         if (Test-PackageInstalledById -ProductId $script:packageId)
         {
             $null = Start-Process -FilePath 'msiexec.exe' -ArgumentList @("/x$script:packageId", '/passive') -Wait
@@ -69,7 +66,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         if (Test-PackageInstalledById -ProductId $script:packageId)
         {
-            throw 'Test output will not be valid - package could not be removed.'
+            Throw 'Test output will not be valid - package could not be removed.'
         }
 
         Exit-DscResourceTestEnvironment -TestEnvironment $script:testEnvironment
@@ -227,7 +224,7 @@ Describe 'xMsiPackage End to End Tests' {
         }
     }
 
-    Context 'Uninstall Msi package from HTTP Url' {
+    Context 'Uninstall package from HTTP Url' {
         $configurationName = 'UninstallExistingMsiPackageFromHttp'
 
         $baseUrl = 'http://localhost:1242/'
@@ -243,7 +240,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         try
         {
-            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
@@ -295,7 +292,7 @@ Describe 'xMsiPackage End to End Tests' {
         
         try
         {
-            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
@@ -347,7 +344,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         try
         {
-            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
@@ -399,7 +396,7 @@ Describe 'xMsiPackage End to End Tests' {
         
         try
         {
-            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 
@@ -430,7 +427,7 @@ Describe 'xMsiPackage End to End Tests' {
             MSFT_xMsiPackage\Test-TargetResource @msiPackageParameters | Should Be $true
         }
     }
-
+    
     Context 'Uninstall Msi package from HTTPS Url' {
         $configurationName = 'UninstallMsiPackageFromHttps'
 
@@ -451,7 +448,7 @@ Describe 'xMsiPackage End to End Tests' {
 
         try
         {
-            $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
                         'HttpIntegrationTest.FileServerStarted')
             $fileServerStarted.Reset()
 

@@ -20,12 +20,13 @@ try
                 $commonTestHelperFilePath = Join-Path -Path $testsFolderFilePath -ChildPath 'CommonTestHelper.psm1'
 
                 Import-Module -Name $packageTestHelperFilePath -Force
+
                 # The common test helper file needs to be imported twice because of the InModuleScope
                 Import-Module -Name $commonTestHelperFilePath
 
                 $script:skipHttpsTest = $false
                 $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
-                $script:logFile = 'C:\server.txt'
+                $script:logFile = Join-Path -Path $PSScriptRoot -ChildPath 'PackageTestLogFile.txt'
 
                 if (Test-Path -Path $script:testDirectoryPath)
                 {
@@ -41,13 +42,9 @@ try
                 $script:packageId = '{deadbeef-80c6-41e6-a1b9-8bdb8a05027f}'
 
                 $null = New-TestMsi -DestinationPath $script:msiLocation
-
-                $null = Clear-PackageCache
             }
 
             BeforeEach {
-                $null = Clear-PackageCache
-
                 if (Test-PackageInstalledById -ProductId $script:packageId)
                 {
                     $null = Start-Process -FilePath 'msiexec.exe' -ArgumentList @("/x$script:packageId", '/passive') -Wait
@@ -65,8 +62,6 @@ try
                 {
                     $null = Remove-Item -Path $script:testDirectoryPath -Recurse -Force
                 }
-
-                $null = Clear-PackageCache
 
                 if (Test-PackageInstalledById -ProductId $script:packageId)
                 {
@@ -100,7 +95,6 @@ try
                     }
 
                     Set-TargetResource -Ensure 'Present' @packageParameters
-                    Clear-PackageCache
 
                     $getTargetResourceResult = Get-TargetResource @packageParameters
                     $getTargetResourceResultProperties = @( 'Ensure', 'Name', 'InstallSource', 'InstalledOn', 'ProductId', 'Size', 'Version', 'PackageDescription', 'Publisher' )
@@ -128,8 +122,6 @@ try
 
                 It 'Should return correct value when package is present' {
                     Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $script:packageId
-
-                    Clear-PackageCache
 
                     Test-PackageInstalledById -ProductId $script:packageId | Should Be $true
 
@@ -161,9 +153,6 @@ try
                     $getTargetResourceResult.InstalledOn | Should Be ('{0:d}' -f [DateTime]::Now.Date)
                     $getTargetResourceResult.ProductId | Should Be $script:packageId
 
-                    # Can't figure out how to set this within the MSI.
-                    # $getTargetResourceResult.PackageDescription | Should Be 'A package for unit testing'
-
                     [Math]::Round($getTargetResourceResult.Size, 2) | Should Be 0.03
 
                     Set-TargetResource -Ensure 'Absent' -Path $script:msiLocation -ProductId $script:packageId
@@ -185,14 +174,16 @@ try
 
                     try
                     {
-                        $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
                                     'HttpIntegrationTest.FileServerStarted')
                         $fileServerStarted.Reset()
 
+                        # Clear the log file for the server script output
                         'Http tests:' > $script:logFile
 
                         $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $false              
 
+                        # Wait for the file server to be ready to receive requests
                         $fileServerStarted.WaitOne(30000)
 
                         { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
@@ -224,7 +215,7 @@ try
 
                     try
                     {
-                        $fileServerStarted = New-Object System.Threading.EventWaitHandle ($false, [System.Threading.EventResetMode]::ManualReset,
+                        $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' @($false, [System.Threading.EventResetMode]::ManualReset,
                                     'HttpIntegrationTest.FileServerStarted')
                         $fileServerStarted.Reset()
 
@@ -232,6 +223,7 @@ try
 
                         $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true              
 
+                        # Wait for the file server to be ready to receive requests
                         $fileServerStarted.WaitOne(30000)
 
                         { Set-TargetResource -Ensure 'Present' -Path $baseUrl -ProductId $script:packageId } | Should Throw
@@ -268,7 +260,7 @@ try
                     Get-Content -Path $logPath | Should Not Be $null
                 }
 
-                It 'Should add space after .MSI installation arguments (#195)' {
+                It 'Should add space after .MSI installation arguments' {
                     Mock Invoke-Process -ParameterFilter { $Process.StartInfo.Arguments.EndsWith($script:msiArguments) } { return @{ ExitCode = 0 } }
                     Mock Test-TargetResource { return $false }
                     Mock Get-ProductEntry { return $script:packageId }
@@ -284,7 +276,7 @@ try
                     Assert-MockCalled Invoke-Process -ParameterFilter { $Process.StartInfo.Arguments.EndsWith(" $script:msiArguments") } -Scope It
                 }
 
-                It 'Should not check for product installation when rebooted is required (#52)' {
+                It 'Should not check for product installation when rebooted is required' {
                     Mock Invoke-Process { return [PSCustomObject] @{ ExitCode = 3010 } }
                     Mock Test-TargetResource { return $false }
                     Mock Get-ProductEntry { }

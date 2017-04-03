@@ -18,7 +18,8 @@ Import-Module -Name $script:packageHelperFilePath
 # Localized messages for verbose and error statements in this resource
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xMsiPackage'
 
-$script:packageCacheLocation = "$env:programData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xMsiPackage"
+# Path to the directory where the files for a package from a file server will be downloaded to
+$script:packageCacheLocation = "$env:ProgramData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xMsiPackage"
 $script:msiTools = $null
 
 <#
