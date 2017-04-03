@@ -162,10 +162,11 @@ function Set-TargetResource
         return
     }
 
-    Assert-PathExtensionValid -Path $Path
-
     $uri = Convert-PathToUri -Path $Path
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
+    $uriLocalPath = (Split-Path -Path $uri.LocalPath -Leaf)
+
+    Assert-PathExtensionValid -Path $uriLocalPath
 
     <#
         Path gets overwritten in the download code path. Retain the user's original Path so as
