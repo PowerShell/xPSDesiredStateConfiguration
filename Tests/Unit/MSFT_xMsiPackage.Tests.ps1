@@ -53,12 +53,13 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testProductId = '{deadbeef-80c6-41e6-a1b9-8bdb8a05027f}'
         $script:testIdentifyingNumber = '{DEADBEEF-80C6-41E6-A1B9-8BDB8A05027F}'
         $script:testWrongProductId = 'wrongId'
-        $script:testPath = Join-Path -Path Test-Drive -ChildPath 'test.msi'
+        $script:testPath = 'file://test.msi'
         $script:destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath 'C:\'
-        $script:testUriNonUnc = [Uri] $script:testPath
-        $script:testUriHttp = [Uri] 'http://testPath'
-        $script:testUriHttps = [Uri] 'https://testPath'
-        $script:testUriFile = [Uri] 'file://testPath'
+        $script:testUriHttp = [Uri] 'http://test.msi'
+        $script:testUriHttps = [Uri] 'https://test.msi'
+        $script:testUriFile = [Uri] 'file://test.msi'
+        $script:testUriNonUnc = [Uri] 'file:///C:/test.msi'
+        $script:testUriQuery = [Uri] 'http://C:/test.msi?sv=2017-01-31&spr=https'
 
         $script:testStream = New-MockObject -Type 'System.IO.FileStream'
 
@@ -184,7 +185,7 @@ Describe 'xMsiPackage Unit Tests' {
 
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
-                    @{ Command = 'Assert-PathExtensionValid'; Times = 0 }
+                    @{ Command = 'Convert-PathToUri'; Times = 0 }
                 )
 
                 Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
@@ -291,7 +292,7 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testIdentifyingNumber }
 
-            Context 'Uri scheme is not file, http, or https, RunAsCredential is specified and starting the process fails' {
+            Context 'Uri scheme is file, RunAsCredential is specified and starting the process fails' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -315,7 +316,7 @@ Describe 'xMsiPackage Unit Tests' {
 
             $setTargetResourceParameters.Remove('RunAsCredential')
 
-            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and starting the process fails' {
+            Context 'Uri scheme is file, RunAsCredential is not specified and starting the process fails' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -339,7 +340,7 @@ Describe 'xMsiPackage Unit Tests' {
 
             Mock -CommandName 'Invoke-Process' -MockWith { return $script:mockProcess }
 
-            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
+            Context 'Uri scheme is file, RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -394,10 +395,23 @@ Describe 'xMsiPackage Unit Tests' {
                                              -ErrorTestName $script:errorMessageTitles.PostValidationError
             }
 
-            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriQuery }
             Mock -CommandName 'Get-ProductEntry' -MockWith { return $script:mockProductEntry }
 
-            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and installation succeeds' {
+            Context 'Path is a query string' {
+                
+                It 'Should not throw' {
+                    { $null = Set-TargetResource @setTargetResourceParameters } | Should Not Throw
+                }
+
+                It 'Should assert that the path with the query removed is valid' {
+                    Assert-MockCalled -CommandName 'Assert-PathExtensionValid' -Exactly 1 -Scope 'Context' -ParameterFilter { $Path -eq 'test.msi' }
+                }
+            }
+
+            Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriNonUnc }
+
+            Context 'Uri scheme is file, RunAsCredential is not specified and installation succeeds' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
@@ -421,7 +435,7 @@ Describe 'xMsiPackage Unit Tests' {
 
             $setTargetResourceParameters.Ensure = 'Absent'
 
-            Context 'Uri scheme is not file, http, or https, RunAsCredential is not specified and uninstallation succeeds' {
+            Context 'Uri scheme is file, RunAsCredential is not specified and uninstallation succeeds' {
                 $mocksCalled = @(
                     @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
