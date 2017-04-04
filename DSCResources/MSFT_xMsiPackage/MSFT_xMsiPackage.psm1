@@ -129,8 +129,8 @@ function Set-TargetResource
         [String]
         $Arguments,
 
-        [PSCredential]
-        [System.Management.Automation.Credential()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.CredentialAttribute()]
         $Credential,
 
         [String]
@@ -141,7 +141,7 @@ function Set-TargetResource
 
         [ValidateSet('SHA1', 'SHA256', 'SHA384', 'SHA512', 'MD5', 'RIPEMD160')]
         [String]
-        $HashAlgorithm,
+        $HashAlgorithm = 'SHA256',
 
         [String]
         $SignerSubject,
@@ -165,6 +165,7 @@ function Set-TargetResource
     $uri = Convert-PathToUri -Path $Path
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
+    # Ensure that the actual file extension is checked if a query string is passed in
     if ($null -ne $uri.LocalPath)
     {
         $uriLocalPath = (Split-Path -Path $uri.LocalPath -Leaf)
@@ -221,7 +222,7 @@ function Set-TargetResource
                     Root = Split-Path -Path $uri.LocalPath
                 }
 
-                if ($null -ne $Credential)
+                if ($PSBoundParameters.ContainsKey('Credential'))
                 {
                     $psDriveArgs['Credential'] = $Credential
                 }
@@ -326,14 +327,14 @@ function Set-TargetResource
             $startInfo.Arguments = ('/x{0}' -f $id)
         }
 
-        if ($LogPath)
+        if (-not [String]::IsNullOrEmpty($LogPath))
         {
             $startInfo.Arguments += (' /log "{0}"' -f $LogPath)
         }
 
         $startInfo.Arguments += ' /quiet /norestart'
 
-        if ($Arguments)
+        if (-not [String]::IsNullOrEmpty($Arguments))
         {
             # Append any specified arguments with a space
             $startInfo.Arguments += (' {0}' -f $Arguments)
@@ -363,7 +364,7 @@ function Set-TargetResource
     }
     finally
     {
-        if ($psDrive)
+        if ($null -ne $psDrive)
         {
             Remove-PSDrive -Name $psDrive -Force
         }
@@ -482,8 +483,8 @@ function Test-TargetResource
         [String]
         $Arguments,
 
-        [PSCredential]
-        [System.Management.Automation.Credential()]
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.CredentialAttribute()]
         $Credential,
 
         [String]
@@ -494,7 +495,7 @@ function Test-TargetResource
 
         [ValidateSet('SHA1', 'SHA256', 'SHA384', 'SHA512', 'MD5', 'RIPEMD160')]
         [String]
-        $HashAlgorithm,
+        $HashAlgorithm = 'SHA256',
 
         [String]
         $SignerSubject,
@@ -576,7 +577,7 @@ function Convert-PathToUri
 
     try
     {
-        $uri = [Uri] $Path
+        $uri = [Uri]$Path
     }
     catch
     {
@@ -758,10 +759,10 @@ function Get-ProductEntryValue
 
 <#
     .SYNOPSIS
-        Retrieves the web requet response as a stream for the MSI file with the given URI.
+        Retrieves the WebRequest response as a stream for the MSI file with the given URI.
 
     .PARAMETER Uri
-        The Uri to retrieve the web request from.
+        The Uri to retrieve the WebRequest from.
 
     .PARAMETER ServerCertificationValidationCallback
         The callback ....
@@ -785,7 +786,7 @@ function Get-WebRequestResponse
         $uriScheme = $Uri.Scheme
 
         Write-Verbose -Message ($script:localizedData.CreatingTheSchemeStream -f $uriScheme)
-        $webRequest = [System.Net.WebRequest]::Create($Uri)
+        $webRequest = Get-WebRequest -Uri $Uri
     
         Write-Verbose -Message ($script:localizedData.SettingDefaultCredential)
         $webRequest.Credentials = [System.Net.CredentialCache]::DefaultCredentials
@@ -800,12 +801,11 @@ function Get-WebRequestResponse
         elseif ($uriScheme -eq 'https' -and -not [String]::IsNullOrEmpty($ServerCertificateValidationCallback))
         {
             Write-Verbose -Message $script:localizedData.SettingCertificateValidationCallback
-            $serverCertificateValidationScriptBlock = [ScriptBlock]::Create($ServerCertificateValidationCallback)
-            $webRequest.ServerCertificateValidationCallBack = $serverCertificateValidationScriptBlock
+            $webRequest.ServerCertificateValidationCallBack = (Get-ScriptBlock -FunctionName $ServerCertificateValidationCallback)
         }
     
         Write-Verbose -Message ($script:localizedData.Gettingtheschemeresponsestream -f $uriScheme)
-        $responseStream = (([System.Net.HttpWebRequest]$webRequest).GetResponse()).GetResponseStream()
+        $responseStream = Get-WebRequestResponseStream -WebRequest $webRequest
 
         return $responseStream
     }
@@ -814,6 +814,74 @@ function Get-WebRequestResponse
          New-InvalidOperationException -Message ($script:localizedData.CouldNotGetResponseFromWebRequest -f $uriScheme, $Uri.OriginalString) -ErrorRecord $_
     }
 }
+
+<#
+    .SYNOPSIS
+        Creates a WebRequst object based on the given Uri and returns it.
+        This is a wrapper for unit testing
+
+    .PARAMETER Uri
+        The URI object to create the WebRequest from
+#>
+function Get-WebRequest
+{
+    [OutputType([System.Net.WebRequest])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [Uri]
+        $Uri
+    )
+
+    return [System.Net.WebRequest]::Create($Uri)
+}
+
+<#
+    .SYNOPSIS
+        Retrieves the response stream from the given WebRequest object.
+        This is a wrapper for unit testing.
+
+    .PARAMETER WebRequest
+        The WebRequest object to retrieve the response stream from.
+#>
+function Get-WebRequestResponseStream
+{
+    [OutputType([System.IO.Stream])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.Net.WebRequest]
+        $WebRequest
+    )
+
+    return (([System.Net.HttpWebRequest]$WebRequest).GetResponse()).GetResponseStream()
+}
+
+<#
+    .SYNOPSIS
+        Converts the given function into a script block and returns it.
+        This is a wrapper for unit testing
+
+    .PARAMETER Function
+        The name of the function to convert to a script block
+#>
+function Get-ScriptBlock
+{
+    [OutputType([ScriptBlock])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $FunctionName
+    )
+
+    return [ScriptBlock]::Create($FunctionName)
+}
+
+
 <#
     .SYNOPSIS
         Copies the given response stream to the given file stream.
@@ -907,7 +975,7 @@ function Assert-FileValid
         $FileHash,
 
         [String]
-        $HashAlgorithm,
+        $HashAlgorithm = 'SHA256',
 
         [String]
         $SignerThumbprint,
@@ -939,6 +1007,7 @@ function Assert-FileValid
 
     .PARAMETER Algorithm
         The algorithm to use to retrieve the file's hash.
+        Default is 'Sha256'
 #>
 function Assert-FileHashValid
 {
@@ -1009,41 +1078,15 @@ function Assert-FileSignatureValid
         Write-Verbose -Message ($script:localizedData.FileHasValidSignature -f $Path, $signature.SignerCertificate.Thumbprint, $signature.SignerCertificate.Subject)
     }
 
-    if ($null -ne $Subject -and ($signature.SignerCertificate.Subject -notlike $Subject))
+    if (-not [String]::IsNullOrEmpty($Subject) -and ($signature.SignerCertificate.Subject -notlike $Subject))
     {
         New-InvalidArgumentException -ArgumentName 'SignerSubject' -Message ($script:localizedData.WrongSignerSubject -f $Path, $Subject)
     }
 
-    if ($null -ne $Thumbprint -and ($signature.SignerCertificate.Thumbprint -ne $Thumbprint))
+    if (-not [String]::IsNullOrEmpty($Thumbprint) -and ($signature.SignerCertificate.Thumbprint -ne $Thumbprint))
     {
         New-InvalidArgumentException -ArgumentName 'SignerThumbprint' -Message ($script:localizedData.WrongSignerThumbprint -f $Path, $Thumbprint)
     }
-}
-
-<#
-    .SYNOPSIS
-        Retrieves the name of a product from the MSI at the givin path.
-
-    .PARAMETER Path
-        The path to the MSI to retrieve the name from.
-#>
-function Get-MsiProductName
-{
-    [OutputType([String])]
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [String]
-        $Path
-    )
-
-    $msiTools = Get-MsiTool
-
-    $productName = $msiTools::GetProductName($Path)
-
-    return $productName
 }
 
 <#
@@ -1082,11 +1125,6 @@ function Get-MsiTool
     [CmdletBinding()]
     param ()
 
-    if ($null -ne $script:msiTools)
-    {
-        return $script:msiTools
-    }
-    ### what's going on in this script?
     $msiToolsCodeDefinition = @'
     [DllImport("msi.dll", CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true, ExactSpelling = true)]
     private static extern UInt32 MsiOpenPackageExW(string szPackagePath, int dwOptions, out IntPtr hProduct);
@@ -1126,7 +1164,8 @@ function Get-MsiTool
         return GetPackageProperty(msi, "ProductName");
     }
 '@
-
+    
+    # Check to see if the the type is already defined
     if (([System.Management.Automation.PSTypeName]'Microsoft.Windows.DesiredStateConfiguration.xPackageResource.MsiTools').Type)
     {
         $script:msiTools = ([System.Management.Automation.PSTypeName]'Microsoft.Windows.DesiredStateConfiguration.xPackageResource.MsiTools').Type
@@ -1188,9 +1227,6 @@ function Invoke-PInvoke
     .SYNOPSIS
         Starts and waits for a process.
 
-    .DESCRIPTION
-        Allows mocking and testing of process arguments.
-
     .PARAMETER Process
         The System.Diagnositics.Process object to start.
 #>
@@ -1216,6 +1252,9 @@ function Invoke-Process
 #>
 function Register-PInvoke
 {
+    [CmdletBinding()]
+    param ()
+
     $programSource = @'
         using System;
         using System.Collections.Generic;

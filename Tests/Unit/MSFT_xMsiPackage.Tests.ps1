@@ -61,7 +61,8 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testUriNonUnc = [Uri] 'file:///C:/test.msi'
         $script:testUriQuery = [Uri] 'http://C:/test.msi?sv=2017-01-31&spr=https'
 
-        $script:testStream = New-MockObject -Type 'System.IO.FileStream'
+        $script:mockStream = New-MockObject -Type 'System.IO.FileStream'
+        $script:mockWebRequest = New-MockObject -Type 'System.Net.HttpWebRequest'
 
         $script:mockPSDrive = @{
             Root = 'mockRoot'
@@ -76,8 +77,8 @@ Describe 'xMsiPackage Unit Tests' {
         $script:mockProductEntryInfo = @{
             Name = 'TestDisplayName'
             InstallSource = 'TestInstallSource'
-            InstalledOn = 'TestInstalledOnDate'
-            Size = 1024
+            InstalledOn = '4/4/2017'
+            Size = 2048
             Version = '1.2.3.4'
             PackageDescription = 'Test Description'
             Publisher = 'Test Publisher'
@@ -93,7 +94,7 @@ Describe 'xMsiPackage Unit Tests' {
             CouldNotStartProcess = 'not being able to start the process'
             PostValidationError = 'not being able to find the package after installation'
         }
-        
+
         Describe 'Get-TargetResource' {
 
             Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
@@ -171,7 +172,7 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
             Mock -CommandName 'New-Object' -MockWith { Throw } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
             Mock -CommandName 'Close-Stream' -MockWith {}
-            Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:testStream }
+            Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:mockStream }
             Mock -CommandName 'Copy-ResponseStreamToFileStream' -MockWith {}
             Mock -CommandName 'Assert-FileValid' -MockWith {}
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testWrongProductId }
@@ -262,7 +263,7 @@ Describe 'xMsiPackage Unit Tests' {
             }
 
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriHttps }
-            Mock -CommandName 'New-Object' -MockWith { return $script:testStream } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
+            Mock -CommandName 'New-Object' -MockWith { return $script:mockStream } -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
             Mock -CommandName 'Test-Path' -MockWith { return $false } -ParameterFilter { $Path -eq $script:destinationPath }
             $setTargetResourceParameters.Remove('LogPath')
 
@@ -597,6 +598,357 @@ Describe 'xMsiPackage Unit Tests' {
                     { Convert-PathToUri -Path $filePath } | Should Throw $expectedErrorMessage
                 }
             }
+        }
+
+        Describe 'Convert-ProductIdToIdentifyingNumber' {
+            Context 'Valid Product ID is passed in' {
+                It 'Should return the same value that is passed in when the Product ID is already in the correct format' {
+                    Convert-ProductIdToIdentifyingNumber -ProductId $script:testIdentifyingNumber | Should Be $script:testIdentifyingNumber
+                }
+
+                It 'Should convert a valid poduct ID to the identifying number format' {
+                    Convert-ProductIdToIdentifyingNumber -ProductId $script:testProductId | Should Be $script:testIdentifyingNumber
+                }
+            }
+
+            Context 'Invalid Product ID is passed in' {
+                It 'Should throw an exception when an invalid product ID is passed in' {
+                    $expectedErrorMessage = ($script:localizedData.InvalidIdentifyingNumber -f $script:testWrongProductId)
+                    { Convert-ProductIdToIdentifyingNumber -ProductId $script:testWrongProductId } | Should Throw $expectedErrorMessage
+                }
+            }
+        }
+
+        Describe 'Get-ProductEntry' {
+            $uninstallRegistryKeyLocation = (Join-Path -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' -ChildPath $script:testIdentifyingNumber)
+            $uninstallRegistryKeyWow64Location = (Join-Path -Path 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall' -ChildPath $script:testIdentifyingNumber)
+
+            Mock -CommandName 'Get-Item' -MockWith { return $script:mockProductEntry } -ParameterFilter { $Path -eq $uninstallRegistryKeyLocation }
+            Mock -CommandName 'Get-Item' -MockWith { return $script:mockProductEntry } -ParameterFilter { $Path -eq $uninstallRegistryKeyWow64Location }
+
+            Context 'Product entry is found in the expected location' {
+                It 'Should return the expected product entry' {
+                    Get-ProductEntry -IdentifyingNumber $script:testIdentifyingNumber | Should Be $script:mockProductEntry
+                }
+
+                It 'Should retrieve the item' {
+                    Assert-MockCalled -CommandName 'Get-Item' -Exactly 1 -Scope 'Context'
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return $null } -ParameterFilter { $Path -eq $uninstallRegistryKeyLocation }
+
+            Context 'Product entry is found under Wow6432Node' {
+                It 'Should return the expected product entry' {
+                    Get-ProductEntry -IdentifyingNumber $script:testIdentifyingNumber | Should Be $script:mockProductEntry
+                }
+
+                It 'Should attempt to retrieve the item twice' {
+                    Assert-MockCalled -CommandName 'Get-Item' -Exactly 2 -Scope 'Context'
+                }
+            }
+
+            Mock -CommandName 'Get-Item' -MockWith { return $null } -ParameterFilter { $Path -eq $uninstallRegistryKeyWow64Location }
+
+            Context 'Product entry is not found' {
+                It 'Should return $null' {
+                    Get-ProductEntry -IdentifyingNumber $script:testIdentifyingNumber | Should Be $null
+                }
+
+                It 'Should attempt to retrieve the item twice' {
+                    Assert-MockCalled -CommandName 'Get-Item' -Exactly 2 -Scope 'Context'
+                }
+            }
+        }
+
+        Describe 'Get-ProductEntryInfo' {
+            Mock -CommandName Get-ProductEntryValue -MockWith { return '20170404' } -ParameterFilter { $Property -eq 'InstallDate' }
+            Mock -CommandName Get-ProductEntryValue -MockWith { return $script:mockProductEntryInfo.Publisher } -ParameterFilter { $Property -eq 'Publisher' }
+            Mock -CommandName Get-ProductEntryValue -MockWith { return $script:mockProductEntryInfo.Size } -ParameterFilter { $Property -eq 'EstimatedSize' }
+            Mock -CommandName Get-ProductEntryValue -MockWith { return $script:mockProductEntryInfo.Version } -ParameterFilter { $Property -eq 'DisplayVersion' }
+            Mock -CommandName Get-ProductEntryValue -MockWith { return $script:mockProductEntryInfo.PackageDescription } -ParameterFilter { $Property -eq 'Comments' }
+            Mock -CommandName Get-ProductEntryValue -MockWith { return $script:mockProductEntryInfo.Name } -ParameterFilter { $Property -eq 'DisplayName' }
+            Mock -CommandName Get-ProductEntryValue -MockWith { return $script:mockProductEntryInfo.InstallSource } -ParameterFilter { $Property -eq 'InstallSource' }
+
+            Context 'All properties are retrieved successfully' {
+
+                $getProductEntryInfoResult = Get-ProductEntryInfo -ProductEntry $script:mockProductEntry
+
+                It 'Should return the expected installed date' {
+                     $getProductEntryInfoResult.InstalledOn | Should Be $script:mockProductEntryInfo.InstalledOn
+                }
+
+                It 'Should return the expected publisher' {
+                     $getProductEntryInfoResult.Publisher | Should Be $script:mockProductEntryInfo.Publisher
+                }
+
+                It 'Should return the expected size' {
+                     $getProductEntryInfoResult.Size | Should Be ($script:mockProductEntryInfo.Size / 1024)
+                }
+
+                It 'Should return the expected Version' {
+                     $getProductEntryInfoResult.Version | Should Be $script:mockProductEntryInfo.Version
+                }
+
+                It 'Should return the expected package description' {
+                     $getProductEntryInfoResult.PackageDescription | Should Be $script:mockProductEntryInfo.PackageDescription
+                }
+
+                It 'Should return the expected name' {
+                     $getProductEntryInfoResult.Name | Should Be $script:mockProductEntryInfo.Name
+                }
+
+                It 'Should return the expected install source' {
+                     $getProductEntryInfoResult.InstallSource | Should Be $script:mockProductEntryInfo.InstallSource
+                }
+
+                It 'Should return Ensure as Present' {
+                     $getProductEntryInfoResult.Ensure | Should Be 'Present'
+                }
+
+                It 'Should retrieve 7 product entry values' {
+                    Assert-MockCalled -CommandName 'Get-ProductEntryValue' -Exactly 7 -Scope 'Context'
+                }
+            }
+
+            Mock -CommandName Get-ProductEntryValue -MockWith { return '4/4/2017' } -ParameterFilter { $Property -eq 'InstallDate' }
+
+            Context 'Install date is in incorrect format' {
+
+                $getProductEntryInfoResult = Get-ProductEntryInfo -ProductEntry $script:mockProductEntry
+
+                It 'Should return $null for InstalledOn' {
+                    $getProductEntryInfoResult.InstalledOn | Should Be $null
+                }
+            }
+        }
+
+        Describe 'Get-WebRequestResponse' {
+            Mock -CommandName 'Get-WebRequest' -MockWith { return $script:mockWebRequest }
+            Mock -CommandName 'Get-ScriptBlock' -MockWith { return { Write-Verbose 'Hello World' } }
+            Mock -CommandName 'Get-WebRequestResponseStream' -MockWith { return $script:mockStream }
+
+            Context 'URI scheme is Http and response is successfully retrieved' {
+                $mocksCalled = @(
+                    @{ Command = 'Get-WebRequest'; Times = 1 }
+                    @{ Command = 'Get-ScriptBlock'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponseStream'; Times = 1 }
+                )
+
+                It 'Should return the expected response stream' {
+                    Get-WebRequestResponse -Uri $script:testUriHttp | Should Be $script:mockStream
+                }
+                
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Context 'URI scheme is Https with no callback and response is successfully retrieved' {
+                $mocksCalled = @(
+                    @{ Command = 'Get-WebRequest'; Times = 1 }
+                    @{ Command = 'Get-ScriptBlock'; Times = 0 }
+                    @{ Command = 'Get-WebRequestResponseStream'; Times = 1 }
+                )
+
+                It 'Should return the expected response stream' {
+                    Get-WebRequestResponse -Uri $script:testUriHttps | Should Be $script:mockStream
+                }
+                
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Context 'URI scheme is Https with callback and response is successfully retrieved' {
+                $mocksCalled = @(
+                    @{ Command = 'Get-WebRequest'; Times = 1 }
+                    @{ Command = 'Get-ScriptBlock'; Times = 1 }
+                    @{ Command = 'Get-WebRequestResponseStream'; Times = 1 }
+                )
+
+                It 'Should return the expected response stream' {
+                    Get-WebRequestResponse -Uri $script:testUriHttps -ServerCertificateValidationCallback 'TestCallbackFunction' | Should Be $script:mockStream
+                }
+
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Mock -CommandName 'Get-WebRequestResponseStream' -MockWith { Throw }
+
+            Context 'Error occurred during while retrieving the response' {
+                It 'Should throw the expected exception' {
+                    $expectedErrorMessage = ($script:localizedData.CouldNotGetResponseFromWebRequest -f $script:testUriHttp.Scheme, $script:testUriHttp.OriginalString)
+                    { Get-WebRequestResponse -Uri $script:testUriHttp } | Should Throw $expectedErrorMessage
+                }
+            }
+        }
+
+        Describe 'Assert-FileValid' {
+            Mock -CommandName 'Assert-FileHashValid' -MockWith {}
+            Mock -CommandName 'Assert-FileSignatureValid' -MockWith {}
+
+            Context 'FileHash is passed in and SignerThumbprint and SignerSubject are not' {
+                $mocksCalled = @(
+                    @{ Command = 'Assert-FileHashValid'; Times = 1 }
+                    @{ Command = 'Assert-FileSignatureValid'; Times = 0 }
+                )
+
+                It 'Should not throw' {
+                    { Assert-FileValid -Path $script:testPath -FileHash 'mockFileHash' } | Should Not Throw
+                }
+
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Context 'FileHash and SignerThumbprint are passed in but SignerSubject is not' {
+                $mocksCalled = @(
+                    @{ Command = 'Assert-FileHashValid'; Times = 1 }
+                    @{ Command = 'Assert-FileSignatureValid'; Times = 1 }
+                )
+
+                It 'Should not throw' {
+                    { Assert-FileValid -Path $script:testPath -FileHash 'mockFileHash' -SignerThumbprint 'mockSignerThumbprint' } | Should Not Throw
+                }
+
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Context 'Only Path and SignerSubject are passed in' {
+                $mocksCalled = @(
+                    @{ Command = 'Assert-FileHashValid'; Times = 0 }
+                    @{ Command = 'Assert-FileSignatureValid'; Times = 1 }
+                )
+
+                It 'Should not throw' {
+                    { Assert-FileValid -Path $script:testPath -SignerSubject 'mockSignerSubject' } | Should Not Throw
+                }
+
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Context 'FileHash, SignerThumbprint, and SignerSubject are passed in' {
+                $mocksCalled = @(
+                    @{ Command = 'Assert-FileHashValid'; Times = 1 }
+                    @{ Command = 'Assert-FileSignatureValid'; Times = 1 }
+                )
+
+                It 'Should not throw' {
+                    { Assert-FileValid -Path $script:testPath -FileHash 'mockFileHash' `
+                                                              -SignerThumbprint 'mockSignerThumbprint' `
+                                                              -SignerSubject 'mockSignerSubject'
+                    } | Should Not Throw
+                }
+
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Context 'SignerThumbprint and SignerSubject are passed in but FileHash is not' {
+                $mocksCalled = @(
+                    @{ Command = 'Assert-FileHashValid'; Times = 0 }
+                    @{ Command = 'Assert-FileSignatureValid'; Times = 1 }
+                )
+
+                It 'Should not throw' {
+                    { Assert-FileValid -Path $script:testPath -SignerThumbprint 'mockSignerThumbprint' `
+                                                              -SignerSubject 'mockSignerSubject'
+                    } | Should Not Throw
+                }
+
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+
+            Context 'Only path is passed in' {
+                $mocksCalled = @(
+                    @{ Command = 'Assert-FileHashValid'; Times = 0 }
+                    @{ Command = 'Assert-FileSignatureValid'; Times = 0 }
+                )
+
+                It 'Should not throw' {
+                    { Assert-FileValid -Path $script:testPath } | Should Not Throw
+                }
+
+                Invoke-ExpectedMocksAreCalledTest -MocksCalled $mocksCalled
+            }
+        }#>
+
+        Describe 'Assert-FileHashValid' {
+            $mockHash = @{ Hash = 'testHash' }
+            Mock -CommandName 'Get-FileHash' -MockWith { return $mockHash }
+
+            Context 'File hash is valid' {
+                It 'Should not throw when hashes match' {
+                    { Assert-FileHashValid -Path $script:testPath -Hash $mockHash.Hash -Algorithm 'SHA256' } | Should Not Throw
+                }
+
+                It 'Should fetch the file hash' {
+                    Assert-MockCalled -CommandName 'Get-FileHash' -Exactly 1 -Scope 'Context'
+                }
+            }
+
+            Context 'File hash is invalid' {
+                $badHash = 'BadHash'
+                $expectedErrorMessage = ($script:localizedData.InvalidFileHash -f $script:testPath, $badHash, 'SHA256')
+
+                It 'Should throw when hashes do not match' {
+                    { Assert-FileHashValid -Path $script:testPath -Hash $badHash -Algorithm 'SHA256' } | Should Throw $expectedErrorMessage
+                }
+            }
+        }
+
+        Describe 'Assert-FileSignatureValid' {
+            $mockThumbprint = 'mockThumbprint'
+            $mockSubject = 'mockSubject'
+            $mockSignature = @{ 
+                Status = [System.Management.Automation.SignatureStatus]::Valid
+                SignerCertificate = @{ Thumbprint = $mockThumbprint; Subject = $mockSubject }
+            }
+            Mock -CommandName 'Get-AuthenticodeSignature' -MockWith { return $mockSignature }
+
+            Context 'File signature status, thumbprint and subject are valid' {
+                It 'Should not throw' {
+                    { Assert-FileSignatureValid -Path $script:testPath -Thumbprint $mockThumbprint -Subject $mockSubject } | Should Not Throw
+                }
+            }
+
+            Context 'File signature status and thumbprint are valid and Subject not passed in' {
+                It 'Should not throw' {
+                    { Assert-FileSignatureValid -Path $script:testPath -Thumbprint $mockThumbprint } | Should Not Throw
+                }
+            }
+
+            Context 'File signature status and subject are valid and Thumbprint not passed in' {
+                It 'Should not throw' {
+                    { Assert-FileSignatureValid -Path $script:testPath -Subject $mockSubject } | Should Not Throw
+                }
+            }
+
+            Context 'Only Path is passed in' {
+                It 'Should not throw' {
+                    { Assert-FileSignatureValid -Path $script:testPath } | Should Not Throw
+                }
+            }
+
+            Context 'File signature status and thumbprint are valid and subject is invalid' {
+                $badSubject = 'BadSubject'
+                $expectedErrorMessage = ($script:localizedData.WrongSignerSubject -f $script:testPath, $badSubject)
+                It 'Should throw expected error message' {
+                    { Assert-FileSignatureValid -Path $script:testPath -Thumbprint $mockThumbprint -Subject $badSubject } | Should Throw $expectedErrorMessage
+                }
+            }
+
+            Context 'File signature status and subject are valid and thumbprint is invalid' {
+                $badThumbprint = 'BadThumbprint'
+                $expectedErrorMessage = ($script:localizedData.WrongSignerThumbprint -f $script:testPath, $badThumbprint)
+                It 'Should throw expected error message' {
+                    { Assert-FileSignatureValid -Path $script:testPath -Thumbprint $badThumbprint -Subject $mockSubject } | Should Throw $expectedErrorMessage
+                }
+            }
+
+            Context 'File signature status is invalid and subject and thumbprint are valid' {
+                $mockSignature.Status = 'Invalid'
+                $expectedErrorMessage = ($script:localizedData.InvalidFileSignature -f $script:testPath, $mockSignature.Status)
+                It 'Should throw expected error message' {
+                    { Assert-FileSignatureValid -Path $script:testPath -Thumbprint $mockThumbprint -Subject $mockSubject } | Should Throw $expectedErrorMessage
+                }
+            }
+           
         }
     }
 }

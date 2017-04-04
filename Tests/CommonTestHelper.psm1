@@ -33,6 +33,11 @@ Close-Stream = close the stream
 Get-WebRequestResponse = get the web request response
 Copy-ResponseStreamToFileStream = copy the instream to the outstream
 Get-ItemProperty = retrieve the registry data
+Get-WebRequest = retrieve the WebRequest object
+Get-WebRequestResponseStream = retrieve the WebRequest response stream
+Get-ScriptBlock = retrieve the script block
+Assert-FileHashValid = assert that the file hash is valid
+Assert-FileSignatureValid = assert that the file signature is valid
 '@
         }
 
@@ -700,5 +705,6 @@ Export-ModuleMember -Function @(
     'Exit-DscResourceTestEnvironment', `
     'Invoke-GetTargetResourceTest', `
     'Invoke-SetTargetResourceTest', `
-    'Invoke-TestTargetResourceTest'
+    'Invoke-TestTargetResourceTest', `
+    'Invoke-ExpectedMocksAreCalledTest'
 )
