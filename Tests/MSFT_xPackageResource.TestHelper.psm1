@@ -41,10 +41,12 @@ function Test-PackageInstalledById
 <#
     .SYNOPSIS
         Starts a simple mock http or https file server. Server will stay on and continue to be able
-        to receive requests until the client calls Stop-Job on the job that is returned by this function.
+        to receive requests until the client calls Stop-Server. The server returns the job object
+        and an EventWaitHandle object that the client will need to dispose of (by calling Stop-Server)
+        once it is done sending requests.
 
     .PARAMETER FilePath
-        The path to the file to add on the mock file server. Should be an MSI file.
+        The path to the file to add on to the mock file server. Should be an MSI file.
 
     .PARAMETER LogPath
         The path to the log file to write output to. This is important for debugging since
@@ -52,12 +54,14 @@ function Test-PackageInstalledById
         will be in PSScriptRoot.
 
     .PARAMETER Https
-        Indicates whether the server should use https. If True then the file server will use https.
-        Otherwise the file server will use http.
-        Default value is False (http).
+        Indicates whether the server should use Https. If True then the file server will use Https
+        and listen on port 'https://localhost:1243'. Otherwise the file server will use Http and
+        listen on port 'http://localhost:1242'
+        Default value is False (Http).
 #>
 function Start-Server
 {
+    [OutputType([Hashtable])]
     [CmdletBinding()]
     param
     (
@@ -72,6 +76,11 @@ function Start-Server
         [System.Boolean]
         $Https = $false
     )
+
+    # Create an event object to let the client know when the server is ready to begin receiving requests.
+    $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
+                                    'HttpIntegrationTest.FileServerStarted')
+    $null = $fileServerStarted.Reset()
 
     <# 
         The server is run on a separate process so that it can receive requests
@@ -93,7 +102,7 @@ function Start-Server
             .PARAMETER Https
                 Indicates whether https was used and if so, removes the SSL binding.
         #>
-        function Stop-Server
+        function Stop-Listener
         {
             [CmdletBinding()]
             param
@@ -164,7 +173,6 @@ function Start-Server
             $certPassword = ConvertTo-SecureString -String 'password12345' -AsPlainText -Force
             $tempPath = 'C:\certForTesting'
 
-            # Import it into the Root directory so that it is trusted
             Export-PfxCertificate -Cert $certificate -FilePath $tempPath -Password $certPassword
             Import-PfxCertificate -CertStoreLocation 'Cert:\LocalMachine\Root' -FilePath 'C:\certForTesting' -Password $certPassword
             Remove-Item -Path $tempPath
@@ -453,12 +461,59 @@ function Start-Server
             }
             
             Write-Log -LogFile $LogPath -Message 'Stopping the Server'
-            Stop-Server -HttpListener $HttpListener -Https $Https
+            Stop-Listener -HttpListener $HttpListener -Https $Https
         }
     }
 
-    # Return the job object so that the client can stop the job once it is done sending responses.
-    return Start-Job -ScriptBlock $server -ArgumentList @( $FilePath, $LogPath, $Https )
+    $job = Start-Job -ScriptBlock $server -ArgumentList @( $FilePath, $LogPath, $Https )
+
+    <#
+        Return the event object so that client knows when it can start sending requests and 
+        the job object so that the client can stop the job once it is done sending requests.
+    #>
+    return @{ 
+        FileServerStarted = $fileServerStarted
+        Job = $job
+    }
+}
+
+<#
+    .SYNOPSIS
+        Disposes the EventWaitHandle object and stops and removes the job to ensure that proper
+        cleanup is done for the listener. If this function is not called after Start-Server then
+        the listening port will remain open until the job is stopped or the machine is rebooted.
+
+    .PARAMETER FileServerStarted
+        The EventWaitHandle object returned by Start-Server to let the client know that it is ready
+        to receive requests. The client is responsible for calling this function to ensure that
+        this object is disposed of once the client is done sending requests.
+
+    .PARAMETER Job
+        The job object returned by Start-Server that needs to be stopped so that the server will
+        close the listening port.
+#>
+function Stop-Server
+{
+    [CmdletBinding()]
+    param
+    (
+        [System.Threading.EventWaitHandle]
+        $FileServerStarted,
+
+        [System.Management.Automation.Job]
+        $Job  
+    )
+
+    if ($null -ne $FileServerStarted)
+    {
+        $FileServerStarted.Dispose()
+    }
+
+    if ($null -ne $Job)
+    {
+        Stop-Job -Job $Job
+        Remove-Job -Job $Job
+    }
 }
 
 <#
@@ -1259,5 +1314,6 @@ Export-ModuleMember -Function `
     New-TestExecutable, `
     New-MockFileServer, `
     Start-Server, `
+    Stop-Server, `
     Test-PackageInstalledByName, `
     Test-PackageInstalledById

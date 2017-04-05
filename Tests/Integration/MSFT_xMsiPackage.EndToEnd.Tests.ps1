@@ -35,6 +35,7 @@ Describe 'xMsiPackage End to End Tests' {
         $script:configurationFilePathLogPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xMsiPackage_LogPath'
 
         $script:testDirectoryPath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xPackageResourceTests'
+        $script:logFile = Join-Path -Path $PSScriptRoot -ChildPath 'PackageTestLogFile.txt'
 
         if (Test-Path -Path $script:testDirectoryPath)
         {
@@ -49,6 +50,9 @@ Describe 'xMsiPackage End to End Tests' {
         $script:packageId = '{deadbeef-80c6-41e6-a1b9-8bdb8a05027f}'
 
         $null = New-TestMsi -DestinationPath $script:msiLocation
+
+        # Clear the log file
+        'Beginning integration tests' > $script:logFile
     }
 
     AfterAll {
@@ -231,6 +235,7 @@ Describe 'xMsiPackage End to End Tests' {
         $msiUrl = "$baseUrl" + 'package.msi'
 
         $fileServerStarted = $null
+        $job = $null
 
         $msiPackageParameters = @{
             ProductId = $script:packageId
@@ -240,11 +245,9 @@ Describe 'xMsiPackage End to End Tests' {
 
         try
         {
-            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
-                        'HttpIntegrationTest.FileServerStarted')
-            $fileServerStarted.Reset()
-
-            $job = Start-Server -FilePath $script:msiLocation               
+            $serverResult = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $false
+            $fileServerStarted = $serverResult.FileServerStarted
+            $job = $serverResult.Job              
 
             $fileServerStarted.WaitOne(30000)
 
@@ -258,13 +261,11 @@ Describe 'xMsiPackage End to End Tests' {
         }
         finally
         {
-            if ($fileServerStarted)
-            {
-                $fileServerStarted.Dispose()
-            }
-
-            Stop-Job -Job $job
-            Remove-Job -Job $job
+            <#
+                This must be called after Start-Server to ensure the listening port is closed,
+                otherwise subsequent tests may fail until the machine is rebooted.
+            #>
+            Stop-Server -FileServerStarted $fileServerStarted -Job $job
         }
 
         It 'Should return True from Test-TargetResource with the same parameters after configuration' {
@@ -279,6 +280,7 @@ Describe 'xMsiPackage End to End Tests' {
         $msiUrl = "$baseUrl" + 'package.msi'
 
         $fileServerStarted = $null
+        $job = $null
 
         $msiPackageParameters = @{
             ProductId = $script:packageId
@@ -292,11 +294,9 @@ Describe 'xMsiPackage End to End Tests' {
         
         try
         {
-            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
-                        'HttpIntegrationTest.FileServerStarted')
-            $fileServerStarted.Reset()
-
-            $job = Start-Server -FilePath $script:msiLocation               
+            $serverResult = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $false
+            $fileServerStarted = $serverResult.FileServerStarted
+            $job = $serverResult.Job
 
             $fileServerStarted.WaitOne(30000)
 
@@ -310,13 +310,11 @@ Describe 'xMsiPackage End to End Tests' {
         }
         finally
         {
-            if ($fileServerStarted)
-            {
-                $fileServerStarted.Dispose()
-            }
-
-            Stop-Job -Job $job
-            Remove-Job -Job $job
+            <#
+                This must be called after Start-Server to ensure the listening port is closed,
+                otherwise subsequent tests may fail until the machine is rebooted.
+            #>
+            Stop-Server -FileServerStarted $fileServerStarted -Job $job
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -331,6 +329,7 @@ Describe 'xMsiPackage End to End Tests' {
         $msiUrl = "$baseUrl" + 'package.msi'
 
         $fileServerStarted = $null
+        $job = $null
 
         $msiPackageParameters = @{
             ProductId = $script:packageId
@@ -344,11 +343,9 @@ Describe 'xMsiPackage End to End Tests' {
 
         try
         {
-            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
-                        'HttpIntegrationTest.FileServerStarted')
-            $fileServerStarted.Reset()
-
-            $job = Start-Server -FilePath $script:msiLocation               
+            $serverResult = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $false
+            $fileServerStarted = $serverResult.FileServerStarted
+            $job = $serverResult.Job
 
             $fileServerStarted.WaitOne(30000)
 
@@ -362,13 +359,11 @@ Describe 'xMsiPackage End to End Tests' {
         }
         finally
         {
-            if ($fileServerStarted)
-            {
-                $fileServerStarted.Dispose()
-            }
-
-            Stop-Job -Job $job
-            Remove-Job -Job $job
+            <#
+                This must be called after Start-Server to ensure the listening port is closed,
+                otherwise subsequent tests may fail until the machine is rebooted.
+            #>
+            Stop-Server -FileServerStarted $fileServerStarted -Job $job
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -383,6 +378,7 @@ Describe 'xMsiPackage End to End Tests' {
         $msiUrl = "$baseUrl" + 'package.msi'
 
         $fileServerStarted = $null
+        $job = $null
 
         $msiPackageParameters = @{
             ProductId = $script:packageId
@@ -396,11 +392,9 @@ Describe 'xMsiPackage End to End Tests' {
         
         try
         {
-            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
-                        'HttpIntegrationTest.FileServerStarted')
-            $fileServerStarted.Reset()
-
-            $job = Start-Server -FilePath $script:msiLocation -Https $true
+            $serverResult = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true
+            $fileServerStarted = $serverResult.FileServerStarted
+            $job = $serverResult.Job
 
             $fileServerStarted.WaitOne(30000)
 
@@ -414,13 +408,11 @@ Describe 'xMsiPackage End to End Tests' {
         }
         finally
         {
-            if ($fileServerStarted)
-            {
-                $fileServerStarted.Dispose()
-            }
-
-            Stop-Job -Job $job
-            Remove-Job -Job $job
+            <#
+                This must be called after Start-Server to ensure the listening port is closed,
+                otherwise subsequent tests may fail until the machine is rebooted.
+            #>
+            Stop-Server -FileServerStarted $fileServerStarted -Job $job
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {
@@ -435,6 +427,7 @@ Describe 'xMsiPackage End to End Tests' {
         $msiUrl = "$baseUrl" + 'package.msi'
 
         $fileServerStarted = $null
+        $job = $null
 
         $msiPackageParameters = @{
             ProductId = $script:packageId
@@ -448,11 +441,9 @@ Describe 'xMsiPackage End to End Tests' {
 
         try
         {
-            $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
-                        'HttpIntegrationTest.FileServerStarted')
-            $fileServerStarted.Reset()
-
-            $job = Start-Server -FilePath $script:msiLocation -Https $true              
+            $serverResult = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true
+            $fileServerStarted = $serverResult.FileServerStarted
+            $job = $serverResult.Job
 
             $fileServerStarted.WaitOne(30000)
 
@@ -466,13 +457,11 @@ Describe 'xMsiPackage End to End Tests' {
         }
         finally
         {
-            if ($fileServerStarted)
-            {
-                $fileServerStarted.Dispose()
-            }
-
-            Stop-Job -Job $job
-            Remove-Job -Job $job
+            <#
+                This must be called after Start-Server to ensure the listening port is closed,
+                otherwise subsequent tests may fail until the machine is rebooted.
+            #>
+            Stop-Server -FileServerStarted $fileServerStarted -Job $job
         }
 
         It 'Should return true from Test-TargetResource with the same parameters after configuration' {

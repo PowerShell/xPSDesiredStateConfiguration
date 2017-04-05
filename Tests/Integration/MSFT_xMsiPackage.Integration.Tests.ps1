@@ -42,6 +42,9 @@ try
                 $script:packageId = '{deadbeef-80c6-41e6-a1b9-8bdb8a05027f}'
 
                 $null = New-TestMsi -DestinationPath $script:msiLocation
+
+                # Clear the log file
+                'Beginning integration tests' > $script:logFile
             }
 
             BeforeEach {
@@ -171,17 +174,15 @@ try
                     $msiUrl = "$baseUrl" + 'package.msi'
 
                     $fileServerStarted = $null
+                    $job = $null
 
                     try
                     {
-                        $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' -ArgumentList @($false, [System.Threading.EventResetMode]::ManualReset,
-                                    'HttpIntegrationTest.FileServerStarted')
-                        $fileServerStarted.Reset()
+                        'Http tests:' >> $script:logFile
 
-                        # Clear the log file for the server script output
-                        'Http tests:' > $script:logFile
-
-                        $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $false              
+                        $serverResult = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $false
+                        $fileServerStarted = $serverResult.FileServerStarted
+                        $job = $serverResult.Job
 
                         # Wait for the file server to be ready to receive requests
                         $fileServerStarted.WaitOne(30000)
@@ -196,13 +197,11 @@ try
                     }
                     finally
                     {
-                        if ($fileServerStarted)
-                        {
-                            $fileServerStarted.Dispose()
-                        }
-
-                        Stop-Job -Job $job
-                        Remove-Job -Job $job
+                        <#
+                            This must be called after Start-Server to ensure the listening port is closed,
+                            otherwise subsequent tests may fail until the machine is rebooted.
+                        #>
+                        Stop-Server -FileServerStarted $fileServerStarted -Job $job
                     }
                 }
 
@@ -212,16 +211,15 @@ try
                     $msiUrl = "$baseUrl" + 'package.msi'
 
                     $fileServerStarted = $null
+                    $job = $null
 
                     try
                     {
-                        $fileServerStarted = New-Object -TypeName 'System.Threading.EventWaitHandle' @($false, [System.Threading.EventResetMode]::ManualReset,
-                                    'HttpIntegrationTest.FileServerStarted')
-                        $fileServerStarted.Reset()
-
                         'Https tests:' >> $script:logFile
 
-                        $job = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true              
+                        $serverResult = Start-Server -FilePath $script:msiLocation -LogPath $script:logFile -Https $true
+                        $fileServerStarted = $serverResult.FileServerStarted
+                        $job = $serverResult.Job             
 
                         # Wait for the file server to be ready to receive requests
                         $fileServerStarted.WaitOne(30000)
@@ -236,13 +234,11 @@ try
                     }
                     finally
                     {
-                        if ($fileServerStarted)
-                        {
-                            $fileServerStarted.Dispose()
-                        }
-
-                        Stop-Job -Job $job
-                        Remove-Job -Job $job
+                        <#
+                            This must be called after Start-Server to ensure the listening port is closed,
+                            otherwise subsequent tests may fail until the machine is rebooted.
+                        #>
+                        Stop-Server -FileServerStarted $fileServerStarted -Job $job
                     }
                 }
 

@@ -11,10 +11,6 @@ $script:dscResourcesFolderFilePath = Split-Path $PSScriptRoot -Parent
 $script:commonResourceHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
 Import-Module -Name $script:commonResourceHelperFilePath
 
-# Import PackageHelper
-$script:packageHelperFilePath = Join-Path -Path $script:dscResourcesFolderFilePath -ChildPath 'PackageHelper.psm1'
-Import-Module -Name $script:packageHelperFilePath
-
 # Localized messages for verbose and error statements in this resource
 $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xMsiPackage'
 
