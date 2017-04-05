@@ -129,8 +129,8 @@ function Set-TargetResource
         [String]
         $Arguments,
 
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.CredentialAttribute()]
+        [PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential,
 
         [String]
@@ -190,25 +190,9 @@ function Set-TargetResource
 
     try
     {
-        if (-not [String]::IsNullOrEmpty($LogPath))
+        if ($PSBoundParameters.ContainsKey('LogPath'))
         {
-            try
-            {
-                <#
-                    Pre-verify the log path exists and is writable ahead of time so the user won't
-                    have to detect why the MSI log path doesn't exist.
-                #>
-                if (Test-Path -Path $LogPath)
-                {
-                    Remove-Item -Path $LogPath
-                }
-
-                New-Item -Path $LogPath -Type 'File' | Out-Null
-            }
-            catch
-            {
-                New-InvalidOperationException -Message ($script:localizedData.CouldNotOpenLog -f $LogPath) -ErrorRecord $_
-            }
+            New-Logfile -LogPath $LogPath
         }
 
         # Download or mount file as necessary
@@ -292,75 +276,17 @@ function Set-TargetResource
             }
 
             Assert-FileValid -Path $Path -HashAlgorithm $HashAlgorithm -FileHash $FileHash -SignerSubject $SignerSubject -SignerThumbprint $SignerThumbprint
-        }
 
-        $startInfo = New-Object -TypeName 'System.Diagnostics.ProcessStartInfo'
-
-        # Necessary for I/O redirection
-        $startInfo.UseShellExecute = $false
-
-        $process = New-Object -TypeName 'System.Diagnostics.Process'
-        $process.StartInfo = $startInfo
-
-        # Concept only, will never touch disk
-        $errorLogPath = $LogPath + '.err'
-
-        $startInfo.FileName = "$env:winDir\system32\msiexec.exe"
-
-        if ($Ensure -eq 'Present')
-        {
-            # Check if the MSI package specifies the ProductCode
+            # Check if the MSI package specifies the ProductCode, and if so make sure they match
             $productCode = Get-MsiProductCode -Path $Path
-
+            
             if ((-not [String]::IsNullOrEmpty($identifyingNumber)) -and ($identifyingNumber -ne $productCode))
             {
                 New-InvalidArgumentException -ArgumentName 'ProductId' -Message ($script:localizedData.InvalidId -f $identifyingNumber, $productCode)
             }
-
-            $startInfo.Arguments = '/i "{0}"' -f $Path
-        }
-        else
-        {
-            $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
-
-            $id = Split-Path -Path $productEntry.Name -Leaf
-            $startInfo.Arguments = ('/x{0}' -f $id)
         }
 
-        if (-not [String]::IsNullOrEmpty($LogPath))
-        {
-            $startInfo.Arguments += (' /log "{0}"' -f $LogPath)
-        }
-
-        $startInfo.Arguments += ' /quiet /norestart'
-
-        if (-not [String]::IsNullOrEmpty($Arguments))
-        {
-            # Append any specified arguments with a space
-            $startInfo.Arguments += (' {0}' -f $Arguments)
-        }
-
-        Write-Verbose -Message ($script:localizedData.StartingWithStartInfoFileNameStartInfoArguments -f $startInfo.FileName, $startInfo.Arguments)
-
-        $exitCode = 0
-
-        try
-        {
-            if ($PSBoundParameters.ContainsKey('RunAsCredential'))
-            {
-                $commandLine = ('"{0}" {1}' -f $startInfo.FileName, $startInfo.Arguments)
-                $exitCode = Invoke-PInvoke -CommandLine $commandLine -RunAsCredential $RunAsCredential
-            }
-            else
-            {
-               $process = Invoke-Process -Process $process
-               $exitCode = $process.ExitCode
-            }
-        }
-        catch
-        {
-            New-InvalidOperationException -Message ($script:localizedData.CouldNotStartProcess -f $Path) -ErrorRecord $_
-        }
+        $exitCode = Start-MsiProcess -IdentifyingNumber $identifyingNumber -Path $Path -Ensure $Ensure -Arguments $Arguments -LogPath $LogPath -RunAsCredential $RunAsCredential
     }
     finally
     {
@@ -483,8 +409,8 @@ function Test-TargetResource
         [String]
         $Arguments,
 
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.CredentialAttribute()]
+        [PSCredential]
+        [System.Management.Automation.Credential()]
         $Credential,
 
         [String]
@@ -755,6 +681,42 @@ function Get-ProductEntryValue
     )
 
     return $ProductEntry.GetValue($Property)
+}
+
+<#
+    .SYNOPSIS
+        Removes the file at the given path if it exists and creates a new file.
+
+    .PARAMETER LogPath
+        The path where the logfile should be created.
+#>
+function New-Logfile
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $LogPath
+    )
+
+    try
+    {
+        <#
+            Pre-verify the log path exists and is writable ahead of time so the user won't
+            have to detect why the MSI log path doesn't exist.
+        #>
+        if (Test-Path -Path $LogPath)
+        {
+            Remove-Item -Path $LogPath
+        }
+
+        New-Item -Path $LogPath -Type 'File' | Out-Null
+    }
+    catch
+    {
+        New-InvalidOperationException -Message ($script:localizedData.CouldNotOpenLog -f $LogPath) -ErrorRecord $_
+    }
 }
 
 <#
@@ -1090,11 +1052,106 @@ function Assert-FileSignatureValid
 }
 
 <#
+
+#>
+function Start-MsiProcess
+{
+    [OutputType([Int32])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $IdentifyingNumber,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [String]
+        $Path,
+
+        [ValidateSet('Present', 'Absent')]
+        [String]
+        $Ensure = 'Present',
+
+        [String]
+        $Arguments,
+
+        [String]
+        $LogPath,
+
+        [System.Management.Automation.PSCredential]
+        [System.Management.Automation.CredentialAttribute()]
+        $RunAsCredential
+    )
+
+    $startInfo = New-Object -TypeName 'System.Diagnostics.ProcessStartInfo'
+
+    # Necessary for I/O redirection
+    $startInfo.UseShellExecute = $false
+    
+    $process = New-Object -TypeName 'System.Diagnostics.Process'
+    $process.StartInfo = $startInfo
+    
+    $startInfo.FileName = "$env:winDir\system32\msiexec.exe"
+    
+    if ($Ensure -eq 'Present')
+    {
+        $startInfo.Arguments = '/i "{0}"' -f $Path
+    }
+    # Ensure -eq 'Absent'
+    else
+    {
+        $productEntry = Get-ProductEntry -IdentifyingNumber $identifyingNumber
+    
+        $id = Split-Path -Path $productEntry.Name -Leaf
+        $startInfo.Arguments = ('/x{0}' -f $id)
+    }
+    
+    if (-not [String]::IsNullOrEmpty($LogPath))
+    {
+        $startInfo.Arguments += (' /log "{0}"' -f $LogPath)
+    }
+    
+    $startInfo.Arguments += ' /quiet /norestart'
+    
+    if (-not [String]::IsNullOrEmpty($Arguments))
+    {
+        # Append any specified arguments with a space
+        $startInfo.Arguments += (' {0}' -f $Arguments)
+    }
+    
+    Write-Verbose -Message ($script:localizedData.StartingWithStartInfoFileNameStartInfoArguments -f $startInfo.FileName, $startInfo.Arguments)
+    
+    $exitCode = 0
+    
+    try
+    {
+        if (-not [String]::IsNullOrEmpty($RunAsCredential))
+        {
+            $commandLine = ('"{0}" {1}' -f $startInfo.FileName, $startInfo.Arguments)
+            $exitCode = Invoke-PInvoke -CommandLine $commandLine -RunAsCredential $RunAsCredential
+        }
+        else
+        {
+           $process = Invoke-Process -Process $process
+           $exitCode = $process.ExitCode
+        }
+    }
+    catch
+    {
+        New-InvalidOperationException -Message ($script:localizedData.CouldNotStartProcess -f $Path) -ErrorRecord $_
+    }
+
+    return $exitCode
+}
+
+<#
     .SYNOPSIS
-        Retrieves the code of a product from the MSI at the given path.
+        Retrieves product code from the MSI at the given path.
 
     .PARAMETER Path
-        The path to the MSI to retrieve the code from.
+        The path to the MSI to retrieve the product code from.
 #>
 function Get-MsiProductCode
 {
