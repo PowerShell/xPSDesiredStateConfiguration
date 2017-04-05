@@ -162,9 +162,12 @@ function Start-Server
             
             $hash = $certificate.Thumbprint
             $certPassword = ConvertTo-SecureString -String 'password12345' -AsPlainText -Force
+            $tempPath = 'C:\certForTesting'
 
-            Export-PfxCertificate -Cert $certificate -FilePath 'C:\certForTesting' -Password $certPassword
+            # Import it into the Root directory so that it is trusted
+            Export-PfxCertificate -Cert $certificate -FilePath $tempPath -Password $certPassword
             Import-PfxCertificate -CertStoreLocation 'Cert:\LocalMachine\Root' -FilePath 'C:\certForTesting' -Password $certPassword
+            Remove-Item -Path $tempPath
             
             Write-Log -LogFile $LogPath -Message 'Finished importing certificate into root. About to bind it to port.'
              

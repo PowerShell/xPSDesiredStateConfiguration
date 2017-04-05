@@ -14,7 +14,6 @@ ConvertFrom-StringData @'
     CouldNotOpenDestFile = Could not open the file {0} for writing
     CouldNotGetResponseFromWebRequest = An error occurred while trying to get the {0} response for file {1}
     ErrorCopyingDataToFile = Encountered error while copying the response to the output stream
-    PackageConfigurationComplete = Package configuration finished
     PackageConfigurationStarting = Package configuration starting
     InstalledPackage = Installed package
     UninstalledPackage = Uninstalled package
@@ -65,5 +64,6 @@ ConvertFrom-StringData @'
     ErrorRemovingRegistryValue = An error occured while attempting to remove the registry key {0} value {1}
     ExeCouldNotBeUninstalled = The .exe file found at {0} could not be uninstalled. The uninstall functionality may not be implemented in this .exe file.
     GetTargetResourceFound = Successfully retrieved package {0}.
+    GetTargetResourceNotFound = Unable to find package: {0}.
     SettingCertificateValidationCallback = Assigning user-specified certificate verification callback.
 '@

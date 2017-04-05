@@ -61,11 +61,14 @@ function Get-TargetResource
             Ensure = 'Absent'
             ProductId = $identifyingNumber
         }
+
+        Write-Verbose -Message ($script:localizedData.GetTargetResourceNotFound -f $ProductId)
     }
     else
     {
         $packageResourceResult = Get-ProductEntryInfo -ProductEntry $productEntry
         $packageResourceResult['ProductId'] = $identifyingNumber
+        $packageResourceResult['Ensure'] = 'Present'
 
         Write-Verbose -Message ($script:localizedData.GetTargetResourceFound -f $ProductId)
     }
@@ -157,11 +160,6 @@ function Set-TargetResource
         $RunAsCredential
     )
 
-    if (Test-TargetResource @PSBoundParameters)
-    {
-        return
-    }
-
     $uri = Convert-PathToUri -Path $Path
     $identifyingNumber = Convert-ProductIdToIdentifyingNumber -ProductId $ProductId
 
@@ -192,18 +190,25 @@ function Set-TargetResource
     {
         if ($PSBoundParameters.ContainsKey('LogPath'))
         {
-            New-Logfile -LogPath $LogPath
+            New-LogFile -LogPath $LogPath
         }
 
         # Download or mount file as necessary
         if ($Ensure -eq 'Present')
         {
+            $localPath = $Path
+
+            if ($null -ne $uri.LocalPath)
+            {
+                $localPath = $uri.LocalPath
+            }
+
             if ($uri.IsUnc)
             {
                 $psDriveArgs = @{
                     Name = [Guid]::NewGuid()
                     PSProvider = 'FileSystem'
-                    Root = Split-Path -Path $uri.LocalPath
+                    Root = Split-Path -Path $localPath
                 }
 
                 if ($PSBoundParameters.ContainsKey('Credential'))
@@ -212,7 +217,7 @@ function Set-TargetResource
                 }
 
                 $psDrive = New-PSDrive @psDriveArgs
-                $Path = Join-Path -Path $psDrive.Root -ChildPath (Split-Path -Path $uri.LocalPath -Leaf)
+                $Path = Join-Path -Path $psDrive.Root -ChildPath (Split-Path -Path $localPath -Leaf)
             }
             elseif (@( 'http', 'https' ) -contains $uri.Scheme)
             {
@@ -220,14 +225,13 @@ function Set-TargetResource
 
                 try
                 {
-                    Write-Verbose -Message ($script:localizedData.CreatingCacheLocation)
-
                     if (-not (Test-Path -Path $script:packageCacheLocation -PathType 'Container'))
                     {
+                        Write-Verbose -Message ($script:localizedData.CreatingCacheLocation)
                         $null = New-Item -Path $script:packageCacheLocation -ItemType 'Directory'
                     }
 
-                    $destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath (Split-Path -Path $uri.LocalPath -Leaf)
+                    $destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath (Split-Path -Path $localPath -Leaf)
 
                     Write-Verbose -Message ($script:localizedData.NeedtodownloadfilefromschemedestinationwillbedestName -f $uri.Scheme, $destinationPath)
 
@@ -292,7 +296,7 @@ function Set-TargetResource
     {
         if ($null -ne $psDrive)
         {
-            Remove-PSDrive -Name $psDrive -Force
+            $null = Remove-PSDrive -Name $psDrive -Force
         }
     }
 
@@ -302,7 +306,7 @@ function Set-TargetResource
             This is deliberately not in the finally block because we want to leave the downloaded
             file on disk if an error occurred as a debugging aid for the user.
         #>
-        Remove-Item -Path $downloadedFileName
+        $null = Remove-Item -Path $downloadedFileName
     }
 
     <#
@@ -317,7 +321,9 @@ function Set-TargetResource
 
     $registryData = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Name 'PendingFileRenameOperations' -ErrorAction 'Ignore'
 
-    if (($serverFeatureData -and $serverFeatureData.RequiresReboot) -or $registryData -or $exitcode -eq 3010 -or $exitcode -eq 1641)
+    $rebootRequired = (($exitcode -eq 3010) -or ($exitcode -eq 1641) -or ($null -ne $registryData))
+
+    if (($serverFeatureData -and $serverFeatureData.RequiresReboot) -or $rebootRequired)
     {
         Write-Verbose $script:localizedData.MachineRequiresReboot
         $global:DSCMachineStatus = 1
@@ -340,8 +346,6 @@ function Set-TargetResource
     {
         Write-Verbose -Message $script:localizedData.PackageUninstalled
     }
-
-    Write-Verbose -Message $script:localizedData.PackageConfigurationComplete
 }
 
 <#
@@ -627,11 +631,11 @@ function Get-ProductEntryInfo
 
     $publisher = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'Publisher'
 
-    $estimatedSize = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'EstimatedSize'
+    $estimatedSizeInKB = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'EstimatedSize'
 
-    if ($null -ne $estimatedSize)
+    if ($null -ne $estimatedSizeInKB)
     {
-        $estimatedSize = $estimatedSize / 1024
+        $estimatedSizeInMB = $estimatedSizeInKB / 1024
     }
 
     $displayVersion = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'DisplayVersion'
@@ -643,11 +647,10 @@ function Get-ProductEntryInfo
     $installSource = Get-ProductEntryValue -ProductEntry $ProductEntry -Property 'InstallSource'
 
     return @{
-        Ensure = 'Present'
         Name = $displayName
         InstallSource = $installSource
         InstalledOn = $installDate
-        Size = $estimatedSize
+        Size = $estimatedSizeInMB
         Version = $displayVersion
         PackageDescription = $comments
         Publisher = $publisher
@@ -690,7 +693,7 @@ function Get-ProductEntryValue
     .PARAMETER LogPath
         The path where the logfile should be created.
 #>
-function New-Logfile
+function New-LogFile
 {
     [CmdletBinding()]
     param
@@ -708,10 +711,10 @@ function New-Logfile
         #>
         if (Test-Path -Path $LogPath)
         {
-            Remove-Item -Path $LogPath
+            $null = Remove-Item -Path $LogPath
         }
 
-        New-Item -Path $LogPath -Type 'File' | Out-Null
+        $null = New-Item -Path $LogPath -Type 'File'
     }
     catch
     {
@@ -871,9 +874,9 @@ function Copy-ResponseStreamToFileStream
     try
     {
         Write-Verbose -Message ($script:localizedData.CopyingTheSchemeStreamBytesToTheDiskCache)
-        $ResponseStream.CopyTo($FileStream)
-        $ResponseStream.Flush()
-        $FileStream.Flush()
+        $null = $ResponseStream.CopyTo($FileStream)
+        $null = $ResponseStream.Flush()
+        $null = $FileStream.Flush()
     }
     catch
     {
@@ -899,7 +902,7 @@ function Close-Stream
         $Stream
     )
 
-    $Stream.Close()
+    $null = $Stream.Close()
 }
 
 <#
@@ -1182,6 +1185,12 @@ function Get-MsiTool
     [CmdletBinding()]
     param ()
 
+    # Check if the variable is already defined
+    if ($null -ne $script:msiTools)
+    {
+        return $script:msiTools
+    }
+
     $msiToolsCodeDefinition = @'
     [DllImport("msi.dll", CharSet = CharSet.Unicode, PreserveSig = true, SetLastError = true, ExactSpelling = true)]
     private static extern UInt32 MsiOpenPackageExW(string szPackagePath, int dwOptions, out IntPtr hProduct);
@@ -1222,7 +1231,7 @@ function Get-MsiTool
     }
 '@
     
-    # Check to see if the the type is already defined
+    # Check if the the type is already defined
     if (([System.Management.Automation.PSTypeName]'Microsoft.Windows.DesiredStateConfiguration.xPackageResource.MsiTools').Type)
     {
         $script:msiTools = ([System.Management.Automation.PSTypeName]'Microsoft.Windows.DesiredStateConfiguration.xPackageResource.MsiTools').Type
@@ -1270,7 +1279,7 @@ function Invoke-PInvoke
     Register-PInvoke
     [System.Int32] $exitCode = 0
 
-    [Source.NativeMethods]::CreateProcessAsUser($CommandLine, `
+    $null = [Source.NativeMethods]::CreateProcessAsUser($CommandLine, `
         $RunAsCredential.GetNetworkCredential().Domain, `
         $RunAsCredential.GetNetworkCredential().UserName, `
         $RunAsCredential.GetNetworkCredential().Password, `
@@ -1291,7 +1300,8 @@ function Invoke-Process
 {
     [OutputType([System.Diagnostics.Process])]
     [CmdletBinding()]
-    param (
+    param
+    (
         [Parameter(Mandatory)]
         [System.Diagnostics.Process]
         $Process
@@ -1299,7 +1309,7 @@ function Invoke-Process
 
     $null = $Process.Start()
 
-    $Process.WaitForExit()
+    $null = $Process.WaitForExit()
     return $Process
 }
 
@@ -1599,7 +1609,5 @@ function Register-PInvoke
             }
         }
 '@
-    Add-Type -TypeDefinition $programSource -ReferencedAssemblies 'System.ServiceProcess'
+    $null = Add-Type -TypeDefinition $programSource -ReferencedAssemblies 'System.ServiceProcess'
 }
-
-Export-ModuleMember -Function *-TargetResource
