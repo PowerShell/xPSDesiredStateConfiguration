@@ -842,7 +842,6 @@ function Get-ScriptBlock
     return [ScriptBlock]::Create($FunctionName)
 }
 
-
 <#
     .SYNOPSIS
         Copies the given response stream to the given file stream.

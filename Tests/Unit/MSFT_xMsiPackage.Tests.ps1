@@ -161,7 +161,6 @@ Describe 'xMsiPackage Unit Tests' {
                 RunAsCredential = $script:testCredential
             }
             
-            Mock -CommandName 'Test-TargetResource' -MockWith { return $true }
             Mock -CommandName 'Assert-PathExtensionValid' -MockWith {}
             Mock -CommandName 'Convert-PathToUri' -MockWith { return $script:testUriFile }
             Mock -CommandName 'Convert-ProductIdToIdentifyingNumber' -MockWith { return $script:testIdentifyingNumber }
@@ -181,24 +180,10 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'Invoke-CimMethod' -MockWith {}
             Mock -CommandName 'Get-ItemProperty' -MockWith { return $null }
             Mock -CommandName 'Remove-PSDrive' -MockWith {}
-            
-            Context 'Resource is in desired state already' {
-
-                $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
-                    @{ Command = 'Convert-PathToUri'; Times = 0 }
-                )
-
-                Invoke-SetTargetResourceTest -SetTargetResourceParameters $setTargetResourceParameters `
-                                             -MocksCalled $mocksCalled  
-            }
-
-            Mock -CommandName 'Test-TargetResource' -MockWith { return $false }
 
             Context 'Error opening Log' {
 
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -220,7 +205,6 @@ Describe 'xMsiPackage Unit Tests' {
             Context 'Uri scheme is File and specified ProductId does not match actual product code' {
 
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -245,7 +229,6 @@ Describe 'xMsiPackage Unit Tests' {
             Context 'Uri scheme is http and error occurred while attempting to open destination file' {
 
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -270,7 +253,6 @@ Describe 'xMsiPackage Unit Tests' {
             Context 'Uri scheme is https and specified Path does not exist' {
 
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -295,7 +277,6 @@ Describe 'xMsiPackage Unit Tests' {
 
             Context 'Uri scheme is file, RunAsCredential is specified and starting the process fails' {
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -319,7 +300,6 @@ Describe 'xMsiPackage Unit Tests' {
 
             Context 'Uri scheme is file, RunAsCredential is not specified and starting the process fails' {
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -343,7 +323,6 @@ Describe 'xMsiPackage Unit Tests' {
 
             Context 'Uri scheme is file, RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -370,7 +349,6 @@ Describe 'xMsiPackage Unit Tests' {
 
             Context 'Uri scheme is http, RunAsCredential is not specified and starting the process succeeds but there is a post validation error' {
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -414,7 +392,6 @@ Describe 'xMsiPackage Unit Tests' {
 
             Context 'Uri scheme is file, RunAsCredential is not specified and installation succeeds' {
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -438,7 +415,6 @@ Describe 'xMsiPackage Unit Tests' {
 
             Context 'Uri scheme is file, RunAsCredential is not specified and uninstallation succeeds' {
                 $mocksCalled = @(
-                    @{ Command = 'Test-TargetResource'; Times = 1 }
                     @{ Command = 'Assert-PathExtensionValid'; Times = 1 }
                     @{ Command = 'Convert-PathToUri'; Times = 1 }
                     @{ Command = 'Convert-ProductIdToIdentifyingNumber'; Times = 1 }
@@ -700,10 +676,6 @@ Describe 'xMsiPackage Unit Tests' {
 
                 It 'Should return the expected install source' {
                      $getProductEntryInfoResult.InstallSource | Should Be $script:mockProductEntryInfo.InstallSource
-                }
-
-                It 'Should return Ensure as Present' {
-                     $getProductEntryInfoResult.Ensure | Should Be 'Present'
                 }
 
                 It 'Should retrieve 7 product entry values' {

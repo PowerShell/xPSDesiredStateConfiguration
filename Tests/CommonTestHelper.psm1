@@ -11,35 +11,37 @@ Set-StrictMode -Version 'Latest'
 $script:appVeyorAdministratorCredential = $null
 
 data testStrings
-        {
-            ConvertFrom-StringData -StringData @'
-Convert-ProductIdToIdentifyingNumber = convert the product ID to the identifying number
-Get-ProductEntry = retrieve the product entry
-Get-ProductEntryInfo = retrieve the product entry info
-Test-TargetResource = check to see if the resource is already in the desired state
-Assert-PathExtensionValid = assert that the specified path extension is valid
-Convert-PathToUri = convert the path to a URI
-Test-Path = test that the path at '{0}' exists
-Remove-Item = remove '{0}'
-New-Item = create a new {0}
-New-PSDrive = create a new PS Drive
-New-Object = create a new object of type {0}
-Assert-FileValid = assert that the file is valid
-Get-MsiProductCode = retrieve the MSI product code
-Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
-Invoke-Process = attempt to install/uninstall the MSI package under the process
-Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
-Close-Stream = close the stream
-Get-WebRequestResponse = get the web request response
-Copy-ResponseStreamToFileStream = copy the instream to the outstream
-Get-ItemProperty = retrieve the registry data
-Get-WebRequest = retrieve the WebRequest object
-Get-WebRequestResponseStream = retrieve the WebRequest response stream
-Get-ScriptBlock = retrieve the script block
+{
+    ConvertFrom-StringData -StringData @'
 Assert-FileHashValid = assert that the file hash is valid
 Assert-FileSignatureValid = assert that the file signature is valid
+Assert-FileValid = assert that the file is valid
+Assert-PathExtensionValid = assert that the specified path extension is valid
+Close-Stream = close the stream
+Convert-PathToUri = convert the path to a URI
+Convert-ProductIdToIdentifyingNumber = convert the product ID to the identifying number
+Copy-ResponseStreamToFileStream = copy the instream to the outstream
+Get-ItemProperty = retrieve the registry data
+Get-MsiProductCode = retrieve the MSI product code
+Get-ProductEntry = retrieve the product entry
+Get-ProductEntryInfo = retrieve the product entry info
+Get-ProductEntryValue = retrieve the value of the product entry property
+Get-ScriptBlock = retrieve the script block
+Get-WebRequest = retrieve the WebRequest object
+Get-WebRequestResponse = get the web request response
+Get-WebRequestResponseStream = retrieve the WebRequest response stream
+Invoke-CimMethod = attempt to invoke a cim method to check if reboot is required
+Invoke-PInvoke = attempt to install/uninstall the MSI package with PInvoke
+Invoke-Process = attempt to install/uninstall the MSI package under the process
+New-Item = create a new {0}
+New-LogFile = create a new log file
+New-Object = create a new object of type {0}
+New-PSDrive = create a new PS Drive
+Remove-Item = remove '{0}'
+Start-MsiProcess = start the MSI process
+Test-Path = test that the path at '{0}' exists
 '@
-        }
+}
 
 <#
     .SYNOPSIS
