@@ -7,12 +7,18 @@
    Publishes all mof configuration documents that are present in the $Source folder on "$env:ProgramFiles\WindowsPowerShell\DscService\Configuration"-
    Use $Force to overwrite the version of the module that exists in the PowerShell module path with the version from the $source folder.
    Use $ModuleNameList to specify the names of the modules to be published if the modules do not exist in $Source folder.
+.PARAMETER Source
+    The folder that contains the configuration mof documents and modules to be published on Pull server. 
+    Everything in this folder will be packaged and published.
+.PARAMETER Force
+    Switch to overwrite the module in PSModulePath with the version provided in $Sources.
+.PARAMETER ModuleNameList
+    Package and publish the modules listed in $ModuleNameList based on PowerShell module path content.
 .EXAMPLE
     $ModuleList = @("xWebAdministration", "xPhp")
     Publish-DSCModuleAndMof -Source C:\LocalDepot -ModuleNameList $ModuleList
 .EXAMPLE
     Publish-DSCModuleAndMof -Source C:\LocalDepot -Force
-
 #>
 
 # Tools to use to package DSC modules and mof configuration document and publish them on enterprise DSC pull server in the required format
@@ -20,15 +26,9 @@ function Publish-DSCModuleAndMof
 {
     [CmdletBinding()]
     param(
-    # The folder that contains the configuration mof documents and modules to be published on Pull server. 
-    # Everything in this folder will be packaged and published.
     [Parameter(Mandatory=$True)]
     [string]$Source = $pwd,
-     
-    # Switch to overwrite the module in PSModulePath with the version provided in $Sources.
-    [switch]$Force, 
-
-    # Package and publish the modules listed in $ModuleNameList based on PowerShell module path content.
+    [switch]$Force,
     [string[]]$ModuleNameList
     )
 
@@ -51,10 +51,17 @@ function Publish-DSCModuleAndMof
     # Deployment is complete!
     Remove-Item -Path $tempFolder -Recurse -Force -ErrorAction SilentlyContinue
     Log -Scope $MyInvocation -Message 'End Deployment'
-
 }
 
-#Package the modules using powershell module path
+
+<#
+.SYNOPSIS
+    Package modules using a given folder after installing to a PowerShell module path ($env:PSModulePath).
+.PARAMETER ListModuleNames
+    List of Modules to package
+.PARAMETER Destination
+    Destionation path to copy packaged modules to
+#>
 function CreateZipFromPSModulePath
 {
     param($ListModuleNames, $Destination)
@@ -86,11 +93,18 @@ function CreateZipFromPSModulePath
             }
             Rename-Item -Path "$source.zip" -NewName $newName -Force    
         } 
-    }   
-
+    }
 }
 
-# Function to package modules using a given folder after installing to psmodule path.
+
+<#
+.SYNOPSIS
+    Package modules using a given folder after installing to psmodule path.
+.PARAMETER Source
+    Folder containing DSC Resource Modules to package
+.PARAMETER Destination
+    Destination path to copy zipped DSC Resources to
+#>
 function CreateZipFromSource
 {
     param($Source, $Destination)
@@ -119,7 +133,12 @@ function CreateZipFromSource
 }
 
 
-# Deploy modules to the Pull sever repository.
+<#
+.SYNOPSIS
+    Deploy modules to the Pull sever repository.
+.PARAMETER Source
+    Folder containing zipped DSC Resources to publish
+#>
 function PublishModulesAndChecksum
 {
     param($Source)
@@ -134,10 +153,15 @@ function PublishModulesAndChecksum
     {
         Write-Warning "Copying modules to Pull server module repository skipped because the machine is not a server sku or Pull server endpoint is not deployed."
     }   
-    
 }
 
-# function deploy configuration and their checksums.
+
+<#
+.SYNOPSIS
+    Deploy configurations and their checksums.
+.PARAMETER Source
+    Folder containing MOFs to publish
+#>
 function PublishMofDocuments
 {
    param($Source)
@@ -151,7 +175,7 @@ function PublishMofDocuments
     else
     {
         Write-Warning "Copying configuration(s) to Pull server configuration repository skipped because the machine is not a server sku or Pull server endpoint is not deployed."
-    } 
+    }
 }
 
 Function Log
@@ -172,6 +196,16 @@ Function Log
 .DESCRIPTION
    Publish DSC module using Module Info object as an input. 
    The cmdlet will figure out the location of the module repository using web.config of the pullserver.
+.PARAMETER Name
+    Name of the module.
+.PARAMETER ModuleBase
+    This is the location of the base of the module.
+.PARAMETER Version
+    This is the version of the module
+.PARAMETER PullServerWebConfig
+    Defaults to $env:SystemDrive\inetpub\wwwroot\PSDSCPullServer\web.config
+.PARAMETER OutputFolderPath
+    Defaults to $null
 .EXAMPLE
    Get-Module <ModuleName> | Publish-ModuleToPullServer
 #>
@@ -182,19 +216,16 @@ function Publish-ModuleToPullServer
     [OutputType([void])]
     Param
     (
-        # Name of the module.
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                    Position=0)]
         $Name,
-                
-        # This is the location of the base of the module.
+          
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                    Position=1)]
         $ModuleBase,
         
-        # This is the version of the module
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                    Position=2)]
@@ -244,11 +275,14 @@ function Publish-ModuleToPullServer
     }
 } 
 
+
 <#
 .Synopsis
    Deploy DSC Configuration document to the pullserver.
 .DESCRIPTION
    Publish Mof file to the pullserver. It takes File Info object as pipeline input. It also auto detects the location of the configuration repository using the web.config of the pullserver.
+.PARAMETER FullName
+    MOF File Name
 .EXAMPLE
    Dir <path>\*.mof | Publish-MOFToPullServer
 #>
@@ -259,7 +293,6 @@ function Publish-MOFToPullServer
     [OutputType([void])]
     Param
     (
-        # Mof file Name
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                    Position=0)]
