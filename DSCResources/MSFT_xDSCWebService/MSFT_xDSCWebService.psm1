@@ -5,6 +5,7 @@ Import-Module $PSScriptRoot\UseSecurityBestPractices.psm1 -Verbose:$false
 # The Get-TargetResource cmdlet.
 function Get-TargetResource
 {
+    [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
     [OutputType([Hashtable])]
     param
     (
@@ -14,9 +15,19 @@ function Get-TargetResource
         [string]$EndpointName,
             
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]                         
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint,
+
+        # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateSubject,
+
+        # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateTemplateName = 'WebServer',
 
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory)]
@@ -30,6 +41,13 @@ function Get-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [bool]$Enable32BitAppOnWin64 = $false
     )
+
+    # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
+    # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
+    if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
+    {
+        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+    }
 
     $webSite = Get-Website -Name $EndpointName
 
@@ -94,9 +112,8 @@ function Get-TargetResource
         $Ensure = 'Absent'
     }
 
-    @{
+    $Output = @{
         EndpointName                    = $EndpointName
-        CertificateThumbPrint           = if($CertificateThumbPrint -eq 'AllowUnencryptedTraffic'){$CertificateThumbPrint} else {(Get-WebBinding -Name $EndpointName).CertificateHash}
         Port                            = $iisPort
         PhysicalPath                    = $website.physicalPath
         State                           = $webSite.state
@@ -111,11 +128,27 @@ function Get-TargetResource
         DisableSecurityBestPractices    = $DisableSecurityBestPractices
         Enable32BitAppOnWin64           = $Enable32BitAppOnWin64
     }
+
+    if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic')
+    {
+        $Output.Add('CertificateThumbPrint', $CertificateThumbPrint)
+    }
+    else
+    {
+        $Certificate = ([Array](Get-ChildItem -Path 'Cert:\LocalMachine\My\')).Where{$_.Thumbprint -eq $webBinding.CertificateHash}
+        
+        $Output.Add('CertificateThumbPrint',   $webBinding.CertificateHash)
+        $Output.Add('CertificateSubject',      $Certificate.Subject)
+        $Output.Add('CertificateTemplateName', $Certificate.Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false))
+    }
+
+    return $Output
 }
 
 # The Set-TargetResource cmdlet.
 function Set-TargetResource
 {
+    [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
     param
     (
         # Prefix of the WCF SVC File
@@ -129,10 +162,20 @@ function Set-TargetResource
         # Physical path for the IIS Endpoint on the machine (usually under inetpub)                            
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
-        # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]                            
+        # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint,
+
+        # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateSubject,
+
+        # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateTemplateName = 'WebServer',
 
         [ValidateSet("Present", "Absent")]
         [string]$Ensure = "Present",
@@ -176,6 +219,19 @@ function Set-TargetResource
         [boolean]$Enable32BitAppOnWin64 = $false
     )
 
+    # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
+    # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
+    if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
+    {
+        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+    }
+
+    # Find a certificate that matches the Subject and Template Name
+    if ($PSCmdlet.ParameterSetName -eq 'CertificateSubject')
+    {
+        $CertificateThumbPrint = Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateSubject -TemplateName $CertificateTemplateName
+    }
+
     # Check parameter values
     if ($UseSecurityBestPractices -and ($CertificateThumbPrint -eq "AllowUnencryptedTraffic"))
     {
@@ -184,8 +240,10 @@ function Set-TargetResource
         return
     }
 
-    # Initialize with default values     
-    $script:appCmd = "$env:windir\system32\inetsrv\appcmd.exe"
+    # Initialize with default values
+    Push-Location -Path "$env:windir\system32\inetsrv"
+    $script:appCmd = Get-Command -Name '.\appcmd.exe' -CommandType 'Application'
+    Pop-Location
    
     $pathPullServer = "$pshome\modules\PSDesiredStateConfiguration\PullServer"
     $jet4provider = "System.Data.OleDb"
@@ -200,7 +258,11 @@ function Set-TargetResource
         $language = 'en'
     }
 
-    $os = [System.Environment]::OSVersion.Version
+    #$os = [System.Environment]::OSVersion.Version
+    $os = Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object -Property `
+        @{N='Major'; E={$_.Version.Split('.')[0]}}, `
+        @{N='Minor'; E={$_.Version.Split('.')[1]}}, `
+        @{N='Build'; E={$_.Version.Split('.')[2]}}
     $IsBlue = $false;
     if($os.Major -eq 6 -and $os.Minor -eq 3)
     {
@@ -341,7 +403,7 @@ function Set-TargetResource
     }
     else
     {
-        if($AcceptSelfSignedCertificates -and ($AcceptSelfSignedCertificates -eq $false))
+        if(($null -ne $AcceptSelfSignedCertificates) -and ($AcceptSelfSignedCertificates -eq $false))
         {
             & $script:appCmd delete module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/"
         }
@@ -356,6 +418,7 @@ function Set-TargetResource
 # The Test-TargetResource cmdlet.
 function Test-TargetResource
 {
+    [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
     [OutputType([Boolean])]
     param
     (
@@ -371,9 +434,19 @@ function Test-TargetResource
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]                            
-        [string]$CertificateThumbPrint = "AllowUnencryptedTraffic",
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateThumbPrint,
+
+        # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateSubject,
+
+        # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateTemplateName = 'WebServer',
 
         [ValidateSet("Present", "Absent")]
         [string]$Ensure = "Present",
@@ -417,12 +490,19 @@ function Test-TargetResource
         [bool]$Enable32BitAppOnWin64 = $false
     )
 
+    # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
+    # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
+    if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
+    {
+        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+    }
+
     $desiredConfigurationMatch = $true;
 
     $website = Get-Website -Name $EndpointName
     $stop = $true
 
-    Do
+    :WebSiteTests Do
     {
         Write-Verbose "Check Ensure"
         if(($Ensure -eq "Present" -and $website -eq $null))
@@ -454,6 +534,57 @@ function Test-TargetResource
             break       
         }
 
+        Write-Verbose -Message 'Check Binding'
+        $actualCertificateHash = $website.bindings.Collection[0].certificateHash
+        $websiteProtocol       = $website.bindings.collection[0].Protocol
+
+        switch ($PSCmdlet.ParameterSetName)
+        {
+            'CertificateThumbprint'
+            {
+#                # If a site had a binding and then has it removed then the certificateHash and certificteStoreName will still be populated
+
+#                if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic' -and $actualCertificateHash -ne $null)
+#                {
+#                    $DesiredConfigurationMatch = $false
+#                    Write-Verbose -Message "Certificate Hash for the Website $EndpointName is not null."
+#                    break
+#                }
+
+                if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic' -and $websiteProtocol -ne 'http')
+                {
+                    $DesiredConfigurationMatch = $false
+                    Write-Verbose -Message "Website $EndpointName is not configured for http and does not match the desired state."
+                    break WebSiteTests
+                }
+
+#                if ($CertificateThumbPrint -ne $actualCertificateHash)
+#                {
+#                    $DesiredConfigurationMatch = $false
+#                    Write-Verbose -Message "Certificate Hash for the Website $EndpointName does not match the desired state."
+#                    break       
+#                }
+
+                if ($CertificateThumbPrint -ne 'AllowUnencryptedTraffic' -and $websiteProtocol -ne 'https')
+                {
+                    $DesiredConfigurationMatch = $false
+                    Write-Verbose -Message "Website $EndpointName is not configured for https and does not match the desired state."
+                    break WebSiteTests
+                }
+            }
+            'CertificateSubject'
+            {
+                $CertificateThumbPrint = Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateSubject -TemplateName $CertificateTemplateName
+
+                if ($CertificateThumbPrint -ne $actualCertificateHash)
+                {
+                    $DesiredConfigurationMatch = $false
+                    Write-Verbose -Message "Certificate Hash for the Website $EndpointName does not match the desired state."
+                    break WebSiteTests
+                }
+            }
+        }
+
         Write-Verbose "Check Physical Path property"
         if(Test-WebsitePath -EndpointName $EndpointName -PhysicalPath $PhysicalPath)
         {
@@ -472,7 +603,9 @@ function Test-TargetResource
 
         Write-Verbose "Get Full Path for Web.config file"
         $webConfigFullPath = Join-Path $website.physicalPath "web.config"
-        if ($IsComplianceServer -eq $false)
+
+        # Changed from -eq $false to -ne $true as $IsComplianceServer is never set. This section was always being skipped
+        if ($IsComplianceServer -ne $true)
         {
             Write-Verbose "Check DatabasePath"
             switch ((Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbprovider"))
@@ -730,9 +863,9 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
         [String] $Authentication
     )
 
-    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.Web.Administration") | Out-Null
+    Add-Type -AssemblyName "Microsoft.Web.Administration, Version=7.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL"
 
-    $webAdminSrvMgr = [Microsoft.Web.Administration.ServerManager]::OpenRemote("127.0.0.1")
+    $webAdminSrvMgr = New-Object -TypeName Microsoft.Web.Administration.ServerManager
 
     $appHostConfig = $webAdminSrvMgr.GetApplicationHostConfiguration()
 
@@ -740,6 +873,64 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
     $appHostConfigSection = $appHostConfig.GetSection("system.webServer/security/authentication/$authenticationType", $WebSite)
     $appHostConfigSection.OverrideMode="Allow"
     $webAdminSrvMgr.CommitChanges()
+}
+
+function Find-CertificateThumbprintWithSubjectAndTemplateName
+{
+    <#
+        .SYNOPSIS
+        Returns a certificate thumbprint from a certificate with a matching subject.
+
+        .DESCRIPTION
+        Retreives a list of certificates from the a certificate store.
+        From this list all certificates will be checked to see if they match the supplied Subject and Template.
+        If one certificate is found the thumbrpint is returned. Otherwise an error is thrown.
+
+        .PARAMETER Subject
+        The subject of the certificate to find the thumbprint of.
+
+        .PARAMETER TemplateName
+        The template used to create the certificate to find the subject of.
+
+        .PARAMETER Store
+        The certificate store to retrieve certificates from.
+    #>
+
+    param
+    (
+        [Parameter(Mandatory)]
+        [String]
+        $Subject,
+
+        [Parameter(Mandatory)]
+        [String]
+        $TemplateName,
+
+        [String]
+        $Store = 'Cert:\LocalMachine\My'
+    )
+
+    [Array] $CertificatesFromTemplates = (Get-ChildItem -Path $Store).Where{$_.Extensions.Oid.Value -contains '1.3.6.1.4.1.311.20.2'}
+
+    $FilteredCertificates = $CertificatesFromTemplates.Where{
+        $_.Subject -eq $Subject -and
+        $_.Extensions.Where{
+            $_.Oid.FriendlyName -eq 'Certificate Template Name'
+        }.Format($false) -eq $TemplateName
+    }
+
+    if ($FilteredCertificates.Count -eq 1)
+    {
+        return $FilteredCertificates.Thumbprint
+    }
+    elseif ($FilteredCertificates.Count -gt 1)
+    {
+        throw ('More than one certificate found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName)
+    }
+    else
+    {
+        throw ('Certificate not found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName)
+    }
 }
 
 Export-ModuleMember -Function *-TargetResource
