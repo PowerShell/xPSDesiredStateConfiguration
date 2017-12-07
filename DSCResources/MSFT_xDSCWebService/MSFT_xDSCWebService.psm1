@@ -19,7 +19,7 @@ function Get-TargetResource
         [string]$CertificateThumbPrint = 'AllowUnencryptedTraffic',
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(Mandatory, ParameterSetName = 'CertificateSubject')]
+        [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateSubject,
 
@@ -164,7 +164,7 @@ function Set-TargetResource
         [string]$CertificateThumbPrint = 'AllowUnencryptedTraffic',
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(Mandatory, ParameterSetName = 'CertificateSubject')]
+        [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateSubject,
 
@@ -403,7 +403,7 @@ function Test-TargetResource
         [string]$CertificateThumbPrint = "AllowUnencryptedTraffic",
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(Mandatory, ParameterSetName = 'CertificateSubject')]
+        [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateSubject,
 
