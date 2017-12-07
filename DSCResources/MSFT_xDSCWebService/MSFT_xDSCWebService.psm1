@@ -14,9 +14,19 @@ function Get-TargetResource
         [string]$EndpointName,
             
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]                         
-        [string]$CertificateThumbPrint,
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateThumbPrint = 'AllowUnencryptedTraffic',
+
+        # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(Mandatory, ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateSubject,
+
+        # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateTemplateName = 'WebServer',
 
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory)]
@@ -90,9 +100,8 @@ function Get-TargetResource
         $Ensure = 'Absent'
     }
 
-    @{
+    $Output = @{
         EndpointName                    = $EndpointName
-        CertificateThumbPrint           = if($CertificateThumbPrint -eq 'AllowUnencryptedTraffic'){$CertificateThumbPrint} else {(Get-WebBinding -Name $EndpointName).CertificateHash}
         Port                            = $iisPort
         PhysicalPath                    = $website.physicalPath
         State                           = $webSite.state
@@ -107,6 +116,30 @@ function Get-TargetResource
         DisableSecurityBestPractices    = $DisableSecurityBestPractices
         Enable32BitAppOnWin64           = $Enable32BitAppOnWin64
     }
+
+    switch ($PSCmdlet.ParameterSetName)
+    {
+        'CertificateThumbprint'
+        {
+            if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic')
+            {
+                $Output.Add('CertificateThumbPrint', $CertificateThumbPrint)
+            }
+            else
+            {
+                $Output.Add('CertificateThumbPrint', $webBinding.CertificateHash)
+            }
+        }
+        'CertificateSubject'
+        {
+            $Certificate = (Get-ChildItem -Path 'Cert:\LocalMachine\My\').Where{$_.Thumbprint -eq $webBinding.CertificateHash}
+
+            $Output.Add('CertificateSubject',      $Certificate.Subject)
+            $Output.Add('CertificateTemplateName', $Certificate.Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false))
+        }
+    }
+
+    return $Output
 }
 
 # The Set-TargetResource cmdlet.
@@ -125,10 +158,20 @@ function Set-TargetResource
         # Physical path for the IIS Endpoint on the machine (usually under inetpub)                            
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
-        # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]                            
-        [string]$CertificateThumbPrint,
+        # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateThumbPrint = 'AllowUnencryptedTraffic',
+
+        # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(Mandatory, ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateSubject,
+
+        # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateTemplateName = 'WebServer',
 
         [ValidateSet("Present", "Absent")]
         [string]$Ensure = "Present",
@@ -165,6 +208,12 @@ function Set-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [boolean]$Enable32BitAppOnWin64 = $false
     )
+
+    # Find a certificate that matches the Subject and Template Name
+    if ($PSCmdlet.ParameterSetName -eq 'CertificateSubject')
+    {
+        $CertificateThumbPrint = Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateSubject -TemplateName $CertificateTemplateName
+    }
 
     # Check parameter values
     if ($UseSecurityBestPractices -and ($CertificateThumbPrint -eq "AllowUnencryptedTraffic"))
@@ -349,9 +398,19 @@ function Test-TargetResource
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
-        [Parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]                            
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint = "AllowUnencryptedTraffic",
+
+        # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(Mandatory, ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateSubject,
+
+        # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
+        [Parameter(ParameterSetName = 'CertificateSubject')]
+        [ValidateNotNullOrEmpty()]
+        [string]$CertificateTemplateName = 'WebServer',
 
         [ValidateSet("Present", "Absent")]
         [string]$Ensure = "Present",
@@ -424,6 +483,57 @@ function Test-TargetResource
             $DesiredConfigurationMatch = $false
             Write-Verbose "Port for the Website $EndpointName does not match the desired state."
             break       
+        }
+
+        Write-Verbose -Message 'Check Binding'
+        $actualCertificateHash = $website.bindings.Collection[0].certificateHash
+        $websiteProtocol       = $website.bindings.collection[0].Protocol
+
+        switch ($PSCmdlet.ParameterSetName)
+        {
+            'CertificateThumbprint'
+            {
+#                # If a site had a binding and then has it removed then the certificateHash and certificteStoreName will still be populated
+
+#                if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic' -and $actualCertificateHash -ne $null)
+#                {
+#                    $DesiredConfigurationMatch = $false
+#                    Write-Verbose -Message "Certificate Hash for the Website $EndpointName is not null."
+#                    break
+#                }
+
+                if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic' -and $websiteProtocol -ne 'http')
+                {
+                    $DesiredConfigurationMatch = $false
+                    Write-Verbose -Message "Website $EndpointName is not configured for http and does not match the desired state."
+                    break
+                }
+
+#                if ($CertificateThumbPrint -ne $actualCertificateHash)
+#                {
+#                    $DesiredConfigurationMatch = $false
+#                    Write-Verbose -Message "Certificate Hash for the Website $EndpointName does not match the desired state."
+#                    break       
+#                }
+
+                if ($CertificateThumbPrint -and $websiteProtocol -ne 'https')
+                {
+                    $DesiredConfigurationMatch = $false
+                    Write-Verbose -Message "Website $EndpointName is not configured for https and does not match the desired state."
+                    break
+                }
+            }
+            'CertificateSubject'
+            {
+                $CertificateThumbPrint = Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateSubject -TemplateName $CertificateTemplateName
+
+                if ($CertificateThumbPrint -ne $actualCertificateHash)
+                {
+                    $DesiredConfigurationMatch = $false
+                    Write-Verbose -Message "Certificate Hash for the Website $EndpointName does not match the desired state."
+                    break
+                }
+            }
         }
 
         Write-Verbose "Check Physical Path property"
@@ -707,6 +817,43 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
     $appHostConfigSection = $appHostConfig.GetSection("system.webServer/security/authentication/$authenticationType", $WebSite)
     $appHostConfigSection.OverrideMode="Allow"
     $webAdminSrvMgr.CommitChanges()
+}
+
+function Find-CertificateThumbprintWithSubjectAndTemplateName
+{
+    param
+    (
+        [Parameter(Mandatory)]
+        [String]
+        $Subject,
+
+        [Parameter(Mandatory)]
+        [String]
+        $TemplateName,
+
+        [String]
+        $Store = 'Cert:\LocalMachine\My'
+    )
+
+    $CertificatesFromTemplates = (Get-ChildItem -Path $Store).Where{$_.Extensions.Oid.Value -contains '1.3.6.1.4.1.311.20.2'}
+
+    $Certificate = $CertificatesFromTemplates.Where{
+        $_.Subject -match $Subject -and
+        $_.Extensions.Where{
+            $_.Oid.FriendlyName -eq 'Certificate Template Name'
+        }.Format($false) -eq $TemplateName
+    } | Sort-Object -Property 'NotAfter' -Descending | Select-Object -First 1
+
+    if ($Certificate)
+    {
+        return $Certificate.Thumbprint
+    }
+    else
+    {
+        # Should execution stop if no certificate is found?
+        Write-Warning -Message "Certificate not found with subject containing $Subject and using template $TemplateName."
+        return 'AllowUnencryptedTraffic'
+    }
 }
 
 Export-ModuleMember -Function *-TargetResource
