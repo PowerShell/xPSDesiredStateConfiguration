@@ -106,11 +106,7 @@ try
 
         Describe -Name "$DSCResourceName\Get-TargetResource" -Fixture {
 
-            #region DSC Web Service is not installed
-
-            #region Mocks
             Mock -CommandName Get-WebSite
-            #endregion
 
             Context -Name 'DSC Web Service is not installed' -Fixture {
                 $Result = Get-TargetResource @TestParameters
@@ -120,9 +116,6 @@ try
                 }
 
             }
-            #endregion
-
-            #region DSC Web Service is installed without certificate
 
             #region Mocks
             Mock -CommandName Get-WebSite -MockWith {return $WebsiteDataHTTP}
@@ -224,20 +217,14 @@ try
                     $Result.DisableSecurityBestPractices | Should BeNullOrEmpty
                 }
                 It 'should call expected mocks' {
-                    Assert-VerifiableMocks
                     Assert-MockCalled -Exactly 1 -CommandName Get-WebSite
                     Assert-MockCalled -Exactly 1 -CommandName Get-ChildItem
                     Assert-MockCalled -Exactly 5 -CommandName Get-WebConfigAppSetting
                     Assert-MockCalled -Exactly 1 -CommandName Get-WebConfigModulesSetting
                 }
             }
-            #endregion
 
-            #region DSC Web Service is installed and using OleDb
-
-            #region Mocks
             Mock -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'dbconnectionstr'} -MockWith {return $ServiceData.oleDbConnectionstr}
-            #endregion
 
             Context -Name 'DSC Web Service is installed and using OleDb' -Fixture {
                 $ServiceData.dbprovider = 'System.Data.OleDb'
@@ -265,13 +252,11 @@ try
                     $Result.$Variable | Should Be $Data
                 }
                 It 'should call expected mocks' {
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                     Assert-MockCalled -Exactly 1 -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'dbconnectionstr'}
                 }
             }
-            #endregion
 
-            #region DSC Web Service is installed with certificate using thumbprint
             #region Mocks
             Mock -CommandName Get-WebSite -MockWith {return $WebsiteDataHTTPS}
             Mock -CommandName Get-WebBinding -MockWith {return $WebsiteDataHTTPS.bindings.collection}
@@ -320,16 +305,12 @@ try
                     }
                 }
                 It 'should call expected mocks' {
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                     Assert-MockCalled -Exactly 1 -CommandName Get-WebSite
                     Assert-MockCalled -Exactly 1 -CommandName Get-WebBinding
                     Assert-MockCalled -Exactly 2 -CommandName Get-ChildItem
                 }
             }
-            #endregion
-
-            #region DSC Web Service is installed with certificate using subject
-
             Context -Name 'DSC Web Service is installed with certificate using subject' -Fixture {
                 $AltTestParameters = $TestParameters.Clone()
                 $AltTestParameters.Remove('CertificateThumbPrint')
@@ -373,13 +354,12 @@ try
                     }
                 }
                 It 'should call expected mocks' {
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                     Assert-MockCalled -Exactly 1 -CommandName Get-WebSite
                     Assert-MockCalled -Exactly 1 -CommandName Get-WebBinding
                     Assert-MockCalled -Exactly 2 -CommandName Get-ChildItem
                 }
             }
-            #endregion
         }
         Describe -Name "$DSCResourceName\Set-TargetResource" -Fixture {
             
@@ -674,7 +654,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
 
                 Mock -CommandName Test-WebsitePath -MockWith {$false} -Verifiable
@@ -682,14 +662,14 @@ try
                 It 'should return $false when State is set to Stopped' {
                     Test-TargetResource @TestParameters -Ensure Present -State Stopped | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $false when dbProvider is not set' {
                     Mock -CommandName Get-WebConfigAppSetting -MockWith {''} -Verifiable
 
                     Test-TargetResource @TestParameters -Ensure Present | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
 
                 Mock -CommandName Test-WebConfigAppSetting -MockWith {Write-Verbose 'Test-WebConfigAppSetting'; $true}
@@ -702,7 +682,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -DatabasePath $DatabasePath  | Should Be $true
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $false when dbProvider is set to ESENT and ConnectionString does match the value in web.config' {
                     Mock -CommandName Get-WebConfigAppSetting -MockWith {'ESENT'} -Verifiable
@@ -710,7 +690,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $true when dbProvider is set to System.Data.OleDb and ConnectionString does not match the value in web.config' {
                     $DatabasePath = 'TestDrive:\DatabasePath'
@@ -720,7 +700,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -DatabasePath $DatabasePath | Should Be $true
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $false when dbProvider is set to System.Data.OleDb and ConnectionString does match the value in web.config' {
                     Mock -CommandName Get-WebConfigAppSetting -MockWith {'System.Data.OleDb'} -Verifiable
@@ -728,7 +708,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
  
                 Mock -CommandName Get-WebConfigAppSetting -MockWith {'ESENT'} -Verifiable
@@ -741,14 +721,14 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -ModulePath $ModulePath | Should Be $true
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $false when ModulePath is not set the same as in web.config' {
                     Mock -CommandName Test-WebConfigAppSetting -MockWith {Write-Verbose 'Test-WebConfigAppSetting - ModulePath'; $false} -ParameterFilter {$AppSettingName -eq 'ModulePath'} -Verifiable
 
                     Test-TargetResource @TestParameters -Ensure Present | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
  
                 Mock -CommandName Test-WebConfigAppSetting -MockWith {$true} -ParameterFilter {$AppSettingName -eq 'ModulePath'} -Verifiable
@@ -760,7 +740,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -ConfigurationPath $ConfigurationPath | Should Be $true
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $false when ConfigurationPath is not set the same as in web.config' {
                     $ConfigurationPath = 'TestDrive:\ConfigurationPath'
@@ -769,7 +749,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -ConfigurationPath $ConfigurationPath | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
  
                 Mock -CommandName Test-WebConfigAppSetting -MockWith {$true} -ParameterFilter {$AppSettingName -eq 'ConfigurationPath'} -Verifiable
@@ -781,7 +761,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -RegistrationKeyPath $RegistrationKeyPath | Should Be $true
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $false when RegistrationKeyPath is not set the same as in web.config' {
                     $RegistrationKeyPath = 'TestDrive:\RegistrationKeyPath'
@@ -790,7 +770,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -RegistrationKeyPath $RegistrationKeyPath | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $true when AcceptSelfSignedCertificates is set the same as in web.config' {
                     $AcceptSelfSignedCertificates = $true
@@ -799,7 +779,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -AcceptSelfSignedCertificates $AcceptSelfSignedCertificates | Should Be $true
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
                 It 'should return $false when AcceptSelfSignedCertificates is not set the same as in web.config' {
                     $AcceptSelfSignedCertificates = $true
@@ -808,7 +788,7 @@ try
 
                     Test-TargetResource @TestParameters -Ensure Present -AcceptSelfSignedCertificates $AcceptSelfSignedCertificates | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
             }
 
@@ -844,7 +824,7 @@ try
 
                     Test-TargetResource @AltTestParameters -Ensure Present | Should Be $false
 
-                    Assert-VerifiableMocks
+                    Assert-VerifiableMock
                 }
             
             }
@@ -856,12 +836,12 @@ try
             It 'should return $true if Endpoint PhysicalPath doesn''t match PhysicalPath' {
                 Test-WebsitePath -EndpointName 'PesterSite' -PhysicalPath 'TestDrive:\SitePath2' | Should Be $true
 
-                Assert-VerifiableMocks
+                Assert-VerifiableMock
             }
             It 'should return $true if Endpoint PhysicalPath doesn''t match PhysicalPath' {
                 Test-WebsitePath -EndpointName 'PesterSite' -PhysicalPath $EndpointPhysicalPath | Should Be $false
 
-                Assert-VerifiableMocks
+                Assert-VerifiableMock
             }
         }
         Describe -Name "$DSCResourceName\Test-WebConfigAppSetting" -Fixture {
@@ -997,7 +977,7 @@ try
             Update-LocationTagInApplicationHostConfigForAuthentication -Website 'PesterSite' -Authentication 'Basic'
 
             It 'should call expected mocks' {
-                Assert-VerifiableMocks
+                Assert-VerifiableMock
             }
         }
         Describe -Name "$DSCResourceName\Find-CertificateThumbprintWithSubjectAndTemplateName" -Fixture {
