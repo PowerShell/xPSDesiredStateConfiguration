@@ -133,6 +133,17 @@ try
             Context -Name 'DSC Web Service is installed without certificate' -Fixture {
                 $Result = Get-TargetResource @TestParameters
 
+                $IPProperties = [Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties() 
+
+                if ($IPProperties.DomainName)
+                {
+                    $FQDNComputerName = '{0}.{1}' -f $IPProperties.HostName, $IPProperties.DomainName
+                }
+                else
+                {
+                    $FQDNComputerName = $IPProperties.HostName
+                }
+
                 $TestData = @(
                     @{
                         Variable = 'EndpointName'
@@ -164,9 +175,8 @@ try
                     }
                     @{
                         Variable = 'DSCServerURL'
-                        Data     = '{0}://{1}.{2}:{3}/{4}' -f $WebsiteDataHTTP.bindings.collection[0].protocol, 
-                                                              $env:COMPUTERNAME, 
-                                                              $env:USERDNSDOMAIN, 
+                        Data     = '{0}://{1}:{2}/{3}' -f $WebsiteDataHTTP.bindings.collection[0].protocol, 
+                                                              $FQDNComputerName, 
                                                               ($WebsiteDataHTTP.bindings.collection[0].bindingInformation -split ':')[1],
                                                               $ServiceData.ServiceName
                     }
