@@ -30,7 +30,6 @@ try
             CertificateThumbPrint    = 'AllowUnencryptedTraffic'
             EndpointName             = 'PesterTestSite'
             UseSecurityBestPractices = $false
-#            Verbose                  = $false
         }
 
         $ServiceData = @{
