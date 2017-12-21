@@ -16,7 +16,7 @@ function Get-TargetResource
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
         [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [string]$CertificateThumbPrint = 'AllowUnencryptedTraffic',
+        [string]$CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
         [Parameter(ParameterSetName = 'CertificateSubject')]
@@ -117,26 +117,17 @@ function Get-TargetResource
         Enable32BitAppOnWin64           = $Enable32BitAppOnWin64
     }
 
-    switch ($PSCmdlet.ParameterSetName)
+    if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic')
     {
-        'CertificateThumbprint'
-        {
-            if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic')
-            {
-                $Output.Add('CertificateThumbPrint', $CertificateThumbPrint)
-            }
-            else
-            {
-                $Output.Add('CertificateThumbPrint', $webBinding.CertificateHash)
-            }
-        }
-        'CertificateSubject'
-        {
-            $Certificate = (Get-ChildItem -Path 'Cert:\LocalMachine\My\').Where{$_.Thumbprint -eq $webBinding.CertificateHash}
-
-            $Output.Add('CertificateSubject',      $Certificate.Subject)
-            $Output.Add('CertificateTemplateName', $Certificate.Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false))
-        }
+        $Output.Add('CertificateThumbPrint', $CertificateThumbPrint)
+    }
+    else
+    {
+        $Certificate = ([Array](Get-ChildItem -Path 'Cert:\LocalMachine\My\')).Where{$_.Thumbprint -eq $webBinding.CertificateHash}
+        
+        $Output.Add('CertificateThumbPrint',   $webBinding.CertificateHash)
+        $Output.Add('CertificateSubject',      $Certificate.Subject)
+        $Output.Add('CertificateTemplateName', $Certificate.Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false))
     }
 
     return $Output
@@ -161,7 +152,7 @@ function Set-TargetResource
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
         [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [string]$CertificateThumbPrint = 'AllowUnencryptedTraffic',
+        [string]$CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
         [Parameter(ParameterSetName = 'CertificateSubject')]
@@ -223,8 +214,10 @@ function Set-TargetResource
         return
     }
 
-    # Initialize with default values     
-    $script:appCmd = "$env:windir\system32\inetsrv\appcmd.exe"
+    # Initialize with default values
+    Push-Location -Path "$env:windir\system32\inetsrv"
+    $script:appCmd = Get-Command -Name '.\appcmd.exe' -CommandType 'Application'
+    Pop-Location
    
     $pathPullServer = "$pshome\modules\PSDesiredStateConfiguration\PullServer"
     $jet4provider = "System.Data.OleDb"
@@ -239,7 +232,11 @@ function Set-TargetResource
         $language = 'en'
     }
 
-    $os = [System.Environment]::OSVersion.Version
+    #$os = [System.Environment]::OSVersion.Version
+    $os = Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object -Property `
+        @{N='Major'; E={$_.Version.Split('.')[0]}}, `
+        @{N='Minor'; E={$_.Version.Split('.')[1]}}, `
+        @{N='Build'; E={$_.Version.Split('.')[2]}}
     $IsBlue = $false;
     if($os.Major -eq 6 -and $os.Minor -eq 3)
     {
@@ -368,10 +365,7 @@ function Set-TargetResource
     }
     else
     {
-        if($AcceptSelfSignedCertificates -and ($AcceptSelfSignedCertificates -eq $false))
-        {
-            & $script:appCmd delete module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/"
-        }
+        & $script:appCmd delete module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/"
     }
 
     if($UseSecurityBestPractices)
@@ -453,7 +447,7 @@ function Test-TargetResource
     $website = Get-Website -Name $EndpointName
     $stop = $true
 
-    Do
+    :WebSiteTests Do
     {
         Write-Verbose "Check Ensure"
         if(($Ensure -eq "Present" -and $website -eq $null))
@@ -506,7 +500,7 @@ function Test-TargetResource
                 {
                     $DesiredConfigurationMatch = $false
                     Write-Verbose -Message "Website $EndpointName is not configured for http and does not match the desired state."
-                    break
+                    break WebSiteTests
                 }
 
 #                if ($CertificateThumbPrint -ne $actualCertificateHash)
@@ -516,11 +510,11 @@ function Test-TargetResource
 #                    break       
 #                }
 
-                if ($CertificateThumbPrint -and $websiteProtocol -ne 'https')
+                if ($CertificateThumbPrint -ne 'AllowUnencryptedTraffic' -and $websiteProtocol -ne 'https')
                 {
                     $DesiredConfigurationMatch = $false
                     Write-Verbose -Message "Website $EndpointName is not configured for https and does not match the desired state."
-                    break
+                    break WebSiteTests
                 }
             }
             'CertificateSubject'
@@ -531,7 +525,7 @@ function Test-TargetResource
                 {
                     $DesiredConfigurationMatch = $false
                     Write-Verbose -Message "Certificate Hash for the Website $EndpointName does not match the desired state."
-                    break
+                    break WebSiteTests
                 }
             }
         }
@@ -554,7 +548,7 @@ function Test-TargetResource
 
         Write-Verbose "Get Full Path for Web.config file"
         $webConfigFullPath = Join-Path $website.physicalPath "web.config"
-        if ($IsComplianceServer -eq $false)
+        if ($IsComplianceServer -ne $true)
         {
             Write-Verbose "Check DatabasePath"
             switch ((Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbprovider"))
@@ -807,9 +801,9 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
         [String] $Authentication
     )
 
-    [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.Web.Administration") | Out-Null
+    Add-Type -AssemblyName "Microsoft.Web.Administration, Version=7.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL"
 
-    $webAdminSrvMgr = [Microsoft.Web.Administration.ServerManager]::OpenRemote("127.0.0.1")
+    $webAdminSrvMgr = New-Object -TypeName Microsoft.Web.Administration.ServerManager
 
     $appHostConfig = $webAdminSrvMgr.GetApplicationHostConfiguration()
 
@@ -835,7 +829,7 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
         $Store = 'Cert:\LocalMachine\My'
     )
 
-    $CertificatesFromTemplates = (Get-ChildItem -Path $Store).Where{$_.Extensions.Oid.Value -contains '1.3.6.1.4.1.311.20.2'}
+    [Array] $CertificatesFromTemplates = (Get-ChildItem -Path $Store).Where{$_.Extensions.Oid.Value -contains '1.3.6.1.4.1.311.20.2'}
 
     $Certificate = $CertificatesFromTemplates.Where{
         $_.Subject -match $Subject -and
