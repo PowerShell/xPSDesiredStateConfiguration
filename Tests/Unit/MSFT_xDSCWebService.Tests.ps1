@@ -994,8 +994,12 @@ try
             It 'should return the certificate thumbprint when the certificate is found' {
                 Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateData.Subject -TemplateName 'WebServer' | Should Be $CertificateData.Thumbprint
             }
-            It 'should return AllowUnencryptedTraffic when the certificate is not found' {
-                Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateData.Subject -TemplateName 'Invalid Template Name' | Should Be 'AllowUnencryptedTraffic'
+            It 'should throw an error when the certificate is not found' {
+                $Subject     = $CertificateData.Subject
+                $TemplateName = 'Invalid Template Name'
+
+                $ErrorMessage = 'Certificate not found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName
+                {Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $Subject -TemplateName $TemplateName} | Should throw $ErrorMessage
             }
         }
     }

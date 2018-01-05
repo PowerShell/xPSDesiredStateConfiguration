@@ -845,8 +845,7 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
     else
     {
         # Should execution stop if no certificate is found?
-        Write-Warning -Message "Certificate not found with subject containing $Subject and using template $TemplateName."
-        return 'AllowUnencryptedTraffic'
+        throw "Certificate not found with subject containing $Subject and using template $TemplateName."
     }
 }
 
