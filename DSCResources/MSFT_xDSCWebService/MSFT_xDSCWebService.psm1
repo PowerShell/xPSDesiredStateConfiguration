@@ -14,7 +14,7 @@ function Get-TargetResource
         [string]$EndpointName,
             
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [Parameter(Mandatory, ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint,
 
@@ -150,7 +150,7 @@ function Set-TargetResource
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [Parameter(Mandatory, ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint,
 
@@ -365,7 +365,10 @@ function Set-TargetResource
     }
     else
     {
-        & $script:appCmd delete module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/"
+        if(($null -ne $AcceptSelfSignedCertificates) -and ($AcceptSelfSignedCertificates -eq $false))
+        {
+            & $script:appCmd delete module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/"
+        }
     }
 
     if($UseSecurityBestPractices)
@@ -392,9 +395,9 @@ function Test-TargetResource
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
-        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
+        [Parameter(Mandatory, ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [string]$CertificateThumbPrint = "AllowUnencryptedTraffic",
+        [string]$CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
         [Parameter(ParameterSetName = 'CertificateSubject')]
@@ -815,6 +818,25 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
 
 function Find-CertificateThumbprintWithSubjectAndTemplateName
 {
+    <#
+        .SYNOPSIS
+        Returns a certificate thumbprint from a certificate with a matching subject.
+
+        .DESCRIPTION
+        Retreives a list of certificates from the a certificate store.
+        From this list all certificates will be checked to see if they match the supplied Subject and Template.
+        If one certificate is found the thumbrpint is returned. Otherwise an error is thrown.
+
+        .PARAMETER Subject
+        The subject of the certificate to find the thumbprint of.
+
+        .PARAMETER TemplateName
+        The template used to create the certificate to find the subject of.
+
+        .PARAMETER Store
+        The certificate store to retrieve certificates from.
+    #>
+
     param
     (
         [Parameter(Mandatory)]
@@ -831,21 +853,24 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
 
     [Array] $CertificatesFromTemplates = (Get-ChildItem -Path $Store).Where{$_.Extensions.Oid.Value -contains '1.3.6.1.4.1.311.20.2'}
 
-    $Certificate = $CertificatesFromTemplates.Where{
-        $_.Subject -match $Subject -and
+    $FilteredCertificates = $CertificatesFromTemplates.Where{
+        $_.Subject -eq $Subject -and
         $_.Extensions.Where{
             $_.Oid.FriendlyName -eq 'Certificate Template Name'
         }.Format($false) -eq $TemplateName
-    } | Sort-Object -Property 'NotAfter' -Descending | Select-Object -First 1
+    }
 
-    if ($Certificate)
+    if ($FilteredCertificates.Count -eq 1)
     {
-        return $Certificate.Thumbprint
+        return $FilteredCertificates.Thumbprint
+    }
+    elseif ($FilteredCertificates.Count -gt 1)
+    {
+        throw ('More than one certificate found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName)
     }
     else
     {
-        # Should execution stop if no certificate is found?
-        throw "Certificate not found with subject containing $Subject and using template $TemplateName."
+        throw ('Certificate not found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName)
     }
 }
 

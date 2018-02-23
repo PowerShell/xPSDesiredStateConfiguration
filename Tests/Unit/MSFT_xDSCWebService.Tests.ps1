@@ -70,21 +70,53 @@ try
             state        = 'Started'
         }
 
-        $CertificateData  = [PSCustomObject] @{
-            Thumbprint = 'AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT'
-            Subject    = 'PesterTestCertificate'
-            Extensions = [Array] @(
-                [PSCustomObject] @{
-                    Oid = [PSCustomObject] @{
-                        FriendlyName = 'Certificate Template Name'
-                        Value        = '1.3.6.1.4.1.311.20.2'
+        $CertificateData  = @(
+            [PSCustomObject] @{
+                Thumbprint = 'AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT'
+                Subject    = 'PesterTestCertificate'
+                Extensions = [Array] @(
+                    [PSCustomObject] @{
+                        Oid = [PSCustomObject] @{
+                            FriendlyName = 'Certificate Template Name'
+                            Value        = '1.3.6.1.4.1.311.20.2'
+                        }
                     }
-                }
-                [PSCustomObject] @{}
-            )
-            NotAfter   = Get-Date
+                    [PSCustomObject] @{}
+                )
+                NotAfter   = Get-Date
+            }
+            [PSCustomObject] @{
+                Thumbprint = 'AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT'
+                Subject    = 'PesterTestDuplicateCertificate'
+                Extensions = [Array] @(
+                    [PSCustomObject] @{
+                        Oid = [PSCustomObject] @{
+                            FriendlyName = 'Certificate Template Name'
+                            Value        = '1.3.6.1.4.1.311.20.2'
+                        }
+                    }
+                    [PSCustomObject] @{}
+                )
+                NotAfter   = Get-Date
+            }
+            [PSCustomObject] @{
+                Thumbprint = 'AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT'
+                Subject    = 'PesterTestDuplicateCertificate'
+                Extensions = [Array] @(
+                    [PSCustomObject] @{
+                        Oid = [PSCustomObject] @{
+                            FriendlyName = 'Certificate Template Name'
+                            Value        = '1.3.6.1.4.1.311.20.2'
+                        }
+                    }
+                    [PSCustomObject] @{}
+                )
+                NotAfter   = Get-Date
+            }
+        )
+        $CertificateData.ForEach{
+            Add-Member -InputObject $_.Extensions[0] -MemberType ScriptMethod -Name Format -Value {'WebServer'}
         }
-        Add-Member -InputObject $CertificateData.Extensions[0] -MemberType ScriptMethod -Name Format -Value {'WebServer'}
 
         $WebConfig = @'
 <?xml version="1.0"?>
@@ -269,26 +301,26 @@ try
             #region Mocks
             Mock -CommandName Get-WebSite -MockWith {return $WebsiteDataHTTPS}
             Mock -CommandName Get-WebBinding -MockWith {return $WebsiteDataHTTPS.bindings.collection}
-            Mock -CommandName Get-ChildItem -ParameterFilter {$Path -eq 'Cert:\LocalMachine\My\'} -MockWith {return $CertificateData}
+            Mock -CommandName Get-ChildItem -ParameterFilter {$Path -eq 'Cert:\LocalMachine\My\'} -MockWith {return $CertificateData[0]}
             #endregion
 
             Context -Name 'DSC Web Service is installed with certificate using thumbprint' -Fixture {
                 $AltTestParameters = $TestParameters.Clone()
-                $AltTestParameters.CertificateThumbPrint = $CertificateData.Thumbprint
+                $AltTestParameters.CertificateThumbPrint = $CertificateData[0].Thumbprint
                 $Result = Get-TargetResource @AltTestParameters
 
                 $TestData = @(
                     @{
                         Variable = 'CertificateThumbPrint'
-                        Data     = $CertificateData.Thumbprint
+                        Data     = $CertificateData[0].Thumbprint
                     }
                      @{
                         Variable = 'CertificateSubject'
-                        Data     = $CertificateData.Subject
+                        Data     = $CertificateData[0].Subject
                     }
                     @{
                         Variable = 'CertificateTemplateName'
-                        Data     = $CertificateData.Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false)
+                        Data     = $CertificateData[0].Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false)
                     }
                )
 
@@ -323,21 +355,21 @@ try
             Context -Name 'DSC Web Service is installed with certificate using subject' -Fixture {
                 $AltTestParameters = $TestParameters.Clone()
                 $AltTestParameters.Remove('CertificateThumbPrint')
-                $AltTestParameters.Add('CertificateSubject', $CertificateData.Subject)
+                $AltTestParameters.Add('CertificateSubject', $CertificateData[0].Subject)
                 $Result = Get-TargetResource @AltTestParameters
 
                 $TestData = @(
                     @{
                         Variable = 'CertificateThumbPrint'
-                        Data     = $CertificateData.Thumbprint
+                        Data     = $CertificateData[0].Thumbprint
                     }
                      @{
                         Variable = 'CertificateSubject'
-                        Data     = $CertificateData.Subject
+                        Data     = $CertificateData[0].Subject
                     }
                     @{
                         Variable = 'CertificateTemplateName'
-                        Data     = $CertificateData.Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false)
+                        Data     = $CertificateData[0].Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false)
                     }
                )
 
@@ -583,7 +615,7 @@ try
             }
 
             #region Mocks
-            Mock -CommandName Find-CertificateThumbprintWithSubjectAndTemplateName -MockWith {$CertificateData.Thumbprint}
+            Mock -CommandName Find-CertificateThumbprintWithSubjectAndTemplateName -MockWith {$CertificateData[0].Thumbprint}
             #endregion
 
             Context -Name 'Ensure is Present - CertificateSubject' -Fixture {
@@ -611,7 +643,7 @@ try
 
                 $AltTestParameters = $TestParameters.Clone()
                 $AltTestParameters.UseSecurityBestPractices = $true
-                $AltTestParameters.CertificateThumbPrint = $CertificateData.Thumbprint
+                $AltTestParameters.CertificateThumbPrint = $CertificateData[0].Thumbprint
 
                 $SetTargetPaths = @{
                     DatabasePath        = 'TestDrive:\Database'
@@ -654,7 +686,7 @@ try
                 }
                 It 'should return $false if Certificate Thumbprint is set' {
                     $AltTestParameters = $TestParameters.Clone()
-                    $AltTestParameters.CertificateThumbprint = $CertificateData.Thumbprint
+                    $AltTestParameters.CertificateThumbprint = $CertificateData[0].Thumbprint
 
                     Test-TargetResource @AltTestParameters -Ensure Present | Should Be $false
                 }
@@ -824,7 +856,7 @@ try
                 It 'should return $false when UseSecurityBestPractices and insecure protocols are enabled' {
                     $AltTestParameters = $TestParameters.Clone()
                     $AltTestParameters.UseSecurityBestPractices = $true
-                    $AltTestParameters.CertificateThumbprint    = $CertificateData.Thumbprint
+                    $AltTestParameters.CertificateThumbprint    = $CertificateData[0].Thumbprint
 
                     Mock -CommandName Get-WebConfigAppSetting -MockWith {'ESENT'} -Verifiable
                     Mock -CommandName Test-WebConfigAppSetting -MockWith {$true} -ParameterFilter {$AppSettingName -eq 'dbconnectionstr'} -Verifiable
@@ -992,13 +1024,20 @@ try
         Describe -Name "$DSCResourceName\Find-CertificateThumbprintWithSubjectAndTemplateName" -Fixture {
             Mock -CommandName Get-ChildItem {,@($CertificateData)}
             It 'should return the certificate thumbprint when the certificate is found' {
-                Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateData.Subject -TemplateName 'WebServer' | Should Be $CertificateData.Thumbprint
+                Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $CertificateData[0].Subject -TemplateName 'WebServer' | Should Be $CertificateData[0].Thumbprint
             }
             It 'should throw an error when the certificate is not found' {
-                $Subject     = $CertificateData.Subject
+                $Subject      = $CertificateData[0].Subject
                 $TemplateName = 'Invalid Template Name'
 
                 $ErrorMessage = 'Certificate not found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName
+                {Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $Subject -TemplateName $TemplateName} | Should throw $ErrorMessage
+            }
+            It 'should throw an error when the more than one certificate is found' {
+                $Subject      = $CertificateData[1].Subject
+                $TemplateName = 'WebServer'
+
+                $ErrorMessage = 'More than one certificate found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName
                 {Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $Subject -TemplateName $TemplateName} | Should throw $ErrorMessage
             }
         }
