@@ -5,6 +5,7 @@ Import-Module $PSScriptRoot\UseSecurityBestPractices.psm1 -Verbose:$false
 # The Get-TargetResource cmdlet.
 function Get-TargetResource
 {
+    [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
     [OutputType([Hashtable])]
     param
     (
@@ -14,7 +15,7 @@ function Get-TargetResource
         [string]$EndpointName,
             
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(Mandatory, ParameterSetName = 'CertificateThumbPrint')]
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint,
 
@@ -40,6 +41,13 @@ function Get-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [bool]$Enable32BitAppOnWin64 = $false
     )
+
+    # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
+    # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
+    if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
+    {
+        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+    }
 
     $webSite = Get-Website -Name $EndpointName
 
@@ -136,6 +144,7 @@ function Get-TargetResource
 # The Set-TargetResource cmdlet.
 function Set-TargetResource
 {
+    [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
     param
     (
         # Prefix of the WCF SVC File
@@ -150,7 +159,7 @@ function Set-TargetResource
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server   
-        [Parameter(Mandatory, ParameterSetName = 'CertificateThumbPrint')]
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint,
 
@@ -199,6 +208,13 @@ function Set-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [boolean]$Enable32BitAppOnWin64 = $false
     )
+
+    # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
+    # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
+    if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
+    {
+        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+    }
 
     # Find a certificate that matches the Subject and Template Name
     if ($PSCmdlet.ParameterSetName -eq 'CertificateSubject')
@@ -380,6 +396,7 @@ function Set-TargetResource
 # The Test-TargetResource cmdlet.
 function Test-TargetResource
 {
+    [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
     [OutputType([Boolean])]
     param
     (
@@ -395,7 +412,7 @@ function Test-TargetResource
         [string]$PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
-        [Parameter(Mandatory, ParameterSetName = 'CertificateThumbPrint')]
+        [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
         [string]$CertificateThumbPrint,
 
@@ -444,6 +461,13 @@ function Test-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [bool]$Enable32BitAppOnWin64 = $false
     )
+
+    # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
+    # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
+    if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
+    {
+        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+    }
 
     $desiredConfigurationMatch = $true;
 
