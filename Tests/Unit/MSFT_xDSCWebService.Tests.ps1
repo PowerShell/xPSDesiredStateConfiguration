@@ -257,7 +257,7 @@ try
                          $Result.$Variable  | Should Be Null
                     }
                 }
-                It 'should return DisableSecurityBestPractices set to $null' {
+                It 'should return ''DisableSecurityBestPractices'' set to $null' {
                     $Result.DisableSecurityBestPractices | Should BeNullOrEmpty
                 }
                 It 'should call expected mocks' {
@@ -355,6 +355,7 @@ try
                     Assert-MockCalled -Exactly 2 -CommandName Get-ChildItem
                 }
             }
+
             Context -Name 'DSC Web Service is installed with certificate using subject' -Fixture {
                 $AltTestParameters = $TestParameters.Clone()
                 $AltTestParameters.Remove('CertificateThumbPrint')
@@ -404,6 +405,21 @@ try
                     Assert-MockCalled -Exactly 2 -CommandName Get-ChildItem
                 }
             }
+
+            Context -Name 'Function parameters contain invalid data' -Fixture {
+                It 'should throw if CertificateThumbprint and CertificateSubject are not specifed' {
+                    $AltTestParameters = $TestParameters.Clone()
+                    $AltTestParameters.Remove('CertificateThumbPrint')
+                    
+                    {$Result = Get-TargetResource @AltTestParameters} | Should Throw 
+                }
+                It 'should throw if CertificateThumbprint and CertificateSubject are both specifed' {
+                    $AltTestParameters = $TestParameters.Clone()
+                    $AltTestParameters.Add('CertificateSubject', $CertificateData[0].Subject)
+
+                    {$Result = Get-TargetResource @AltTestParameters} | Should Throw 
+                }
+            }
         }
         Describe -Name "$DSCResourceName\Set-TargetResource" -Fixture {
 
@@ -419,7 +435,7 @@ try
             )
 
             Mock -CommandName Get-Command -ParameterFilter {$Name -eq '.\appcmd.exe'} -MockWith {[ScriptBlock]::Create($TestArguments)}
-            Mock -CommandName Get-CimInstance -MockWith {@{Version = '6.3.9600'}}
+            Mock -CommandName Get-OSVersion -MockWith {@{Major = 6; Minor = 3}}
             Mock -CommandName Get-Website
             #endregion
 
@@ -472,7 +488,7 @@ try
                     Assert-MockCalled -Exactly 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly 1 -CommandName Test-Path
-                    Assert-MockCalled -Exactly 1 -CommandName Get-CimInstance
+                    Assert-MockCalled -Exactly 1 -CommandName Get-OSVersion
                     Assert-MockCalled -Exactly 1 -CommandName New-PSWSEndpoint
                     Assert-MockCalled -Exactly 3 -CommandName Update-LocationTagInApplicationHostConfigForAuthentication
                     Assert-MockCalled -Exactly 5 -CommandName Set-AppSettingsInWebconfig
@@ -501,7 +517,7 @@ try
             Context -Name 'Ensure is Present - isDownLevelOfBlue' -Fixture {
                 
                 #region Mocks
-                Mock -CommandName Get-CimInstance -MockWith {@{Version = '6.2.9200'}}
+                Mock -CommandName Get-OSVersion -MockWith {@{Major = 6; Minor = 2}}
                 #endregion
 
                 $SetTargetPaths = @{
@@ -518,7 +534,7 @@ try
                     Assert-MockCalled -Exactly 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly 1 -CommandName Test-Path
-                    Assert-MockCalled -Exactly 1 -CommandName Get-CimInstance
+                    Assert-MockCalled -Exactly 1 -CommandName Get-OSVersion
                     Assert-MockCalled -Exactly 1 -CommandName New-PSWSEndpoint
                     Assert-MockCalled -Exactly 3 -CommandName Update-LocationTagInApplicationHostConfigForAuthentication
                     Assert-MockCalled -Exactly 5 -CommandName Set-AppSettingsInWebconfig
@@ -530,7 +546,7 @@ try
             Context -Name 'Ensure is Present - isUpLevelOfBlue' -Fixture {
                 
                 #region Mocks
-                Mock -CommandName Get-CimInstance -MockWith {@{Version = '10.0.16299'}}
+                Mock -CommandName Get-OSVersion -MockWith {@{Major = 10; Minor = 0}}
                 #endregion
 
                 $SetTargetPaths = @{
@@ -547,7 +563,7 @@ try
                     Assert-MockCalled -Exactly 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly 1 -CommandName Test-Path
-                    Assert-MockCalled -Exactly 1 -CommandName Get-CimInstance
+                    Assert-MockCalled -Exactly 1 -CommandName Get-OSVersion
                     Assert-MockCalled -Exactly 1 -CommandName New-PSWSEndpoint
                     Assert-MockCalled -Exactly 3 -CommandName Update-LocationTagInApplicationHostConfigForAuthentication
                     Assert-MockCalled -Exactly 5 -CommandName Set-AppSettingsInWebconfig
@@ -571,7 +587,7 @@ try
                     Assert-MockCalled -Exactly 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly 1 -CommandName Test-Path
-                    Assert-MockCalled -Exactly 1 -CommandName Get-CimInstance
+                    Assert-MockCalled -Exactly 1 -CommandName Get-OSVersion
                     Assert-MockCalled -Exactly 1 -CommandName New-PSWSEndpoint
                     Assert-MockCalled -Exactly 3 -CommandName Update-LocationTagInApplicationHostConfigForAuthentication
                     Assert-MockCalled -Exactly 5 -CommandName Set-AppSettingsInWebconfig
@@ -601,7 +617,7 @@ try
                     Assert-MockCalled -Exactly 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly 1 -CommandName Test-Path
-                    Assert-MockCalled -Exactly 1 -CommandName Get-CimInstance
+                    Assert-MockCalled -Exactly 1 -CommandName Get-OSVersion
                     Assert-MockCalled -Exactly 1 -CommandName New-PSWSEndpoint
                     Assert-MockCalled -Exactly 3 -CommandName Update-LocationTagInApplicationHostConfigForAuthentication
                     Assert-MockCalled -Exactly 5 -CommandName Set-AppSettingsInWebconfig
@@ -665,6 +681,15 @@ try
                 It 'should call expected mocks' {
                     Assert-MockCalled -Exactly 0 -CommandName Find-CertificateThumbprintWithSubjectAndTemplateName
                     Assert-MockCalled -Exactly 1 -CommandName Set-UseSecurityBestPractices
+                }
+            }
+
+            Context -Name 'Function parameters contain invalid data' -Fixture {
+                It 'should throw if CertificateThumbprint and CertificateSubject are not specifed' {
+                    $AltTestParameters = $TestParameters.Clone()
+                    $AltTestParameters.Remove('CertificateThumbPrint')
+                    
+                    {$Result = Set-TargetResource @AltTestParameters} | Should Throw 
                 }
             }
         }
@@ -879,6 +904,15 @@ try
                 }
             
             }
+ 
+            Context -Name 'Function parameters contain invalid data' -Fixture {
+                It 'should throw if CertificateThumbprint and CertificateSubject are not specifed' {
+                    $AltTestParameters = $TestParameters.Clone()
+                    $AltTestParameters.Remove('CertificateThumbPrint')
+                    
+                    {$Result = Test-TargetResource @AltTestParameters} | Should Throw 
+                }
+            }
         }
         Describe -Name "$DSCResourceName\Test-WebsitePath" -Fixture {
 
@@ -1081,6 +1115,11 @@ try
 
                 $ErrorMessage = 'More than one certificate found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName
                 {Find-CertificateThumbprintWithSubjectAndTemplateName -Subject $Subject -TemplateName $TemplateName} | Should throw $ErrorMessage
+            }
+        }
+        Describe -Name "$DSCResourceName\Get-OSVersion" -Fixture {
+            It 'should return a System.Version object' {
+                Get-OSVersion | Should BeOfType System.Version
             }
         }
     }

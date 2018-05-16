@@ -2,6 +2,23 @@
 Import-Module $PSScriptRoot\PSWSIISEndpoint.psm1 -Verbose:$false
 Import-Module $PSScriptRoot\UseSecurityBestPractices.psm1 -Verbose:$false
 
+#region LocalizedData
+$Culture = 'en-US'
+
+if (Test-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath $PSUICulture))
+{
+    $Culture = $PSUICulture
+}
+
+$ImportLocalizedDataParams = @{
+    BindingVariable = 'LocalizedData'
+    Filename        = 'MSFT_xDSCWebService.psd1'
+    BaseDirectory   = $PSScriptRoot
+    UICulture       = $Culture
+}
+Import-LocalizedData @ImportLocalizedDataParams
+#endregion
+
 # The Get-TargetResource cmdlet.
 function Get-TargetResource
 {
@@ -46,7 +63,7 @@ function Get-TargetResource
     # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
     if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
     {
-        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+        throw $LocalizedData.ThrowCertificateThumbprint
     }
 
     $webSite = Get-Website -Name $EndpointName
@@ -223,7 +240,7 @@ function Set-TargetResource
     # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
     if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
     {
-        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+        throw $LocalizedData.ThrowCertificateThumbprint
     }
 
     # Find a certificate that matches the Subject and Template Name
@@ -235,7 +252,7 @@ function Set-TargetResource
     # Check parameter values
     if ($UseSecurityBestPractices -and ($CertificateThumbPrint -eq "AllowUnencryptedTraffic"))
     {
-        throw "Error: Cannot use best practice security settings with unencrypted traffic. Please set UseSecurityBestPractices to `$false or use a certificate to encrypt pull server traffic."
+        throw $LocalizedData.ThrowUseSecurityBestPractice
         # No need to proceed any more
         return
     }
@@ -258,11 +275,8 @@ function Set-TargetResource
         $language = 'en'
     }
 
-    #$os = [System.Environment]::OSVersion.Version
-    $os = Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object -Property `
-        @{N='Major'; E={$_.Version.Split('.')[0]}}, `
-        @{N='Minor'; E={$_.Version.Split('.')[1]}}, `
-        @{N='Build'; E={$_.Version.Split('.')[2]}}
+    $os = Get-OSVersion
+
     $IsBlue = $false;
     if($os.Major -eq 6 -and $os.Minor -eq 3)
     {
@@ -494,7 +508,7 @@ function Test-TargetResource
     # The Mof schema doesn't allow for a mandatory parameter in a parameter set.
     if ($PScmdlet.ParameterSetName -eq 'CertificateThumbPrint' -and $PSBoundParameters.ContainsKey('CertificateThumbPrint') -ne $true)
     {
-        throw 'CertificateThumbprint must contain a certificate thumbprint or "AllowUnencryptedTraffic".'
+        throw $LocalizedData.ThrowCertificateThumbprint
     }
 
     $desiredConfigurationMatch = $true;
@@ -863,7 +877,9 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
         [String] $Authentication
     )
 
-    Add-Type -AssemblyName "Microsoft.Web.Administration, Version=7.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL"
+    $GacAssemblyVersion = Get-GacAssemblyVersion -AssemblyName 'Microsoft.Web.Administration'
+
+    Add-Type -AssemblyName ($GacAssemblyVersion)
 
     $webAdminSrvMgr = New-Object -TypeName Microsoft.Web.Administration.ServerManager
 
@@ -910,13 +926,30 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
         $Store = 'Cert:\LocalMachine\My'
     )
 
-    [Array] $CertificatesFromTemplates = (Get-ChildItem -Path $Store).Where{$_.Extensions.Oid.Value -contains '1.3.6.1.4.1.311.20.2'}
+    # 1.3.6.1.4.1.311.20.2 = Certificate Template Name
+    # 1.3.6.1.4.1.311.21.7 = Certificate Template Information
 
-    $FilteredCertificates = $CertificatesFromTemplates.Where{
-        $_.Subject -eq $Subject -and
-        $_.Extensions.Where{
-            $_.Oid.FriendlyName -eq 'Certificate Template Name'
-        }.Format($false) -eq $TemplateName
+    $FilteredCertificates = @()
+
+    foreach ($OidFriendlyName in 'Certificate Template Name', 'Certificate Template Information')
+    {
+        # Only get certificates created from a template otherwise filtering by subject and template name will cause errors
+        [Array] $CertificatesFromTemplates = (Get-ChildItem -Path $Store).Where{
+            $_.Extensions.Oid.FriendlyName -contains $OidFriendlyName
+        }
+
+        switch ($OidFriendlyName)
+        {
+            'Certificate Template Name'        {$TemplateMatchString = $TemplateName}
+            'Certificate Template Information' {$TemplateMatchString = '^Template={0}' -f $TemplateName}
+        }
+
+        $FilteredCertificates += $CertificatesFromTemplates.Where{
+            $_.Subject -eq $Subject -and
+            $_.Extensions.Where{
+                $_.Oid.FriendlyName -eq $OidFriendlyName
+            }.Format($false) -match $TemplateMatchString
+        }
     }
 
     if ($FilteredCertificates.Count -eq 1)
@@ -925,12 +958,30 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
     }
     elseif ($FilteredCertificates.Count -gt 1)
     {
-        throw ('More than one certificate found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName)
+        throw ($LocalizedData.FindCertificateBySubjectMultiple -f $Subject, $TemplateName)
     }
     else
     {
-        throw ('Certificate not found with subject containing {0} and using template {1}.' -f $Subject, $TemplateName)
+        throw ($LocalizedData.FindCertificateBySubjectNotFound -f $Subject, $TemplateName)
     }
+}
+
+function Get-GacAssemblyVersion
+{
+    [OutputType([String])]
+    param
+    (
+        [Parameter(Mandatory)]
+        [String]
+        $AssemblyName
+    )
+
+    return [String] [System.Reflection.Assembly]::LoadWithPartialName($AssemblyName)
+}
+function Get-OSVersion
+{
+    # Moved to a function to allow for the behaviour to be mocked.
+    return [System.Environment]::OSVersion.Version
 }
 
 Export-ModuleMember -Function *-TargetResource
