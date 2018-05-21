@@ -1,14 +1,31 @@
 # xPSDesiredStateConfiguration
 
-master: [![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8yu6c/branch/master?svg=true)](https://ci.appveyor.com/project/PowerShell/xpsdesiredstateconfiguration/branch/master)
-dev : [![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8yu6c/branch/dev?svg=true)](https://ci.appveyor.com/project/PowerShell/xpsdesiredstateconfiguration/branch/dev)
-
 The **xPSDesiredStateConfiguration** module is a more recent, experimental version of the PSDesiredStateConfiguration module that ships in Windows as part of PowerShell 4.0.
 
 The high quality, supported version of this module is available as [PSDscResources](https://github.com/PowerShell/PSDscResources).
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+## Branches
+
+### master
+
+[![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8yu6c/branch/master?svg=true)](https://ci.appveyor.com/project/PowerShell/xPSDesiredStateConfiguration/branch/master)
+[![codecov](https://codecov.io/gh/PowerShell/xPSDesiredStateConfiguration/branch/master/graph/badge.svg)](https://codecov.io/gh/PowerShell/xPSDesiredStateConfiguration/branch/master)
+
+This is the branch containing the latest release -
+no contributions should be made directly to this branch.
+
+### dev
+
+[![Build status](https://ci.appveyor.com/api/projects/status/s35s7sxuyym8yu6c/branch/dev?svg=true)](https://ci.appveyor.com/project/PowerShell/xPSDesiredStateConfiguration/branch/dev)
+[![codecov](https://codecov.io/gh/PowerShell/xPSDesiredStateConfiguration/branch/dev/graph/badge.svg)](https://codecov.io/gh/PowerShell/xPSDesiredStateConfiguration/branch/dev)
+
+This is the development branch
+to which contributions should be proposed by contributors as pull requests.
+This development branch will periodically be merged to the master branch,
+and be released to [PowerShell Gallery](https://www.powershellgallery.com/).
 
 ## Contributing
 
@@ -636,7 +653,10 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 
 ### Unreleased
 
-* README.md: Fixed typo
+* Changes to xPSDesiredStateConfiguration
+  * README.md: Fixed typo [Steve Banik (@stevebanik-ndsc)](https://github.com/stevebanik-ndsc)
+  * Adding a Branches section to the README.md with Codecov badges for both
+    master and dev branch ([issue #416](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/416)).
 * Changes to xWindowsProcess
   * Integration tests for this resource should no longer fail randomly. A timing
     issue made the tests fail in certain scenarios ([issue #420](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/420)).
