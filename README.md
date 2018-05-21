@@ -654,7 +654,7 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 ### Unreleased
 
 * Changes to xPSDesiredStateConfiguration
-  * README.md: Fixed typo [Steve Banik (@stevebanik-ndsc)](https://github.com/stevebanik-ndsc)
+  * README.md: Fixed typo. [Steve Banik (@stevebanik-ndsc)](https://github.com/stevebanik-ndsc)
   * Adding a Branches section to the README.md with Codecov badges for both
     master and dev branch ([issue #416](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/416)).
 * Changes to xWindowsProcess
