@@ -640,6 +640,7 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 * Changes to xWindowsProcess
   * Integration tests for this resource should no longer fail randomly. A timing
     issue made the tests fail in certain scenarios ([issue #420](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/420)).
+* Updated the main DSCPullServerSetup readme to read easier, then updates the PowerShell comment based help for each function to follow normal help standards. ` [James Pogran (@jpogran)](https://github.com/jpogran)`
 
 ### 8.2.0.0
 
