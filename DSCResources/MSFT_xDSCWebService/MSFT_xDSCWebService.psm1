@@ -53,7 +53,7 @@ function Get-TargetResource
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Bool]
+        [Boolean]
         $UseSecurityBestPractices,
 
         # Exceptions of security best practices
@@ -64,7 +64,7 @@ function Get-TargetResource
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
-        [Bool]
+        [Boolean]
         $Enable32BitAppOnWin64 = $false
     )
 
@@ -243,12 +243,12 @@ function Set-TargetResource
 
         # Add the IISSelfSignedCertModule native module to prevent self-signed certs being rejected.
         [Parameter()]
-        [Bool]
+        [Boolean]
         $AcceptSelfSignedCertificates = $true,
         
         # Required Field when user want to enable DSC to use SQL server as backend DB
         [Parameter()]
-        [Bool]
+        [Boolean]
         $SqlProvider = $false,
 
         # User is required to provide the SQL Connection String with the ServerProvider , ServerName , UserID , and Passwords fields  to enable DSC to use SQL server as backend DB
@@ -259,7 +259,7 @@ function Set-TargetResource
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Bool]
+        [Boolean]
         $UseSecurityBestPractices,
 
         # Exceptions of security best practices
@@ -270,7 +270,7 @@ function Set-TargetResource
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
-        [Bool]
+        [Boolean]
         $Enable32BitAppOnWin64 = $false
     )
 
@@ -472,7 +472,7 @@ function Set-TargetResource
 function Test-TargetResource
 {
     [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
-    [OutputType([Bool])]
+    [OutputType([Boolean])]
     param
     (
         # Prefix of the WCF SVC File
@@ -542,12 +542,12 @@ function Test-TargetResource
 
         # Are self-signed certs being accepted for client auth.
         [Parameter()]
-        [Bool]
+        [Boolean]
         $AcceptSelfSignedCertificates,
 
         # Required Field when user want to enable DSC to use SQL server as backend DB
         [Parameter()]
-        [Bool]
+        [Boolean]
         $SqlProvider = $false,
 
         # User is required to provide the SQL Connection String with the ServerProvider , ServerName , UserID , and Passwords fields  to enable DSC to use SQL server as backend DB
@@ -558,7 +558,7 @@ function Test-TargetResource
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Bool]
+        [Boolean]
         $UseSecurityBestPractices,
 
         # Exceptions of security best practices
@@ -569,7 +569,7 @@ function Test-TargetResource
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
-        [Bool]
+        [Boolean]
         $Enable32BitAppOnWin64 = $false
     )
 
@@ -863,7 +863,7 @@ function Get-WebConfigAppSetting
     $appSettingValue = ""
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [xml](get-content -Path $WebConfigFullPath)
+        $webConfigXml = [Xml](Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement() 
 
         foreach ($item in $root.appSettings.add) 
@@ -893,7 +893,7 @@ function Test-WebConfigModulesSetting
         $ModuleName,
 
         [Parameter(Mandatory = $true)]
-        [Bool]
+        [Boolean]
         $ExpectedInstallationStatus
     )
     
@@ -901,28 +901,19 @@ function Test-WebConfigModulesSetting
 
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [xml](get-content -Path $WebConfigFullPath)
+        $webConfigXml = [Xml](Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement() 
 
         foreach ($item in $root."system.webServer".modules.add) 
         { 
             if( $item.name -eq $ModuleName ) 
-            {           
-                if($ExpectedInstallationStatus -eq $true)
-                {
-                    $returnValue = $true                  
-                }
-                break
-            } 
+            {
+                return $ExpectedInstallationStatus -eq $true
+            }
         }
     }
 
-    if(($ExpectedInstallationStatus -eq $false) -and ($returnValue -eq $false))
-    {
-        $returnValue = $true
-    }
-
-    $returnValue
+    return $ExpectedInstallationStatus -eq $false
 }
 
 # Helper function to Get the specified Web.Config Modules Setting
@@ -942,7 +933,7 @@ function Get-WebConfigModulesSetting
     $moduleValue = ""
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [xml](get-content -Path $WebConfigFullPath)
+        $webConfigXml = [Xml](Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement() 
 
         foreach ($item in $root."system.webServer".modules.add) 

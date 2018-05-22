@@ -637,6 +637,9 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 ### Unreleased
 
 * README.md: Fixed typo
+* xDSCWebService: Added the option to use a certificate based on it's subject and template name instead of it’s thumbprint. Resolves #205.
+* xDSCWebService: Fixed an issue where Test-WebConfigModulesSetting would return $true when web.config contains a module and the desired state was for it to be absent. Resolves #418.
+
 
 ### 8.2.0.0
 
