@@ -461,12 +461,17 @@ function Set-TargetResource
         else {
             Write-Verbose -Message "Enabling Pull Server to run in a 64 bit process"
         }
-        $sourceFilePath = Join-Path -Path "$env:windir\System32\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
-        $destinationFolderPath = "$env:windir\System32\inetsrv"
-        $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $iisSelfSignedModuleAssemblyName
-        Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
 
-        & $script:appCmd install module /name:$iisSelfSignedModuleName /image:$destinationFilePath /add:false /lock:false
+        if (-not ((& $script:appCmd list config -section:system.webServer/globalModules) -match 'IISSelfSignedCertModule'))
+        {
+            $sourceFilePath = Join-Path -Path "$env:windir\System32\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
+            $destinationFolderPath = "$env:windir\System32\inetsrv"
+            $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $iisSelfSignedModuleAssemblyName
+            Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
+
+            & $script:appCmd install module /name:$iisSelfSignedModuleName /image:$destinationFilePath /add:false /lock:false
+        }
+
         & $script:appCmd add module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/" $preConditionBitnessArgumentFor32BitInstall
     }
     else
