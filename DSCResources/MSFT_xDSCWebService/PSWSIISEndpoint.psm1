@@ -13,24 +13,77 @@ $FireWallRuleDisplayName = "Desired State Configuration - Pull Server Port:{0}"
 #
 function Initialize-Endpoint
 {
-    param (
+    [CmdletBinding()]
+    param
+    (
+        [Parameter()]
+        [System.String]
         $site,
+
+        [Parameter()]
+        [System.String]
         $path,
+
+        [Parameter()]
+        [System.String]
         $cfgfile,
+
+        [Parameter()]
+        [System.String]
         $port,
+
+        [Parameter()]
+        [System.String]
         $app,
+
+        [Parameter()]
+        [System.String]
         $applicationPoolIdentityType,
+
+        [Parameter()]
+        [System.String]
         $svc,
+
+        [Parameter()]
+        [System.String]
         $mof,
+
+        [Parameter()]
+        [System.String]
         $dispatch,
+
+        [Parameter()]
+        [System.String]
         $asax,
+
+        [Parameter()]
+        [System.String]
         $dependentBinaries,
+
+        [Parameter()]
+        [System.String]
         $language,
+
+        [Parameter()]
+        [System.String]
         $dependentMUIFiles,
+
+        [Parameter()]
+        [System.String]
         $psFiles,
+
+        [Parameter()]
+        [System.Boolean]
         $removeSiteFiles = $false,
+
+        [Parameter()]
+        [System.String]
         $certificateThumbPrint,
-        $enable32BitAppOnWin64)
+
+        [Parameter()]
+        [System.Boolean]
+        $enable32BitAppOnWin64
+    )
 
     if (!(Test-Path $cfgfile))
     {
@@ -120,7 +173,13 @@ function Test-IISInstall
 #
 function Test-ForIISSite
 {
-    param ($siteName)
+    [CmdletBinding()]
+    param
+    (
+        [Parameter()]
+        [System.String]
+        $siteName
+    )
 
     if (Get-Website -Name $siteName)
     {
@@ -134,17 +193,22 @@ function Test-ForIISSite
 #
 function Update-Site
 {
-    param (
-        [Parameter(ParameterSetName = 'SiteName', Mandatory, Position = 0)]
+    param
+    (
+        [Parameter(ParameterSetName = 'SiteName', Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [String]$siteName,
+        [String]
+        $siteName,
 
-        [Parameter(ParameterSetName = 'Site', Mandatory, Position = 0)]
+        [Parameter(ParameterSetName = 'Site', Mandatory = $true, Position = 0)]
+        [System.Object]
         $site,
 
-        [Parameter(ParameterSetName = 'SiteName', Mandatory, Position = 1)]
-        [Parameter(ParameterSetName = 'Site', Mandatory, Position = 1)]
-        [String]$siteAction)
+        [Parameter(ParameterSetName = 'SiteName', Mandatory = $true, Position = 1)]
+        [Parameter(ParameterSetName = 'Site', Mandatory = $true, Position = 1)]
+        [String]
+        $siteAction
+    )
 
     [String]$name = $null
     if ($PSCmdlet.ParameterSetName -eq 'SiteName')
@@ -173,7 +237,13 @@ function Update-Site
 #
 function Remove-AppPool
 {
-    param ($appPool)
+    [CmdletBinding()]
+    param
+    (
+        [Parameter()]
+        [System.String]
+        $appPool
+    )
 
     # without this tests we may get a breaking error here, despite SilentlyContinue
     if (Test-Path "IIS:\AppPools\$appPool")
@@ -194,17 +264,49 @@ function New-SiteID
 #
 function Copy-Configuration
 {
-    param (
+    [CmdletBinding()]
+    param
+    (
+        [Parameter()]
+        [System.String]
         $path,
+
+        [Parameter()]
+        [System.String]
         $cfgfile,
+
+        [Parameter()]
+        [System.String]
         $svc,
+
+        [Parameter()]
+        [System.String]
         $mof,
+
+        [Parameter()]
+        [System.String]
         $dispatch,
+
+        [Parameter()]
+        [System.String]
         $asax,
+
+        [Parameter()]
+        [System.String]
         $dependentBinaries,
+
+        [Parameter()]
+        [System.String]
         $language,
+
+        [Parameter()]
+        [System.String]
         $dependentMUIFiles,
-        $psFiles)
+
+        [Parameter()]
+        [System.String]
+        $psFiles
+    )
 
     if (!(Test-Path $cfgfile))
     {
@@ -292,15 +394,41 @@ function Copy-Configuration
 #
 function New-IISWebSite
 {
-    param (
+    [CmdletBinding()]
+    param
+    (
+        [Parameter()]
+        [System.String]
         $site,
+
+        [Parameter()]
+        [System.String]
         $path,
+
+        [Parameter()]
+        [System.String]
         $port,
+
+        [Parameter()]
+        [System.String]
         $app,
+
+        [Parameter()]
+        [System.String]
         $appPool,
+
+        [Parameter()]
+        [System.String]
         $applicationPoolIdentityType,
+
+        [Parameter()]
+        [System.String]
         $certificateThumbPrint,
-        $enable32BitAppOnWin64)
+
+        [Parameter()]
+        [System.Boolean]
+        $enable32BitAppOnWin64
+    )
 
     $siteID = New-SiteID
 
@@ -355,7 +483,13 @@ function New-IISWebSite
 #
 function New-FirewallRule
 {
-    param ($firewallPort)
+    [CmdletBinding()]
+    param
+    (
+        [Parameter()]
+        [System.String]
+        $firewallPort
+    )
 
     $script:netsh = "$env:windir\system32\netsh.exe"
 
@@ -400,74 +534,111 @@ function Enable-PSWSETW
 #>
 function New-PSWSEndpoint
 {
-[CmdletBinding()]
+    [CmdletBinding()]
     param (
 
         # Unique Name of the IIS Site
-        [String] $site = "PSWS",
+        [Parameter()]
+        [String]
+        $site = "PSWS",
 
         # Physical path for the IIS Endpoint on the machine (under inetpub)
-        [String] $path = "$env:SystemDrive\inetpub\PSWS",
+        [Parameter()]
+        [String]
+        $path = "$env:SystemDrive\inetpub\PSWS",
 
         # Web.config file
-        [String] $cfgfile = "web.config",
+        [Parameter()]
+        [String]
+        $cfgfile = "web.config",
 
         # Port # for the IIS Endpoint
-        [Int] $port = 8080,
+        [Parameter()]
+        [Int]
+        $port = 8080,
 
         # IIS Application Name for the Site
-        [String] $app = "PSWS",
+        [Parameter()]
+        [String]
+        $app = "PSWS",
 
         # IIS App Pool Identity Type - must be one of LocalService, LocalSystem, NetworkService, ApplicationPoolIdentity
+        [Parameter()]
         [ValidateSet('LocalService', 'LocalSystem', 'NetworkService', 'ApplicationPoolIdentity')]
-        [String] $applicationPoolIdentityType,
+        [String]
+        $applicationPoolIdentityType,
 
         # WCF Service SVC file
-        [String] $svc = "PSWS.svc",
+        [Parameter()]
+        [String]
+        $svc = "PSWS.svc",
 
         # PSWS Specific MOF Schema File
-        [parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $mof,
+        [String]
+        $mof,
 
         # PSWS Specific Dispatch Mapping File [Optional]
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String] $dispatch,
+        [String]
+        $dispatch,
 
         # Global.asax file [Optional]
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String] $asax,
+        [String]
+        $asax,
 
         # Any dependent binaries that need to be deployed to the IIS endpoint, in the bin folder
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String[]] $dependentBinaries,
+        [String[]]
+        $dependentBinaries,
 
          # MUI Language [Optional]
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String] $language,
+        [String]
+        $language,
 
         # Any dependent binaries that need to be deployed to the IIS endpoint, in the bin\mui folder [Optional]
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String[]] $dependentMUIFiles,
+        [String[]]
+        $dependentMUIFiles,
 
         # Any dependent PowerShell Scipts/Modules that need to be deployed to the IIS endpoint application root
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String[]] $psFiles,
+        [String[]]
+        $psFiles,
 
         # True to remove all files for the site at first, false otherwise
-        [Boolean]$removeSiteFiles = $false,
+        [Parameter()]
+        [Boolean]
+        $removeSiteFiles = $false,
 
         # Enable Firewall Exception for the supplied port
-        [Boolean] $EnableFirewallException,
+        [Parameter()]
+        [Boolean]
+        $EnableFirewallException,
 
         # Enable and Clear PSWS ETW
-        [switch] $EnablePSWSETW,
+        [Parameter()]
+        [Switch]
+        $EnablePSWSETW,
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
-        [String] $certificateThumbPrint = "AllowUnencryptedTraffic",
+        [Parameter()]
+        [String]
+        $certificateThumbPrint = "AllowUnencryptedTraffic",
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
-        [boolean]$Enable32BitAppOnWin64 = $false)
+        [Parameter()]
+        [Boolean]
+        $Enable32BitAppOnWin64 = $false)
 
     $script:wevtutil = "$env:windir\system32\Wevtutil.exe"
 
@@ -513,10 +684,13 @@ function New-PSWSEndpoint
 function Remove-PSWSEndpoint
 {
 [CmdletBinding()]
-    param (
+    param
+    (
         # Unique Name of the IIS Site
-            [String] $siteName
-        )
+        [Parameter()]
+        [String]
+        $siteName
+    )
 
        # get the site to remove
        $site = Get-Item -Path "IIS:\sites\$siteName"
@@ -571,17 +745,17 @@ function Set-AppSettingsInWebconfig
     param (
 
         # Physical path for the IIS Endpoint on the machine (possibly under inetpub)
-        [parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String] $path,
 
         # Key to add/update
-        [parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String] $key,
 
         # Value
-        [parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String] $value
 
@@ -641,15 +815,20 @@ function Set-BindingRedirectSettingInWebConfig
     param (
 
         # Physical path for the IIS Endpoint on the machine (possibly under inetpub)
-        [parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $path,
+        [String]
+        $path,
 
         # old version of the assembly
-        [String] $oldVersion = "10.0.0.0",
+        [Parameter()]
+        [String]
+        $oldVersion = "10.0.0.0",
 
         # new version to redirect to
-        [String] $newVersion = "6.3.0.0"
+        [Parameter()]
+        [String]
+        $newVersion = "6.3.0.0"
 
         )
 
