@@ -174,6 +174,7 @@ function Test-IISInstall
 function Test-ForIISSite
 {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter()]
@@ -197,7 +198,7 @@ function Update-Site
     (
         [Parameter(ParameterSetName = 'SiteName', Mandatory = $true, Position = 0)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $siteName,
 
         [Parameter(ParameterSetName = 'Site', Mandatory = $true, Position = 0)]
@@ -206,11 +207,11 @@ function Update-Site
 
         [Parameter(ParameterSetName = 'SiteName', Mandatory = $true, Position = 1)]
         [Parameter(ParameterSetName = 'Site', Mandatory = $true, Position = 1)]
-        [String]
+        [System.String]
         $siteAction
     )
 
-    [String]$name = $null
+    [System.String] $name = $null
     if ($PSCmdlet.ParameterSetName -eq 'SiteName')
     {
         $name = $siteName
@@ -539,17 +540,17 @@ function New-PSWSEndpoint
 
         # Unique Name of the IIS Site
         [Parameter()]
-        [String]
+        [System.String]
         $site = "PSWS",
 
         # Physical path for the IIS Endpoint on the machine (under inetpub)
         [Parameter()]
-        [String]
+        [System.String]
         $path = "$env:SystemDrive\inetpub\PSWS",
 
         # Web.config file
         [Parameter()]
-        [String]
+        [System.String]
         $cfgfile = "web.config",
 
         # Port # for the IIS Endpoint
@@ -559,36 +560,36 @@ function New-PSWSEndpoint
 
         # IIS Application Name for the Site
         [Parameter()]
-        [String]
+        [System.String]
         $app = "PSWS",
 
         # IIS App Pool Identity Type - must be one of LocalService, LocalSystem, NetworkService, ApplicationPoolIdentity
         [Parameter()]
         [ValidateSet('LocalService', 'LocalSystem', 'NetworkService', 'ApplicationPoolIdentity')]
-        [String]
+        [System.String]
         $applicationPoolIdentityType,
 
         # WCF Service SVC file
         [Parameter()]
-        [String]
+        [System.String]
         $svc = "PSWS.svc",
 
         # PSWS Specific MOF Schema File
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $mof,
 
         # PSWS Specific Dispatch Mapping File [Optional]
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $dispatch,
 
         # Global.asax file [Optional]
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $asax,
 
         # Any dependent binaries that need to be deployed to the IIS endpoint, in the bin folder
@@ -600,7 +601,7 @@ function New-PSWSEndpoint
          # MUI Language [Optional]
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $language,
 
         # Any dependent binaries that need to be deployed to the IIS endpoint, in the bin\mui folder [Optional]
@@ -617,27 +618,27 @@ function New-PSWSEndpoint
 
         # True to remove all files for the site at first, false otherwise
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $removeSiteFiles = $false,
 
         # Enable Firewall Exception for the supplied port
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $EnableFirewallException,
 
         # Enable and Clear PSWS ETW
         [Parameter()]
-        [Switch]
+        [System.Management.Automation.SwitchParameter]
         $EnablePSWSETW,
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter()]
-        [String]
+        [System.String]
         $certificateThumbPrint = "AllowUnencryptedTraffic",
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Enable32BitAppOnWin64 = $false)
 
     $script:wevtutil = "$env:windir\system32\Wevtutil.exe"
@@ -688,7 +689,7 @@ function Remove-PSWSEndpoint
     (
         # Unique Name of the IIS Site
         [Parameter()]
-        [String]
+        [System.String]
         $siteName
     )
 
@@ -747,17 +748,17 @@ function Set-AppSettingsInWebconfig
         # Physical path for the IIS Endpoint on the machine (possibly under inetpub)
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $path,
+        [System.String] $path,
 
         # Key to add/update
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $key,
+        [System.String] $key,
 
         # Value
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $value
+        [System.String] $value
 
         )
 
@@ -817,17 +818,17 @@ function Set-BindingRedirectSettingInWebConfig
         # Physical path for the IIS Endpoint on the machine (possibly under inetpub)
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $path,
 
         # old version of the assembly
         [Parameter()]
-        [String]
+        [System.String]
         $oldVersion = "10.0.0.0",
 
         # new version to redirect to
         [Parameter()]
-        [String]
+        [System.String]
         $newVersion = "6.3.0.0"
 
         )
