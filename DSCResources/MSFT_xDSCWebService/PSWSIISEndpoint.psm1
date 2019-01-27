@@ -6,7 +6,6 @@
 
 # name and description for the Firewall rules. Used in multiple locations
 $FireWallRuleDisplayName = "Desired State Configuration - Pull Server Port:{0}"
-$FireWallRuleDescription = "Inbound traffic for IIS site on Port:{0} for DSC pull server. Created by DSCWebService resource"
 
 # Validate supplied configuration to setup the PSWS Endpoint
 # Function checks for the existence of PSWS Schema files, IIS config
@@ -56,7 +55,7 @@ function Initialize-Endpoint
     if ($certificateThumbPrint -ne "AllowUnencryptedTraffic")
     {
         Write-Verbose "Verify that the certificate with the provided thumbprint exists in CERT:\LocalMachine\MY\"
-        $certificate = Get-childItem CERT:\LocalMachine\MY\ | Where {$_.Thumbprint -eq $certificateThumbPrint}
+        $certificate = Get-ChildItem -Path CERT:\LocalMachine\MY\ | Where-Object -FilterScript {$_.Thumbprint -eq $certificateThumbPrint}
         if (!$Certificate)
         {
              throw "ERROR: Certificate with thumbprint $certificateThumbPrint does not exist in CERT:\LocalMachine\MY\"
@@ -75,7 +74,7 @@ function Initialize-Endpoint
     Update-Site -siteName $site -siteAction Remove
 
     # check for existing binding, there should be no binding with the same port
-    if ((Get-WebBinding | where bindingInformation -eq "*:$($port):").count -gt 0)
+    if ((Get-WebBinding | Where-Object -FilterScript {$_.BindingInformation -eq "*:$($port):"}).Count -gt 0)
     {
         throw "ERROR: Port $port is already used, please review existing sites and change the port to be used."
     }
@@ -88,7 +87,7 @@ function Initialize-Endpoint
         }
     }
 
-    Copy-Files -path $path -cfgfile $cfgfile -svc $svc -mof $mof -dispatch $dispatch -asax $asax -dependentBinaries $dependentBinaries -language $language -dependentMUIFiles $dependentMUIFiles -psFiles $psFiles
+    Copy-Configuration -path $path -cfgfile $cfgfile -svc $svc -mof $mof -dispatch $dispatch -asax $asax -dependentBinaries $dependentBinaries -language $language -dependentMUIFiles $dependentMUIFiles -psFiles $psFiles
 
     New-IISWebSite -site $site -path $path -port $port -app $app -apppool $appPool -applicationPoolIdentityType $applicationPoolIdentityType -certificateThumbPrint $certificateThumbPrint -enable32BitAppOnWin64 $enable32BitAppOnWin64
 }
@@ -106,7 +105,7 @@ function Test-IISInstall
         }
 
         $wsRegKey = (Get-ItemProperty hklm:\SYSTEM\CurrentControlSet\Services\W3SVC -ErrorAction silentlycontinue).ImagePath
-        if ($wsRegKey -eq $null)
+        if ($null -eq $wsRegKey)
         {
             throw "ERROR: Cannot retrive W3SVC key. IIS Web Services may not be installed"
         }
@@ -119,7 +118,7 @@ function Test-IISInstall
 
 # Verify if a given IIS Site exists
 #
-function Test-IISSiteExists
+function Test-ForIISSite
 {
     param ($siteName)
 
@@ -157,7 +156,7 @@ function Update-Site
         $name = $site.Name
     }
 
-    if (Test-IISSiteExists -siteName $name)
+    if (Test-ForIISSite -siteName $name)
     {
         switch ($siteAction)
         {
@@ -188,12 +187,12 @@ function Remove-AppPool
 #
 function New-SiteID
 {
-    return ((Get-Website | % { $_.Id } | Measure-Object -Maximum).Maximum + 1)
+    return ((Get-Website | Foreach-Object { $_.Id } | Measure-Object -Maximum).Maximum + 1)
 }
 
 # Validate the PSWS config files supplied and copy to the IIS endpoint in inetpub
 #
-function Copy-Files
+function Copy-Configuration
 {
     param (
         $path,
@@ -336,17 +335,17 @@ function New-IISWebSite
     Write-Verbose "Add and Set Site Properties"
     if ($certificateThumbPrint -eq "AllowUnencryptedTraffic")
     {
-        $webSite = New-WebSite -Name $site -Id $siteID -Port $port -IPAddress "*" -PhysicalPath $path -ApplicationPool $appPool
+        New-WebSite -Name $site -Id $siteID -Port $port -IPAddress "*" -PhysicalPath $path -ApplicationPool $appPool | Out-Null
     }
     else
     {
-        $webSite = New-WebSite -Name $site -Id $siteID -Port $port -IPAddress "*" -PhysicalPath $path -ApplicationPool $appPool -Ssl
+        New-WebSite -Name $site -Id $siteID -Port $port -IPAddress "*" -PhysicalPath $path -ApplicationPool $appPool -Ssl | Out-Null
 
         # Remove existing binding for $port
         Remove-Item IIS:\SSLBindings\0.0.0.0!$port -ErrorAction Ignore
 
         # Create a new binding using the supplied certificate
-        $null = Get-Item CERT:\LocalMachine\MY\$certificateThumbPrint | New-Item IIS:\SSLBindings\0.0.0.0!$port
+        Get-Item CERT:\LocalMachine\MY\$certificateThumbPrint | New-Item IIS:\SSLBindings\0.0.0.0!$port | Out-Null
     }
 
     Update-Site -siteName $site -siteAction Start
