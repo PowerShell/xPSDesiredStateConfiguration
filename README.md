@@ -761,6 +761,8 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
   * Refactored Get-TargetResource Unit tests.
 * Fixes files which are getting triggered for re-encoding after recent pull
   request (possibly #472).
+* Changes to PSWSIISEndpoint.psm1
+  * Fixes most PSScriptAnalyzer issues.
 
 ### 8.5.0.0
 
