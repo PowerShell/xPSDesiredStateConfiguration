@@ -105,9 +105,9 @@ function Initialize-Endpoint
         throw "ERROR: $asax does not exist"
     }
 
-    if ($certificateThumbPrint -ne "AllowUnencryptedTraffic")
+    if ($certificateThumbPrint -ne 'AllowUnencryptedTraffic')
     {
-        Write-Verbose "Verify that the certificate with the provided thumbprint exists in CERT:\LocalMachine\MY\"
+        Write-Verbose -Message 'Verify that the certificate with the provided thumbprint exists in CERT:\LocalMachine\MY\'
         $certificate = Get-ChildItem -Path CERT:\LocalMachine\MY\ | Where-Object -FilterScript {$_.Thumbprint -eq $certificateThumbPrint}
         if (!$Certificate)
         {
@@ -117,13 +117,13 @@ function Initialize-Endpoint
 
     Test-IISInstall
 
-    $appPool = "PSWS"
+    $appPool = 'PSWS'
 
 
-    Write-Verbose "Delete the App Pool if it exists"
+    Write-Verbose -Message 'Delete the App Pool if it exists'
     Remove-AppPool -apppool $appPool
 
-    Write-Verbose "Remove the site if it already exists"
+    Write-Verbose -Message 'Remove the site if it already exists'
     Update-Site -siteName $site -siteAction Remove
 
     # check for existing binding, there should be no binding with the same port
@@ -149,7 +149,7 @@ function Initialize-Endpoint
 #
 function Test-IISInstall
 {
-        Write-Verbose "Checking IIS requirements"
+        Write-Verbose -Message 'Checking IIS requirements'
         $iisVersion = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\InetStp -ErrorAction silentlycontinue).MajorVersion
 
         if ($iisVersion -lt 7)
@@ -160,12 +160,12 @@ function Test-IISInstall
         $wsRegKey = (Get-ItemProperty hklm:\SYSTEM\CurrentControlSet\Services\W3SVC -ErrorAction silentlycontinue).ImagePath
         if ($null -eq $wsRegKey)
         {
-            throw "ERROR: Cannot retrive W3SVC key. IIS Web Services may not be installed"
+            throw 'ERROR: Cannot retrive W3SVC key. IIS Web Services may not be installed'
         }
 
-        if ((Get-Service w3svc).Status -ne "running")
+        if ((Get-Service w3svc).Status -ne 'running')
         {
-            throw "ERROR: service W3SVC is not running"
+            throw 'ERROR: service W3SVC is not running'
         }
 }
 
@@ -225,11 +225,11 @@ function Update-Site
     {
         switch ($siteAction)
         {
-            "Start"  {Start-Website -Name "$name"}
-            "Stop"   {Stop-Website -Name "$name" -ErrorAction SilentlyContinue}
-            "Remove" {Remove-Website -Name "$name"}
+            'Start'  {Start-Website -Name "$name"}
+            'Stop'   {Stop-Website -Name "$name" -ErrorAction SilentlyContinue}
+            'Remove' {Remove-Website -Name "$name"}
         }
-        Write-Verbose "p11"
+        Write-Verbose -Message 'p11'
     }
 }
 
@@ -350,9 +350,9 @@ function Copy-Configuration
         }
     }#>
 
-    Write-Verbose "Create the bin folder for deploying custom dependent binaries required by the endpoint"
-    $binFolderPath = Join-Path $path "bin"
-    $null = New-Item -path $binFolderPath  -itemType "directory" -Force
+    Write-Verbose -Message 'Create the bin folder for deploying custom dependent binaries required by the endpoint'
+    $binFolderPath = Join-Path $path 'bin'
+    $null = New-Item -path $binFolderPath  -itemType 'directory' -Force
     Copy-Item $dependentBinaries $binFolderPath -Force
 
     <#if ($language)
@@ -376,7 +376,7 @@ function Copy-Configuration
         Copy-Item $psFile $path -Force
     }
 
-    Copy-Item $cfgfile (Join-Path $path "web.config") -Force
+    Copy-Item $cfgfile (Join-Path $path 'web.config') -Force
     Copy-Item $svc $path -Force
     Copy-Item $mof $path -Force
 
@@ -433,36 +433,36 @@ function New-IISWebSite
 
     $siteID = New-SiteID
 
-    Write-Verbose "Adding App Pool"
+    Write-Verbose -Message 'Adding App Pool'
     $null = New-WebAppPool -Name $appPool
 
-    Write-Verbose "Set App Pool Properties"
+    Write-Verbose -Message 'Set App Pool Properties'
     $appPoolIdentity = 4
     if ($applicationPoolIdentityType)
     {
         # LocalSystem = 0, LocalService = 1, NetworkService = 2, SpecificUser = 3, ApplicationPoolIdentity = 4
-        if ($applicationPoolIdentityType -eq "LocalSystem")
+        if ($applicationPoolIdentityType -eq 'LocalSystem')
         {
             $appPoolIdentity = 0
         }
-        elseif ($applicationPoolIdentityType -eq "LocalService")
+        elseif ($applicationPoolIdentityType -eq 'LocalService')
         {
             $appPoolIdentity = 1
         }
-        elseif ($applicationPoolIdentityType -eq "NetworkService")
+        elseif ($applicationPoolIdentityType -eq 'NetworkService')
         {
             $appPoolIdentity = 2
         }
     }
 
     $appPoolItem = Get-Item IIS:\AppPools\$appPool
-    $appPoolItem.managedRuntimeVersion = "v4.0"
+    $appPoolItem.managedRuntimeVersion = 'v4.0'
     $appPoolItem.enable32BitAppOnWin64 = $enable32BitAppOnWin64
     $appPoolItem.processModel.identityType = $appPoolIdentity
     $appPoolItem | Set-Item
 
-    Write-Verbose "Add and Set Site Properties"
-    if ($certificateThumbPrint -eq "AllowUnencryptedTraffic")
+    Write-Verbose -Message 'Add and Set Site Properties'
+    if ($certificateThumbPrint -eq 'AllowUnencryptedTraffic')
     {
         New-WebSite -Name $site -Id $siteID -Port $port -IPAddress "*" -PhysicalPath $path -ApplicationPool $appPool | Out-Null
     }
@@ -494,13 +494,13 @@ function New-FirewallRule
 
     $script:netsh = "$env:windir\system32\netsh.exe"
 
-    Write-Verbose "Disable Inbound Firewall Notification"
+    Write-Verbose -Message 'Disable Inbound Firewall Notification'
     & $script:netsh advfirewall set currentprofile settings inboundusernotification disable
 
     # remove all existing rules with that displayName
     & $script:netsh advfirewall firewall delete rule name=DSCPullServer_IIS_Port protocol=tcp localport=$firewallPort | Out-Null
 
-    Write-Verbose "Add Firewall Rule for port $firewallPort"
+    Write-Verbose -Message "Add Firewall Rule for port $firewallPort"
     & $script:netsh advfirewall firewall add rule name=DSCPullServer_IIS_Port dir=in action=allow protocol=TCP localport=$firewallPort
 }
 
@@ -541,7 +541,7 @@ function New-PSWSEndpoint
         # Unique Name of the IIS Site
         [Parameter()]
         [System.String]
-        $site = "PSWS",
+        $site = 'PSWS',
 
         # Physical path for the IIS Endpoint on the machine (under inetpub)
         [Parameter()]
@@ -551,7 +551,7 @@ function New-PSWSEndpoint
         # Web.config file
         [Parameter()]
         [System.String]
-        $cfgfile = "web.config",
+        $cfgfile = 'web.config',
 
         # Port # for the IIS Endpoint
         [Parameter()]
@@ -561,7 +561,7 @@ function New-PSWSEndpoint
         # IIS Application Name for the Site
         [Parameter()]
         [System.String]
-        $app = "PSWS",
+        $app = 'PSWS',
 
         # IIS App Pool Identity Type - must be one of LocalService, LocalSystem, NetworkService, ApplicationPoolIdentity
         [Parameter()]
@@ -572,7 +572,7 @@ function New-PSWSEndpoint
         # WCF Service SVC file
         [Parameter()]
         [System.String]
-        $svc = "PSWS.svc",
+        $svc = 'PSWS.svc',
 
         # PSWS Specific MOF Schema File
         [Parameter(Mandatory = $true)]
@@ -634,7 +634,7 @@ function New-PSWSEndpoint
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter()]
         [System.String]
-        $certificateThumbPrint = "AllowUnencryptedTraffic",
+        $certificateThumbPrint = 'AllowUnencryptedTraffic',
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
@@ -644,16 +644,16 @@ function New-PSWSEndpoint
     $script:wevtutil = "$env:windir\system32\Wevtutil.exe"
 
     $svcName = Split-Path $svc -Leaf
-    $protocol = "https:"
-    if ($certificateThumbPrint -eq "AllowUnencryptedTraffic")
+    $protocol = 'https:'
+    if ($certificateThumbPrint -eq 'AllowUnencryptedTraffic')
     {
-        $protocol = "http:"
+        $protocol = 'http:'
     }
 
     # Get Machine Name
     $cimInstance = Get-CimInstance -ClassName Win32_ComputerSystem -Verbose:$false
 
-    Write-Verbose ("Setting up endpoint at - $protocol//" + $cimInstance.Name + ":" + $port + "/" + $svcName)
+    Write-Verbose ("Setting up endpoint at - $protocol//" + $cimInstance.Name + ':' + $port + '/' + $svcName)
     Initialize-Endpoint -site $site -path $path -cfgfile $cfgfile -port $port -app $app `
                         -applicationPoolIdentityType $applicationPoolIdentityType -svc $svc -mof $mof `
                         -dispatch $dispatch -asax $asax -dependentBinaries $dependentBinaries `
@@ -663,7 +663,7 @@ function New-PSWSEndpoint
 
     if ($EnableFirewallException -eq $true)
     {
-        Write-Verbose "Enabling firewall exception for port $port"
+        Write-Verbose -Message "Enabling firewall exception for port $port"
         $null = New-FirewallRule $port
     }
 
@@ -720,7 +720,7 @@ function Remove-PSWSEndpoint
 
        # find out whether any other site is using this pool
        $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "']"
-       $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath "machine/webroot/apphost" -name path).ItemXPath
+       $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath 'machine/webroot/apphost' -name path).ItemXPath
        if (-not $apps -or $apps.count -eq 1)
        {
           # if we are the only site in the pool, remove the pool as well.
@@ -762,7 +762,7 @@ function Set-AppSettingsInWebconfig
 
         )
 
-    $webconfig = Join-Path $path "web.config"
+    $webconfig = Join-Path $path 'web.config'
     [bool] $Found = $false
 
     if (Test-Path $webconfig)
@@ -781,16 +781,16 @@ function Set-AppSettingsInWebconfig
 
         if( -not $Found)
         {
-            $newElement = $xml.CreateElement("add")
-            $nameAtt1 = $xml.CreateAttribute("key")
+            $newElement = $xml.CreateElement('add')
+            $nameAtt1 = $xml.CreateAttribute('key')
             $nameAtt1.psbase.value = $key;
             $null = $newElement.SetAttributeNode($nameAtt1)
 
-            $nameAtt2 = $xml.CreateAttribute("value")
+            $nameAtt2 = $xml.CreateAttribute('value')
             $nameAtt2.psbase.value = $value;
             $null = $newElement.SetAttributeNode($nameAtt2)
 
-            $null = $xml.configuration["appSettings"].AppendChild($newElement)
+            $null = $xml.configuration['appSettings'].AppendChild($newElement)
         }
     }
 
@@ -803,10 +803,10 @@ function Set-AppSettingsInWebconfig
 .DESCRIPTION
    This function creates the following section in the web.config:
    <runtime>
-     <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+     <assemblyBinding xmlns='urn:schemas-microsoft-com:asm.v1'>
        <dependentAssembly>
-         <assemblyIdentity name="microsoft.isam.esent.interop" publicKeyToken="31bf3856ad364e35" />
-       <bindingRedirect oldVersion="10.0.0.0" newVersion="6.3.0.0" />
+         <assemblyIdentity name='microsoft.isam.esent.interop' publicKeyToken='31bf3856ad364e35' />
+       <bindingRedirect oldVersion='10.0.0.0' newVersion='6.3.0.0' />
       </dependentAssembly>
      </assemblyBinding>
 </runtime>
@@ -824,16 +824,16 @@ function Set-BindingRedirectSettingInWebConfig
         # old version of the assembly
         [Parameter()]
         [System.String]
-        $oldVersion = "10.0.0.0",
+        $oldVersion = '10.0.0.0',
 
         # new version to redirect to
         [Parameter()]
         [System.String]
-        $newVersion = "6.3.0.0"
+        $newVersion = '6.3.0.0'
 
         )
 
-    $webconfig = Join-Path $path "web.config"
+    $webconfig = Join-Path $path 'web.config'
 
     if (Test-Path $webconfig)
     {
@@ -842,29 +842,29 @@ function Set-BindingRedirectSettingInWebConfig
         if(-not($xml.get_DocumentElement().runtime))
         {
             # Create the <runtime> section
-            $runtimeSetting = $xml.CreateElement("runtime")
+            $runtimeSetting = $xml.CreateElement('runtime')
 
             # Create the <assemblyBinding> section
-            $assemblyBindingSetting = $xml.CreateElement("assemblyBinding")
-            $xmlnsAttribute = $xml.CreateAttribute("xmlns")
-            $xmlnsAttribute.Value = "urn:schemas-microsoft-com:asm.v1"
+            $assemblyBindingSetting = $xml.CreateElement('assemblyBinding')
+            $xmlnsAttribute = $xml.CreateAttribute('xmlns')
+            $xmlnsAttribute.Value = 'urn:schemas-microsoft-com:asm.v1'
             $assemblyBindingSetting.Attributes.Append($xmlnsAttribute)
 
             # The <assemblyBinding> section goes inside <runtime>
             $null = $runtimeSetting.AppendChild($assemblyBindingSetting)
 
             # Create the <dependentAssembly> section
-            $dependentAssemblySetting = $xml.CreateElement("dependentAssembly")
+            $dependentAssemblySetting = $xml.CreateElement('dependentAssembly')
 
             #The <dependentAssembly> section goes inside <assemblyBinding>
             $null = $assemblyBindingSetting.AppendChild($dependentAssemblySetting)
 
             # Create the <assemblyIdentity> section
-            $assemblyIdentitySetting = $xml.CreateElement("assemblyIdentity")
-            $nameAttribute = $xml.CreateAttribute("name")
-            $nameAttribute.Value = "microsoft.isam.esent.interop"
-            $publicKeyTokenAttribute = $xml.CreateAttribute("publicKeyToken")
-            $publicKeyTokenAttribute.Value = "31bf3856ad364e35"
+            $assemblyIdentitySetting = $xml.CreateElement('assemblyIdentity')
+            $nameAttribute = $xml.CreateAttribute('name')
+            $nameAttribute.Value = 'microsoft.isam.esent.interop'
+            $publicKeyTokenAttribute = $xml.CreateAttribute('publicKeyToken')
+            $publicKeyTokenAttribute.Value = '31bf3856ad364e35'
             $null = $assemblyIdentitySetting.Attributes.Append($nameAttribute)
             $null = $assemblyIdentitySetting.Attributes.Append($publicKeyTokenAttribute)
 
@@ -872,9 +872,9 @@ function Set-BindingRedirectSettingInWebConfig
             $dependentAssemblySetting.AppendChild($assemblyIdentitySetting)
 
             # Create the <bindingRedirect> section
-            $bindingRedirectSetting = $xml.CreateElement("bindingRedirect")
-            $oldVersionAttribute = $xml.CreateAttribute("oldVersion")
-            $newVersionAttribute = $xml.CreateAttribute("newVersion")
+            $bindingRedirectSetting = $xml.CreateElement('bindingRedirect')
+            $oldVersionAttribute = $xml.CreateAttribute('oldVersion')
+            $newVersionAttribute = $xml.CreateAttribute('newVersion')
             $oldVersionAttribute.Value = $oldVersion
             $newVersionAttribute.Value = $newVersion
             $null = $bindingRedirectSetting.Attributes.Append($oldVersionAttribute)
