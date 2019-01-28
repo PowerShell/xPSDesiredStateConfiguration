@@ -714,6 +714,8 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 
 ### Unreleased
 
+* xGroup
+  * Corrected style guideline violations. ([issue #485](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/485))
 * Changes to xPSDesiredStateConfiguration
   * In AppVeyor CI the tests are split into three separate jobs, and also
     run tests on two different build worker images (Windows Server 2012R2
@@ -721,7 +723,7 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
     Windows Server 2016 build worker image. Helps with
     [issue #477](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/477).
 * xWindowsOptionalFeature
-  * Suppress useless verbose output from `Import-Module` cmdlet. ([issue 453](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/453))
+  * Suppress useless verbose output from `Import-Module` cmdlet. ([issue #453](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/453))
 * Changes to xRemoteFile
   * Corrected a resource name in the example xRemoteFile_DownloadFileConfig.ps1
 * Fix `MSFT_xDSCWebService` to find
