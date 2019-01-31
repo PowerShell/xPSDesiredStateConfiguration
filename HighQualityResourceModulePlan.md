@@ -1,9 +1,11 @@
 # PSDesiredStateConfiguration High Quality Resource Module Plan
+
 Any comments or questions about this plan can be submitted under issue [#160](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/160)
 
-## Goals 
-  1. Port the appropriate in-box DSC Resources to the open-source xPSDesiredStateConfiguration resource module. 
-  2. Make the open-source xPSDesiredStateConfiuration resource module a **High Quality Resource Module (HQRM)** to present to the community for feedback.
+## Goals
+
+1. Port the appropriate in-box DSC Resources to the open-source xPSDesiredStateConfiguration resource module.
+2. Make the open-source xPSDesiredStateConfiuration resource module a **High Quality Resource Module (HQRM)** to present to the community for feedback.
 
 The PSDesiredStateConfiguration High Quality Resource Module will consist of the following resources:
 - Archive
@@ -38,12 +40,12 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
   - [x] WindowsFeatureSet
   - [x] WindowsOptionalFeatureSet
   - [x] WindowsPackageCab
-- [x] [2. Merge In-Box & Open-Source Resources](#merge-in-box-and-open-source-resources) 
+- [x] [2. Merge In-Box & Open-Source Resources](#merge-in-box-and-open-source-resources)
   - [x] Archive
   - [x] Group
   - [x] Package
-  - [X] Process 
-  - [x] Registry 
+  - [X] Process
+  - [x] Registry
   - [x] Service
   - [x] WindowsOptionalFeature
 - [x] [3. Resolve Nano Server vs. Full Server Resources](#resolve-nano-server-vs-full-server-resources)  
@@ -90,6 +92,7 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
   - [x] WindowsPackageCab
 
 ## Port In-Box Only Resources
+
 We will port the appropriate in-box resources that will be in the HQRM to the open-source xPSDesiredStateConfiguration resource module. These resources are not currently in the open-source repository. Resources currently both in-box and open-source will be merged in step 2.
 
 ### In-Box Only Resources Moving to Open-Source HQRM
@@ -113,7 +116,7 @@ When these resources are moved to GitHub, they will have 'x' appended before the
 
 We will merge in-box resources that are also currently in the open-source module. The in-box resources and any of their tests, examples, or documentation will be merged into the existing open-source resources in the xPSDesiredStateConfiguration resource module.
 
-Four of the current open-source resources are not provided in-box. The fate of these open-source-only resources has been addressed in this step as well. 
+Four of the current open-source resources are not provided in-box. The fate of these open-source-only resources has been addressed in this step as well.
 
 ### Open-Source Resources Moving to HQRM
 
@@ -146,9 +149,9 @@ Some of the in-box resources (User especially) currently contain all-encompassin
 
 | Solution | Pros | Cons |
 |----------|------|------|
-| Leave the if-statements | <ul><li> No time needed for fix. </li></ul> | <ul><li> Difficult to maintain. </li><li> User has to download/store extra code. (minimal) </li></ul> |
-| Use the Nano server version only | <ul><li> Code will be easy to maintain. </li><li> May be a cleaner, simpler implementation for full server. </li><li> User does not have to download/store extra code. (minimal) </li></ul> | <ul><li> May break the resources. </li><li> Requires fixing time. </li><li> Requires testing. </li></ul> |
-| Separate the Nano and full server versions into separate resources | <ul><li> User can download only the resource version they need. </li></ul> | <ul><li> Will have to maintain separate version. </li><li> Requires fixing time. </li><li> Requires testing. </li></ul> | 
+| Leave the if-statements | * No time needed for fix. | * Difficult to maintain. * User has to download/store extra code. (minimal) |
+| Use the Nano server version only | * Code will be easy to maintain. * May be a cleaner, simpler implementation for full server. * User does not have to download/store extra code. (minimal) | * May break the resources. * Requires fixing time. * Requires testing. |
+| Separate the Nano and full server versions into separate resources | * User can download only the resource version they need. | * Will have to maintain separate version. * Requires fixing time. * Requires testing. |
 
 ## Update Each Resource to Be High Quality
 
