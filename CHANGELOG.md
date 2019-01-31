@@ -1,5 +1,3 @@
-# Change log for xPSDesiredStateConfiguration
-
 # Versions
 
 ## Unreleased
@@ -211,13 +209,13 @@
     timing issue made the tests fail in certain scenarios
     ([issue #420](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/420)).
 - Changes to xDSCWebService
-    - Added the option to use a certificate based on it's subject and template
-      name instead of it's thumbprint. Resolves
-      [issue #205](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/205).
-    - xDSCWebService: Fixed an issue where Test-WebConfigModulesSetting would
-      return $true when web.config contains a module and the desired state was
-      for it to be absent. Resolves
-      [issue #418](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/418).
+  - Added the option to use a certificate based on it's subject and template
+    name instead of it's thumbprint. Resolves
+    [issue #205](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/205).
+  - xDSCWebService: Fixed an issue where Test-WebConfigModulesSetting would
+    return $true when web.config contains a module and the desired state was
+    for it to be absent. Resolves
+    [issue #418](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/418).
 - Updated the main DSCPullServerSetup readme to read easier, then updates the
   PowerShell comment based help for each function to follow normal help
   standards. [James Pogran (@jpogran)](https://github.com/jpogran)
@@ -241,282 +239,282 @@
 ## 8.0.0.0
 
 - xDSCWebService
-    - BREAKING CHANGE: The Pull Server will now run in a 64 bit IIS process by
-      default. Enable32BitAppOnWin64 needs to be set to TRUE for the Pull
-      Server to run in a 32 bit process.
+  - BREAKING CHANGE: The Pull Server will now run in a 64 bit IIS process by
+    default. Enable32BitAppOnWin64 needs to be set to TRUE for the Pull
+    Server to run in a 32 bit process.
 
 ## 7.0.0.0
 
 - xService
-    - BREAKING CHANGE: The service will now return as compliant if the service
-      is not installed and the StartupType is set to Disabled regardless of the
-      value of the Ensure property.
+  - BREAKING CHANGE: The service will now return as compliant if the service
+    is not installed and the StartupType is set to Disabled regardless of the
+    value of the Ensure property.
 - Fixed misnamed certificate thumbprint variable in example
   Sample_xDscWebServiceRegistrationWithSecurityBestPractices
 
 ## 6.4.0.0
 
 - xGroup:
-    - Added updates from PSDscResources:
-        - Added support for domain based group members on Nano server
+  - Added updates from PSDscResources:
+    - Added support for domain based group members on Nano server
 
 ## 6.3.0.0
 
 - xDSCWebService
-    - Fixed an issue where all 64bit IIS application pools stop working after
-      installing DSC Pull Server, because IISSelfSignedCertModule(32bit) module
-      was registered without bitness32 precondition.
+  - Fixed an issue where all 64bit IIS application pools stop working after
+    installing DSC Pull Server, because IISSelfSignedCertModule(32bit) module
+    was registered without bitness32 precondition.
 
 ## 6.2.0.0
 
 - xMsiPackage:
-    - Created high quality MSI package manager resource
+  - Created high quality MSI package manager resource
 - xArchive:
-    - Fixed a minor bug in the unit tests where sometimes the incorrect
-      DateTime format was used.
+  - Fixed a minor bug in the unit tests where sometimes the incorrect
+    DateTime format was used.
 - xWindowsFeatureSet:
-    - Had the wrong parameter name in one test case.
+  - Had the wrong parameter name in one test case.
 
 ## 6.1.0.0
 
 - Moved DSC pull server setup tests to DSCPullServerSetup folder for new common
   tests.
 - xArchive:
-    - Updated the resource to be a high quality resource
-    - Transferred the existing "unit" tests to integration tests
-    - Added unit and end-to-end tests
-    - Updated documentation and examples
+  - Updated the resource to be a high quality resource
+  - Transferred the existing "unit" tests to integration tests
+  - Added unit and end-to-end tests
+  - Updated documentation and examples
 - xUser
-    - Fixed error handling in xUser
+  - Fixed error handling in xUser
 - xRegistry
-    - Fixed bug where an error was thrown when running Get-DscConfiguration if
-      the registry key already existed
+  - Fixed bug where an error was thrown when running Get-DscConfiguration if
+    the registry key already existed
 - Updated Test-IsNanoServer cmdlet to properly test for a Nano server rather
   than the core version of PowerShell
 
 ## 6.0.0.0
 
 - xEnvironment
-    - Updated resource to follow HQRM guidelines.
-    - Added examples.
-    - Added unit and end-to-end tests.
-    - Significantly cleaned the resource.
-    - Minor Breaking Change where the resource will now throw an error if no
-      value is provided, Ensure is set to present, and the variable does not
-      exist, whereas before it would create an empty registry key on the
-      machine in this case (if this is the desired outcome then use the
-      Registry resource).
-    - Added a new Write property 'Target', which specifies whether the user
-      wants to set the machine variable, the process variable, or both
-      (previously it was setting both in most cases).
+  - Updated resource to follow HQRM guidelines.
+  - Added examples.
+  - Added unit and end-to-end tests.
+  - Significantly cleaned the resource.
+  - Minor Breaking Change where the resource will now throw an error if no
+    value is provided, Ensure is set to present, and the variable does not
+    exist, whereas before it would create an empty registry key on the
+    machine in this case (if this is the desired outcome then use the
+    Registry resource).
+  - Added a new Write property 'Target', which specifies whether the user
+    wants to set the machine variable, the process variable, or both
+    (previously it was setting both in most cases).
 - xGroup:
-    - Group members in the "NT Authority", "BuiltIn" and "NT Service" scopes
-      should now be resolved without an error. If you were seeing the errors
-      "Exception calling ".ctor" with "4" argument(s): "Server names cannot
-      contain a space character."" or "Exception calling ".ctor" with "2"
-      argument(s): "Server names cannot contain a space character."", this fix
-      should resolve those errors. If you are still seeing one of the errors,
-      there is probably another local scope we need to add. Please let us know.
-    - The resource will no longer attempt to resolve group members if Members,
-      MembersToInclude, and MembersToExclude are not specified.
+  - Group members in the "NT Authority", "BuiltIn" and "NT Service" scopes
+    should now be resolved without an error. If you were seeing the errors
+    "Exception calling ".ctor" with "4" argument(s): "Server names cannot
+    contain a space character."" or "Exception calling ".ctor" with "2"
+    argument(s): "Server names cannot contain a space character."", this fix
+    should resolve those errors. If you are still seeing one of the errors,
+    there is probably another local scope we need to add. Please let us know.
+  - The resource will no longer attempt to resolve group members if Members,
+    MembersToInclude, and MembersToExclude are not specified.
 
 ## 5.2.0.0
 
 - xWindowsProcess
-    - Minor updates to integration tests because one of the tests was flaky.
+  - Minor updates to integration tests because one of the tests was flaky.
 - xRegistry:
-    - Added support for forward slashes in registry key names. This resolves
-      issue
-      [#285](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/285).
+  - Added support for forward slashes in registry key names. This resolves
+    issue
+    [#285](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/285).
 
 ## 5.1.0.0
 
 - xWindowsFeature:
-    - Added Catch to ignore RuntimeException when importing ServerManager
-      module. This resolves issue
-      [#69](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/69).
-    - Updated unit tests.
+  - Added Catch to ignore RuntimeException when importing ServerManager
+    module. This resolves issue
+    [#69](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/69).
+  - Updated unit tests.
 - xPackage:
-    - No longer checks for package installation when a reboot is required. This
-      resolves issue
-      [#52](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/52).
-    - Ensures a space is added to MSI installation arguments. This resolves
-      issue
-      [#195](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/195).
-    - Adds RunAsCredential parameter to permit installing packages with
-      specific user account. This resolves issue
-      [#221](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/221).
-    - Fixes null verbose log output error. This resolves issue
-      [#224](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/224).
+  - No longer checks for package installation when a reboot is required. This
+    resolves issue
+    [#52](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/52).
+  - Ensures a space is added to MSI installation arguments. This resolves
+    issue
+    [#195](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/195).
+  - Adds RunAsCredential parameter to permit installing packages with
+    specific user account. This resolves issue
+    [#221](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/221).
+  - Fixes null verbose log output error. This resolves issue
+    [#224](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/224).
 - xDSCWebService
-    - Fixed issue where resource would fail to read redirection.config file.
-      This resolves issue
-      [#191] (https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/191)
+  - Fixed issue where resource would fail to read redirection.config file.
+    This resolves issue
+    [#191] (https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/191)
 - xArchive
-    - Fixed issue where resource would throw exception when file name contains
-      brackets. This resolves issue
-      [#255](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/255).
+  - Fixed issue where resource would throw exception when file name contains
+    brackets. This resolves issue
+    [#255](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/255).
 - xScript
-    - Cleaned resource for high quality requirements
-    - Added unit tests
-    - Added integration tests
-    - Updated documentation and example
+  - Cleaned resource for high quality requirements
+  - Added unit tests
+  - Added integration tests
+  - Updated documentation and example
 - ResourceSetHelper:
-    - Updated common functions for all 'Set' resources.
-    - Added unit tests
+  - Updated common functions for all 'Set' resources.
+  - Added unit tests
 - xGroupSet:
-    - Updated resource to use new ResouceSetHelper functions and added
-      integration tests.
+  - Updated resource to use new ResouceSetHelper functions and added
+    integration tests.
 - xGroup:
-    - Cleaned module imports, fixed PSSA issues, and set ErrorActionPreference
-      to stop.
+  - Cleaned module imports, fixed PSSA issues, and set ErrorActionPreference
+    to stop.
 - xService:
-    - Cleaned resource functions to enable StrictMode.
-    - Fixed bug in which Set-TargetResource would create a service when Ensure
-      set to Absent and Path specified.
-    - Added unit tests.
-    - Added integration tests for BuiltInAccount and Credential.
+  - Cleaned resource functions to enable StrictMode.
+  - Fixed bug in which Set-TargetResource would create a service when Ensure
+    set to Absent and Path specified.
+  - Added unit tests.
+  - Added integration tests for BuiltInAccount and Credential.
 - xServiceSet:
-    - Updated resource to use new ResouceSetHelper functions and added
-      integration tests.
-    - Updated documentation and example
+  - Updated resource to use new ResouceSetHelper functions and added
+    integration tests.
+  - Updated documentation and example
 - xWindowsProcess
-    - Cleaned resource as per high quality guidelines.
-    - Added unit tests.
-    - Added integration tests.
-    - Updated documentation.
-    - Updated examples.
-    - Fixed bug in Get-TargetResource.
-    - Added a 'Count' value to the hashtable returned by Get-TargetResource so
-      that the user can see how many instances of the process are running.
-    - Fixed bug in finding the path to the executable.
-    - Changed name to be xWindowsProcess everywhere.
+  - Cleaned resource as per high quality guidelines.
+  - Added unit tests.
+  - Added integration tests.
+  - Updated documentation.
+  - Updated examples.
+  - Fixed bug in Get-TargetResource.
+  - Added a 'Count' value to the hashtable returned by Get-TargetResource so
+    that the user can see how many instances of the process are running.
+  - Fixed bug in finding the path to the executable.
+  - Changed name to be xWindowsProcess everywhere.
 - xWindowsOptionalFeatureSet
-    - Updated resource to use new ResouceSetHelper functions and added
-      integration tests.
-    - Updated documentation and examples
+  - Updated resource to use new ResouceSetHelper functions and added
+    integration tests.
+  - Updated documentation and examples
 - xWindowsFeatureSet
-    - Updated resource to use new ResouceSetHelper functions and added
-      integration tests.
-    - Updated documentation and examples
+  - Updated resource to use new ResouceSetHelper functions and added
+    integration tests.
+  - Updated documentation and examples
 - xProcessSet
-    - Updated resource to use new ResouceSetHelper functions and added
-      integration tests.
-    - Updated documentation and examples
+  - Updated resource to use new ResouceSetHelper functions and added
+    integration tests.
+  - Updated documentation and examples
 - xRegistry
-    - Updated resource to be high-quality
-    - Fixed bug in which the user could not set a Binary registry value to 0
-    - Added unit and integration tests
-    - Added examples and updated documentation
+  - Updated resource to be high-quality
+  - Fixed bug in which the user could not set a Binary registry value to 0
+  - Added unit and integration tests
+  - Added examples and updated documentation
 
 ## 5.0.0.0
 
 - xWindowsFeature:
-    - Cleaned up resource (PSSA issues, formatting, etc.)
-    - Added/Updated Tests and Examples
-    - BREAKING CHANGE: Removed the unused Source parameter
-    - Updated to a high quality resource
+  - Cleaned up resource (PSSA issues, formatting, etc.)
+  - Added/Updated Tests and Examples
+  - BREAKING CHANGE: Removed the unused Source parameter
+  - Updated to a high quality resource
 - xDSCWebService:
-    - Add DatabasePath property to specify a custom database path and enable
-      multiple pull server instances on one server.
-    - Rename UseUpToDateSecuritySettings property to UseSecurityBestPractices.
-    - Add DisableSecurityBestPractices property to specify items that are
-      excepted from following best practice security settings.
+  - Add DatabasePath property to specify a custom database path and enable
+    multiple pull server instances on one server.
+  - Rename UseUpToDateSecuritySettings property to UseSecurityBestPractices.
+  - Add DisableSecurityBestPractices property to specify items that are
+    excepted from following best practice security settings.
 - xGroup:
-    - Fixed PSSA issues
-    - Formatting updated as per style guidelines
-    - Missing comment-based help added for Get-/Set-/Test-TargetResource
-    - Typos fixed in Unit test script
-    - Unit test 'Get-TargetResource/Should return hashtable with correct values
-      when group has no members' updated to handle the expected empty Members
-      array correctly
-    - Added a lot of unit tests
-    - Cleaned resource
+  - Fixed PSSA issues
+  - Formatting updated as per style guidelines
+  - Missing comment-based help added for Get-/Set-/Test-TargetResource
+  - Typos fixed in Unit test script
+  - Unit test 'Get-TargetResource/Should return hashtable with correct values
+    when group has no members' updated to handle the expected empty Members
+    array correctly
+  - Added a lot of unit tests
+  - Cleaned resource
 - xUser:
-    - Fixed PSSA/Style violations
-    - Added/Updated Tests and Examples
+  - Fixed PSSA/Style violations
+  - Added/Updated Tests and Examples
 - Added xWindowsPackageCab
 - xService:
-    - Fixed PSSA/Style violations
-    - Updated Tests
-    - Added 'Ignore' state
+  - Fixed PSSA/Style violations
+  - Updated Tests
+  - Added 'Ignore' state
 
 ## 4.0.0.0
 
 - xDSCWebService:
-    - Added setting of enhanced security
-    - Cleaned up Examples
-    - Cleaned up pull server verification test
+  - Added setting of enhanced security
+  - Cleaned up Examples
+  - Cleaned up pull server verification test
 - xProcess:
-    - Fixed PSSA issues
-    - Corrected most style guideline issues
+  - Fixed PSSA issues
+  - Corrected most style guideline issues
 - xPSSessionConfiguration:
-    - Fixed PSSA and style issues
-    - Renamed internal functions to follow verb-noun formats
-    - Decorated all functions with comment-based help
+  - Fixed PSSA and style issues
+  - Renamed internal functions to follow verb-noun formats
+  - Decorated all functions with comment-based help
 - xRegistry:
-    - Fixed PSSA and style issues
-    - Renamed internal functions to follow verb-noun format
-    - Decorated all functions with comment-based help
-    - Merged with in-box Registry
-    - Fixed registry key and value removal
-    - Added unit tests
+  - Fixed PSSA and style issues
+  - Renamed internal functions to follow verb-noun format
+  - Decorated all functions with comment-based help
+  - Merged with in-box Registry
+  - Fixed registry key and value removal
+  - Added unit tests
 - xService:
-    - Added descriptions to MOF file.
-    - Added additional details to parameters in Readme.md in a format that can
-      be generated from the MOF.
-    - Added DesktopInteract parameter.
-    - Added standard help headers to *-TargetResource functions.
-    - Changed indent/format of all function help headers to be consistent.
-    - Fixed line length violations.
-    - Changed localization code so only a single copy of localization strings
-      are required.
-    - Removed localization strings from inside module file.
-    - Updated unit tests to use standard test enviroment configuration and
-      header.
-    - Recreated unit tests to be non-destructive.
-    - Created integration tests.
-    - Allowed service to be restarted immediately rather than wait for next LCM
-      run.
-    - Changed helper function names to valid verb-noun format.
-    - Removed New-TestService function from
-      MSFT_xServiceResource.TestHelper.psm1 because it should not be used.
-    - Fixed error calling Get-TargetResource when service does not exist.
-    - Fixed bug with Get-TargetResource returning StartupType 'Auto' instead of
-      'Automatic'.
-    - Converted to HQRM standards.
-    - Removed obfuscation of exception in Get-Win32ServiceObject function.
-    - Fixed bug where service start mode would be set to auto when it already
-      was set to auto.
-    - Fixed error message content when start mode can not be changed.
-    - Removed shouldprocess from functions as not required.
-    - Optimized Test-TargetResource and Set-TargetResource by removing repeated
-      calls to Get-Service and Get-CimInstance.
-    - Added integration test for testing changes to additional service
-      properties as well as changing service binary path.
-    - Modified Set-TargetResource so that newly created service created with
-      minimal properties and then all additional properties updated
-      (simplification of code).
-    - Added support for changing Service Description and DisplayName
-      parameters.
-    - Fixed bug when changing binary path of existing service.
+  - Added descriptions to MOF file.
+  - Added additional details to parameters in Readme.md in a format that can
+    be generated from the MOF.
+  - Added DesktopInteract parameter.
+  - Added standard help headers to *-TargetResource functions.
+  - Changed indent/format of all function help headers to be consistent.
+  - Fixed line length violations.
+  - Changed localization code so only a single copy of localization strings
+    are required.
+  - Removed localization strings from inside module file.
+  - Updated unit tests to use standard test enviroment configuration and
+    header.
+  - Recreated unit tests to be non-destructive.
+  - Created integration tests.
+  - Allowed service to be restarted immediately rather than wait for next LCM
+    run.
+  - Changed helper function names to valid verb-noun format.
+  - Removed New-TestService function from
+    MSFT_xServiceResource.TestHelper.psm1 because it should not be used.
+  - Fixed error calling Get-TargetResource when service does not exist.
+  - Fixed bug with Get-TargetResource returning StartupType 'Auto' instead of
+    'Automatic'.
+  - Converted to HQRM standards.
+  - Removed obfuscation of exception in Get-Win32ServiceObject function.
+  - Fixed bug where service start mode would be set to auto when it already
+    was set to auto.
+  - Fixed error message content when start mode can not be changed.
+  - Removed shouldprocess from functions as not required.
+  - Optimized Test-TargetResource and Set-TargetResource by removing repeated
+    calls to Get-Service and Get-CimInstance.
+  - Added integration test for testing changes to additional service
+    properties as well as changing service binary path.
+  - Modified Set-TargetResource so that newly created service created with
+    minimal properties and then all additional properties updated
+    (simplification of code).
+  - Added support for changing Service Description and DisplayName
+    parameters.
+  - Fixed bug when changing binary path of existing service.
 - Removed test log output from repo.
 - xWindowsOptionalFeature:
-    - Cleaned up resource (PSSA issues, formatting, etc.)
-    - Added example script
-    - Added integration test
-    - BREAKING CHANGE: Removed the unused Source parameter
-    - Updated to a high quality resource
+  - Cleaned up resource (PSSA issues, formatting, etc.)
+  - Added example script
+  - Added integration test
+  - BREAKING CHANGE: Removed the unused Source parameter
+  - Updated to a high quality resource
 - Removed test log output from repo.
 - Removed the prefix MSFT_ from all files and folders of the composite
   resources in this module because they were unavailable to Get-DscResource and
   Import-DscResource.
-    - xFileUpload
-    - xGroupSet
-    - xProcessSet
-    - xServiceSet
-    - xWindowsFeatureSet
-    - xWindowsOptionalFeatureSet
+  - xFileUpload
+  - xGroupSet
+  - xProcessSet
+  - xServiceSet
+  - xWindowsFeatureSet
+  - xWindowsOptionalFeatureSet
 
 ## 3.13.0.0
 
@@ -527,21 +525,21 @@
 - xPackage: Re-implemented parameters for installation check from registry key
   value.
 - xGroup:
-    - Fixed Verbose output in Get-MembersAsPrincipals function.
-    - Fixed bug when credential parameter passed does not contain local or
-      domain context.
-    - Fixed logic bug in MembersToInclude and MembersToExclude.
-    - Fixed bug when trying to include the built-in Administrator in Members.
-    - Fixed bug where Test-TargetResource would check for members when none
-      specified.
-    - Fix bug in Test-TargetResourceOnFullSKU function when group being set to
-      a single member.
-    - Fix bug in Set-TargetResourceOnFullSKU function when group being set to a
-      single member.
-    - Fix bugs in Assert-GroupNameValid to throw correct exception.
+  - Fixed Verbose output in Get-MembersAsPrincipals function.
+  - Fixed bug when credential parameter passed does not contain local or
+    domain context.
+  - Fixed logic bug in MembersToInclude and MembersToExclude.
+  - Fixed bug when trying to include the built-in Administrator in Members.
+  - Fixed bug where Test-TargetResource would check for members when none
+    specified.
+  - Fix bug in Test-TargetResourceOnFullSKU function when group being set to
+    a single member.
+  - Fix bug in Set-TargetResourceOnFullSKU function when group being set to a
+    single member.
+  - Fix bugs in Assert-GroupNameValid to throw correct exception.
 - xService
-    - Updated xService resource to allow empty string for Description
-      parameter.
+  - Updated xService resource to allow empty string for Description
+    parameter.
 - Merged xProcess with in-box Process resource and added tests.
 - Fixed PSSA issues in xPackageResource.
 
@@ -553,17 +551,17 @@
 ## 3.11.0.0
 
 - xRemoteFile:
-    - Added parameters:
-      - TimeoutSec
-      - Proxy
-      - ProxyCredential
-    - Added unit tests.
-    - Corrected Style Guidelines issues.
-    - Added Localization support.
-    - URI parameter supports File://.
-    - Get-TargetResource returns URI parameter.
-    - Fixed logging of error message reported when download fails.
-    - Added new example Sample_xRemoteFileUsingProxy.ps1.
+  - Added parameters:
+    - TimeoutSec
+    - Proxy
+    - ProxyCredential
+  - Added unit tests.
+  - Corrected Style Guidelines issues.
+  - Added Localization support.
+  - URI parameter supports File://.
+  - Get-TargetResource returns URI parameter.
+  - Fixed logging of error message reported when download fails.
+  - Added new example Sample_xRemoteFileUsingProxy.ps1.
 - Examples: Fixed missing newline at end of PullServerSetupTests.ps1.
 - xFileUpload: Added PSSA rule suppression attribute.
 - xPackageResource: Removed hardcoded ComputerName 'localhost' parameter from
@@ -576,10 +574,10 @@
 - Fixed $script:netsh parameter initialization in xWebService resource that was
   causing CIM exception when EnableFirewall flag was specified.
 - xService:
-    - Fixed a bug where, despite no state specified in the config, the resource
-      test returns false if the service is not running
-    - Fixed bug in which Automatice StartupType did not match the 'Auto'
-      StartMode in Test-TargetResource.
+  - Fixed a bug where, despite no state specified in the config, the resource
+    test returns false if the service is not running
+  - Fixed bug in which Automatice StartupType did not match the 'Auto'
+    StartMode in Test-TargetResource.
 - xPackage: Fixes bug where CreateCheckRegValue was not being removed when
   uninstalling packages
 - Replaced New-NetFirewallRule cmdlets with netsh as this cmdlet is not
@@ -619,11 +617,11 @@
 ## 3.7.0.0
 
 - xService:
-    - Fixed a bug where 'Dependencies' property was not picked up and caused
-      exception when set.
+  - Fixed a bug where 'Dependencies' property was not picked up and caused
+    exception when set.
 - xWindowsOptionalFeature:
-    - Fixed bug where Test-TargetResource method always failed.
-    - Added support for Windows Server 2012 (and later) SKUs.
+  - Fixed bug where Test-TargetResource method always failed.
+  - Added support for Windows Server 2012 (and later) SKUs.
 - Added xRegistry resource
 
 ## 3.6.0.0
@@ -646,7 +644,6 @@
 - Fixed hash calculation in Get-CacheEntry
 - Fixed issue with PSDSCComplianceServer returning HTTP Error 401.2
 
-
 ## 3.3.0.0
 
 - Add support to xPackage resource for checking different registry hives
@@ -655,43 +652,42 @@
 ## 3.2.0.0
 
 - xArchive:
-    - Fix problems with file names containing square brackets.
+  - Fix problems with file names containing square brackets.
 - xDSCWebService:
-    - Fix default culture issue.
+  - Fix default culture issue.
 - xPackage:
-    - Security enhancements.
+  - Security enhancements.
 
 ## 3.0.3.4
 
 - Multiple issues addressed
-    - Corrected output type for Set- and Test-TargetResource functions in
-      xWebSite, xPackage, xArchive, xGroup, xProcess, xService
-    - xRemoteFile modified to support creating a directory that does not exist
-      when specified, ensuring idempotency.
-    Also improved error messages.
-    - xDSCWebService updated so that Get-TargetResource returns the OData
-      Endpoint URL correctly.
-    - In xWindowsOptionalFeature, fixed Test-TargetResource issue requiring
-      Ensure = True. Note: this change requires the previous Ensure values of
-      Enable and Disable to change to Present and Absent
+  - Corrected output type for Set- and Test-TargetResource functions in
+    xWebSite, xPackage, xArchive, xGroup, xProcess, xService
+  - xRemoteFile modified to support creating a directory that does not exist
+    when specified, ensuring idempotency. Also improved error messages.
+  - xDSCWebService updated so that Get-TargetResource returns the OData
+    Endpoint URL correctly.
+  - In xWindowsOptionalFeature, fixed Test-TargetResource issue requiring
+    Ensure = True. Note: this change requires the previous Ensure values of
+    Enable and Disable to change to Present and Absent
 
 ## 3.0.2.0
 
 - Adding following resources:
-    - xGroup
+  - xGroup
 
 ## 3.0.1.0
 
 - Adding following resources:
-    - xFileUpload
+  - xFileUpload
 
 ## 2.0.0.0
 
 - Adding following resources:
-    - xWindowsProcess
-    - xService
-    - xRemoteFile
-    - xPackage
+  - xWindowsProcess
+  - xService
+  - xRemoteFile
+  - xPackage
 
 ## 1.1.0.0
 
@@ -702,4 +698,4 @@
 ## 1.0.0.0
 
 - Initial release with the following resources:
-    - DscWebService
+  - DscWebService
