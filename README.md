@@ -110,7 +110,7 @@ None
 * **RegistrationKeyPath**: Folder location where DSC pull server registration key file is stored.
 * **AcceptSelfSignedCertificates**: Whether self signed certificate can be used to setup pull server.
 * **UseSecurityBestPractices**: Whether to use best practice security settings for the node where pull server resides on.
-Caution: Setting this property to $true will reset registry values under "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL". This environment change enforces the use of stronger encryption cypher and may affect legacy applications. More information can be found at https://support.microsoft.com/en-us/kb/245030 and https://technet.microsoft.com/en-us/library/dn786418(v=ws.11).aspx.
+  Caution: Setting this property to $true will reset registry values under "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL". This environment change enforces the use of stronger encryption cypher and may affect legacy applications. More information can be found at https://support.microsoft.com/en-us/kb/245030 and https://technet.microsoft.com/en-us/library/dn786418(v=ws.11).aspx.
 * **DisableSecurityBestPractices**: The items that are excepted from following best practice security settings.
 * **Enable32BitAppOnWin64**: When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine.
 
@@ -277,6 +277,7 @@ None
 * [Update startup type for a service, and ignoring the current state](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/xService_UpdateStartupTypeIgnoreStateConfig.ps1)
 
 ### xServiceSet
+
 Provides a mechanism to configure and manage multiple xService resources with common settings but different names.
 This resource can only modify or delete existing services. It cannot create services.
 
@@ -330,13 +331,13 @@ None
 * **Path**: The source path of the package.
 * **ProductId**: The product ID of the package (usually a GUID).
 * **Arguments**: Command line arguments passed on the installation command line.
-    - When installing MSI packages, the `/quiet` and `/norestart` arguments are automatically applied.
+  * When installing MSI packages, the `/quiet` and `/norestart` arguments are automatically applied.
 * **Credential**: PSCredential needed to access Path.
 * **ReturnCode**: An array of return codes that are returned after a successful installation.
 * **LogPath**: The destination path of the log.
 * **FileHash**: The hash that should match the hash of the package file.
 * **HashAlgorithm**: The algorithm to use to get the hash of the package file.
-    - Supported values: SHA1, SHA256, SHA384, SHA512, MD5, RIPEMD160
+  * Supported values: SHA1, SHA256, SHA384, SHA512, MD5, RIPEMD160
 * **SignerSubject**: The certificate subject that should match that of the package file's signing certificate.
 * **SignerThumbprint**: The certificate thumbprint that should match that of the package file's signing certificate.
 * **ServerCertificateValidationCallback**: A callback function to validate the server certificate.
@@ -471,6 +472,7 @@ None
 * [Remove an environment variable](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/xEnvironment_RemoveVariableConfig.ps1)
 
 xEnvironment_AddMultiplePaths
+
 ### xScript
 
 Provides a mechanism to run PowerShell script blocks on a target node.
@@ -537,22 +539,22 @@ None
 * **[String] UserName** _(Key)_: Indicates the account name for which you want to ensure a specific state.
 * **[String] Description** _(Write)_: Indicates the description you want to use for the user account.
 * **[Boolean] Disabled** _(Write)_: Indicates if the account is enabled. Set this property to $true to ensure that this account is disabled, and set it to $false to ensure that it is enabled.
-   - Suported values: $true, $false
-   - Default value: $false
+  * Suported values: $true, $false
+  * Default value: $false
 * **[String] Ensure** _(Write)_: Ensures that the feature is present or absent.
-   - Supported values: Present, Absent
-   - Default Value: Present
+  * Supported values: Present, Absent
+  * Default Value: Present
 * **[String] FullName** _(Write)_: Represents a string with the full name you want to use for the user account.
 * **[PSCredential] Password** _(Write)_: Indicates the password you want to use for this account.
 * **[Boolean] PasswordChangeNotAllowed** _(Write)_: Indicates if the user can change the password. Set this property to $true to ensure that the user cannot change the password, and set it to $false to allow the user to change the password.
-   - Suported values: $true, $false
-   - Default value: $false
+  * Suported values: $true, $false
+  * Default value: $false
 * **[Boolean] PasswordChangeRequired** _(Write)_: Indicates if the user must change the password at the next sign in. Set this property to $true if the user must change the password.
-   - Suported values: $true, $false
-   - Default value: $true
+  * Suported values: $true, $false
+  * Default value: $true
 * **[Boolean] PasswordNeverExpires** _(Write)_: Indicates if the password will expire. To ensure that the password for this account will never expire, set this property to $true, and set it to $false if the password will expire.
-   - Suported values: $true, $false
-   - Default value: $false
+  * Suported values: $true, $false
+  * Default value: $false
 
 #### Examples
 
@@ -678,6 +680,7 @@ None
 * [Disable multiple features](https://github.com/PowerShell/xPSDesiredStateConfiguration/blob/dev/Examples/xWindowsOptionalFeatureSet_DisableConfig.ps1)
 
 ### xWindowsPackageCab
+
 Provides a mechanism to install or uninstall a package from a windows cabinet (cab) file on a target node.
 This resource works on Nano Server.
 
