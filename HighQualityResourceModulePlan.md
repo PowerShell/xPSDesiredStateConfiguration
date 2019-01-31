@@ -5,7 +5,7 @@ Any comments or questions about this plan can be submitted under issue [#160](ht
 ## Goals
 
 1. Port the appropriate in-box DSC Resources to the open-source xPSDesiredStateConfiguration resource module.
-2. Make the open-source xPSDesiredStateConfiuration resource module a **High Quality Resource Module (HQRM)** to present to the community for feedback.
+1. Make the open-source xPSDesiredStateConfiuration resource module a **High Quality Resource Module (HQRM)** to present to the community for feedback.
 
 The PSDesiredStateConfiguration High Quality Resource Module will consist of the following resources:
 
@@ -161,11 +161,11 @@ We will update the resouces, tests, exmaples, and documentation to ensure that t
 Here are the basic steps we will have to take based on this plan:  
 
 1. Fix PSSA issues per the DSC Resource Kit PSSA Rule Severity List (not yet published publicly, sorry).
-2. Ensure unit tests are present for each resource with more than 70% code coverage.
-3. Ensure examples run correctly, work as expected, and are documented clearly.
-4. Ensure clear documentation is provided.
-5. Ensure the PSDesiredStateConfiguration module follows the standard DSC Resource Kit module format.
-6. Fix code styling to match the [DSC Resource Kit Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md).
+1. Ensure unit tests are present for each resource with more than 70% code coverage.
+1. Ensure examples run correctly, work as expected, and are documented clearly.
+1. Ensure clear documentation is provided.
+1. Ensure the PSDesiredStateConfiguration module follows the standard DSC Resource Kit module format.
+1. Fix code styling to match the [DSC Resource Kit Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md).
 
 ## Resolve Name of New High Quality Resource Module
 
