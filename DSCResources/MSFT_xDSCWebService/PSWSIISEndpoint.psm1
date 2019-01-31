@@ -1,8 +1,5 @@
 # This module file contains a utility to perform PSWS IIS Endpoint setup
 # Module exports New-PSWSEndpoint function to perform the endpoint setup
-#
-#Copyright (c) Microsoft Corporation, 2014
-#
 
 # name and description for the Firewall rules. Used in multiple locations
 $FireWallRuleDisplayName = "Desired State Configuration - Pull Server Port:{0}"
@@ -29,7 +26,7 @@ function Initialize-Endpoint
         $cfgfile,
 
         [Parameter()]
-        [System.String]
+        [System.Int32]
         $port,
 
         [Parameter()]
@@ -57,7 +54,7 @@ function Initialize-Endpoint
         $asax,
 
         [Parameter()]
-        [System.String]
+        [System.String[]]
         $dependentBinaries,
 
         [Parameter()]
@@ -65,11 +62,11 @@ function Initialize-Endpoint
         $language,
 
         [Parameter()]
-        [System.String]
+        [System.String[]]
         $dependentMUIFiles,
 
         [Parameter()]
-        [System.String]
+        [System.String[]]
         $psFiles,
 
         [Parameter()]
@@ -85,22 +82,22 @@ function Initialize-Endpoint
         $enable32BitAppOnWin64
     )
 
-    if (!(Test-Path $cfgfile))
+    if (!(Test-Path -Path $cfgfile))
     {
         throw "ERROR: $cfgfile does not exist"
     }
 
-    if (!(Test-Path $svc))
+    if (!(Test-Path -Path $svc))
     {
         throw "ERROR: $svc does not exist"
     }
 
-    if (!(Test-Path $mof))
+    if (!(Test-Path -Path $mof))
     {
         throw "ERROR: $mof does not exist"
     }
 
-    if (!(Test-Path $asax))
+    if (!(Test-Path -Path $asax))
     {
         throw "ERROR: $asax does not exist"
     }
@@ -134,7 +131,7 @@ function Initialize-Endpoint
 
     if ($removeSiteFiles)
     {
-        if(Test-Path $path)
+        if(Test-Path -Path $path)
         {
             Remove-Item -Path $path -Recurse -Force
         }
@@ -212,6 +209,7 @@ function Update-Site
     )
 
     [System.String] $name = $null
+
     if ($PSCmdlet.ParameterSetName -eq 'SiteName')
     {
         $name = $siteName
@@ -229,6 +227,7 @@ function Update-Site
             'Stop'   {Stop-Website -Name "$name" -ErrorAction SilentlyContinue}
             'Remove' {Remove-Website -Name "$name"}
         }
+
         Write-Verbose -Message 'p11'
     }
 }
@@ -247,7 +246,7 @@ function Remove-AppPool
     )
 
     # without this tests we may get a breaking error here, despite SilentlyContinue
-    if (Test-Path "IIS:\AppPools\$appPool")
+    if (Test-Path -Path "IIS:\AppPools\$appPool")
     {
         Remove-WebAppPool -Name $appPool -ErrorAction SilentlyContinue
     }
@@ -258,6 +257,9 @@ function Remove-AppPool
 #
 function New-SiteID
 {
+    [CmdletBinding()]
+    param()
+
     return ((Get-Website | Foreach-Object { $_.Id } | Measure-Object -Maximum).Maximum + 1)
 }
 
@@ -293,7 +295,7 @@ function Copy-Configuration
         $asax,
 
         [Parameter()]
-        [System.String]
+        [System.String[]]
         $dependentBinaries,
 
         [Parameter()]
@@ -301,74 +303,55 @@ function Copy-Configuration
         $language,
 
         [Parameter()]
-        [System.String]
+        [System.String[]]
         $dependentMUIFiles,
 
         [Parameter()]
-        [System.String]
+        [System.String[]]
         $psFiles
     )
 
-    if (!(Test-Path $cfgfile))
+    if (!(Test-Path -Path $cfgfile))
     {
         throw "ERROR: $cfgfile does not exist"
     }
 
-    if (!(Test-Path $svc))
+    if (!(Test-Path -Path $svc))
     {
         throw "ERROR: $svc does not exist"
     }
 
-    if (!(Test-Path $mof))
+    if (!(Test-Path -Path $mof))
     {
         throw "ERROR: $mof does not exist"
     }
 
-    if (!(Test-Path $asax))
+    if (!(Test-Path -Path $asax))
     {
         throw "ERROR: $asax does not exist"
     }
 
-    if (!(Test-Path $path))
+    if (!(Test-Path -Path $path))
     {
         $null = New-Item -ItemType container -Path $path
     }
 
     foreach ($dependentBinary in $dependentBinaries)
     {
-        if (!(Test-Path $dependentBinary))
+        if (!(Test-Path -Path $dependentBinary))
         {
             throw "ERROR: $dependentBinary does not exist"
         }
     }
-
-    <#foreach ($dependentMUIFile in $dependentMUIFiles)
-    {
-        if (!(Test-Path $dependentMUIFile))
-        {
-            throw "ERROR: $dependentMUIFile does not exist"
-        }
-    }#>
 
     Write-Verbose -Message 'Create the bin folder for deploying custom dependent binaries required by the endpoint'
     $binFolderPath = Join-Path $path 'bin'
     $null = New-Item -path $binFolderPath  -itemType 'directory' -Force
     Copy-Item $dependentBinaries $binFolderPath -Force
 
-    <#if ($language)
-    {
-        $muiPath = Join-Path $binFolderPath $language
-
-        if (!(Test-Path $muiPath))
-        {
-            $null = New-Item -ItemType container $muiPath
-        }
-        Copy-Item $dependentMUIFiles $muiPath -Force
-    }#>
-
     foreach ($psFile in $psFiles)
     {
-        if (!(Test-Path $psFile))
+        if (!(Test-Path -Path $psFile))
         {
             throw "ERROR: $psFile does not exist"
         }
@@ -407,7 +390,7 @@ function New-IISWebSite
         $path,
 
         [Parameter()]
-        [System.String]
+        [System.Int32]
         $port,
 
         [Parameter()]
@@ -684,7 +667,7 @@ function New-PSWSEndpoint
 #>
 function Remove-PSWSEndpoint
 {
-[CmdletBinding()]
+    [CmdletBinding()]
     param
     (
         # Unique Name of the IIS Site
@@ -693,45 +676,43 @@ function Remove-PSWSEndpoint
         $siteName
     )
 
-       # get the site to remove
-       $site = Get-Item -Path "IIS:\sites\$siteName"
-       # and the pool it is using
-       $pool = $site.applicationPool
+    # get the site to remove
+    $site = Get-Item -Path "IIS:\sites\$siteName"
+    # and the pool it is using
+    $pool = $site.applicationPool
 
-       # get the path so we can delete the files
-       $filePath = $site.PhysicalPath
-       # get the port number for the Firewall rule
-       $bindings = (Get-WebBinding -Name $siteName).bindingInformation
-       $port = [regex]::match($bindings,':(\d+):').Groups[1].Value
+    # get the path so we can delete the files
+    $filePath = $site.PhysicalPath
+    # get the port number for the Firewall rule
+    $bindings = (Get-WebBinding -Name $siteName).bindingInformation
+    $port = [regex]::match($bindings,':(\d+):').Groups[1].Value
 
-       # remove the actual site.
-       Remove-Website -Name $siteName
-       # there may be running requests, wait a little
-       # I had an issue where the files were still in use
-       # when I tried to delete them
-       Start-Sleep -Milliseconds 200
+    # remove the actual site.
+    Remove-Website -Name $siteName
+    # there may be running requests, wait a little
+    # I had an issue where the files were still in use
+    # when I tried to delete them
+    Start-Sleep -Milliseconds 200
 
-       # remove the files for the site
-       If (Test-Path $filePath)
-       {
-           Get-ChildItem $filePath -Recurse | Remove-Item -Recurse
-           Remove-Item $filePath
-       }
+    # remove the files for the site
+    If (Test-Path -Path $filePath)
+    {
+        Get-ChildItem -Path $filePath -Recurse | Remove-Item -Recurse
+        Remove-Item -Path $filePath
+    }
 
-       # find out whether any other site is using this pool
-       $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "']"
-       $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath 'machine/webroot/apphost' -name path).ItemXPath
-       if (-not $apps -or $apps.count -eq 1)
-       {
-          # if we are the only site in the pool, remove the pool as well.
-          Remove-WebAppPool -Name $pool
-       }
+    # find out whether any other site is using this pool
+    $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "']"
+    $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath 'machine/webroot/apphost' -name path).ItemXPath
+    if (-not $apps -or $apps.count -eq 1)
+    {
+       # if we are the only site in the pool, remove the pool as well.
+       Remove-WebAppPool -Name $pool
+    }
 
-
-       # remove all rules with that name
-       $ruleName = ($($FireWallRuleDisplayName) -f $port)
-       Get-NetFirewallRule | Where-Object DisplayName -eq "$ruleName" | Remove-NetFirewallRule
-
+    # remove all rules with that name
+    $ruleName = ($($FireWallRuleDisplayName) -f $port)
+    Get-NetFirewallRule | Where-Object DisplayName -eq "$ruleName" | Remove-NetFirewallRule
 }
 
 <#
@@ -743,29 +724,32 @@ function Remove-PSWSEndpoint
 #>
 function Set-AppSettingsInWebconfig
 {
-    param (
-
+    [CmdletBinding()]
+    param
+    (
         # Physical path for the IIS Endpoint on the machine (possibly under inetpub)
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [System.String] $path,
+        [System.String]
+        $path,
 
         # Key to add/update
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [System.String] $key,
+        [System.String]
+        $key,
 
         # Value
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [System.String] $value
-
-        )
+        [System.String]
+        $value
+    )
 
     $webconfig = Join-Path $path 'web.config'
     [bool] $Found = $false
 
-    if (Test-Path $webconfig)
+    if (Test-Path -Path $webconfig)
     {
         $xml = [xml](get-content $webconfig)
         $root = $xml.get_DocumentElement()
@@ -813,8 +797,9 @@ function Set-AppSettingsInWebconfig
 #>
 function Set-BindingRedirectSettingInWebConfig
 {
-    param (
-
+    [CmdletBinding()]
+    param
+    (
         # Physical path for the IIS Endpoint on the machine (possibly under inetpub)
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -830,12 +815,11 @@ function Set-BindingRedirectSettingInWebConfig
         [Parameter()]
         [System.String]
         $newVersion = '6.3.0.0'
-
-        )
+    )
 
     $webconfig = Join-Path $path 'web.config'
 
-    if (Test-Path $webconfig)
+    if (Test-Path -Path $webconfig)
     {
         $xml = [xml](get-content $webconfig)
 
