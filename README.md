@@ -707,7 +707,7 @@ None
 
 ### Publish-ModuleToPullServer
 
-Publishes a 'ModuleInfo' object(s) to the pullserver module repository or user provided path. It accepts its input from a pipeline so it can be used in conjunction with Get-Module as Get-Module <ModuleName> | Publish-Module
+Publishes a 'ModuleInfo' object(s) to the pullserver module repository or user provided path. It accepts its input from a pipeline so it can be used in conjunction with Get-Module as in 'Get-Module -Name ModuleName' | Publish-Module
 
 ### Publish-MOFToPullServer
 

@@ -8,6 +8,7 @@ Any comments or questions about this plan can be submitted under issue [#160](ht
 2. Make the open-source xPSDesiredStateConfiuration resource module a **High Quality Resource Module (HQRM)** to present to the community for feedback.
 
 The PSDesiredStateConfiguration High Quality Resource Module will consist of the following resources:
+
 - Archive
 - Environment
 - Group
@@ -149,9 +150,9 @@ Some of the in-box resources (User especially) currently contain all-encompassin
 
 | Solution | Pros | Cons |
 |----------|------|------|
-| Leave the if-statements | * No time needed for fix. | * Difficult to maintain. * User has to download/store extra code. (minimal) |
-| Use the Nano server version only | * Code will be easy to maintain. * May be a cleaner, simpler implementation for full server. * User does not have to download/store extra code. (minimal) | * May break the resources. * Requires fixing time. * Requires testing. |
-| Separate the Nano and full server versions into separate resources | * User can download only the resource version they need. | * Will have to maintain separate version. * Requires fixing time. * Requires testing. |
+| Leave the if-statements | - No time needed for fix. | - Difficult to maintain. - User has to download/store extra code. (minimal) |
+| Use the Nano server version only | - Code will be easy to maintain. - May be a cleaner, simpler implementation for full server. - User does not have to download/store extra code. (minimal) | - May break the resources. - Requires fixing time. - Requires testing. |
+| Separate the Nano and full server versions into separate resources | - User can download only the resource version they need. | - Will have to maintain separate version. - Requires fixing time. - Requires testing. |
 
 ## Update Each Resource to Be High Quality
 
