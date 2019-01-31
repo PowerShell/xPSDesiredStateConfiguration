@@ -790,7 +790,7 @@ function Test-TargetResource
 
     Write-Verbose -Message ($script:localizedData.EnsureIsEnsure -f $Ensure)
 
-    if ($null -eq $productEntry)
+    if ($null -ne $productEntry)
     {
         Write-Verbose -Message ($script:localizedData.ProductIsProduct -f $productEntry)
     }
