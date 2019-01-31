@@ -18,8 +18,10 @@
 
 #### This Pull Request (PR) fixes the following issues
 <!--
-    If this PR does not fix an open issue, replace this comment block with None.
-    If this PR resolves one or more open issues, replace this comment block with
+    If this PR does not fix an open issue, replace this comment block with
+    None.
+    If this PR resolves one or more open issues, replace this comment block
+    with
     a list the issues using a GitHub closing keyword, e.g.:
     - Fixes #123
     - Fixes #124
@@ -34,14 +36,21 @@
     Change to [x] for each task in the task list that applies to your PR.
     For those task that don't apply to you PR, leave those as is.
 -->
-- [ ] Added an entry under the Unreleased section of the change log in the README.md.
-      Entry should say what was changed, and how that affects users (if applicable).
+- [ ] Added an entry under the Unreleased section of the change log in the
+      CHANGELOG.md. Entry should say what was changed, and how that affects
+      users (if applicable).
 - [ ] Resource documentation added/updated in README.md.
 - [ ] Resource parameter descriptions added/updated in README.md, schema.mof
       and comment-based help.
 - [ ] Comment-based help added/updated.
-- [ ] Localization strings added/updated in all localization files as appropriate.
+- [ ] Localization strings added/updated in all localization files as
+      appropriate.
 - [ ] Examples appropriately added/updated.
-- [ ] Unit tests added/updated. See [DSC Resource Testing Guidelines](https://github.com/PowerShell/DscResources/blob/master/TestsGuidelines.md).
-- [ ] Integration tests added/updated (where possible). See [DSC Resource Testing Guidelines](https://github.com/PowerShell/DscResources/blob/master/TestsGuidelines.md).
-- [ ] New/changed code adheres to [DSC Resource Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md) and [Best Practices](https://github.com/PowerShell/DscResources/blob/master/BestPractices.md).
+- [ ] Unit tests added/updated. See
+      [DSC Resource Testing Guidelines](https://github.com/PowerShell/DscResources/blob/master/TestsGuidelines.md).
+- [ ] Integration tests added/updated (where possible). See
+      [DSC Resource Testing Guidelines](https://github.com/PowerShell/DscResources/blob/master/TestsGuidelines.md).
+- [ ] New/changed code adheres to
+      [DSC Resource Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md)
+      and
+      [Best Practices](https://github.com/PowerShell/DscResources/blob/master/BestPractices.md).
