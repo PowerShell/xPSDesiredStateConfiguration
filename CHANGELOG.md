@@ -69,6 +69,7 @@
 - Fixes files which are getting triggered for re-encoding after recent pull
   request (possibly #472).
 - Moves version and change history from README.MD to new file, CHANGELOG.MD.
+- Fixes markdown issues in README.MD and HighQualityResourceModulePlan.md.
 
 ## 8.5.0.0
 
