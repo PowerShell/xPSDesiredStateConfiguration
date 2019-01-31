@@ -180,4 +180,4 @@ All resources will have the 'x' removed in the HQRM.
 Each resource is transferred to the HQRM when it is ready with these steps:
 
 1. Rename the resource in all files (remove the 'x').
-2. Submit a PR with the new resource to the PSDscResources repository.  
+1. Submit a PR with the new resource to the PSDscResources repository.  
