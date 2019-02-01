@@ -728,7 +728,7 @@ function Enter-DscResourceTestEnvironment
         $TestType
     )
 
-    $script:moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+    $script:moduleRoot = Split-Path -Parent $PSScriptRoot
 
     if ( (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests'))) -or `
          (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests\TestHelper.psm1'))) )
