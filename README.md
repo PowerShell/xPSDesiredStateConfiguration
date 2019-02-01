@@ -763,6 +763,9 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
   * Fixes an issue where incorrect verbose output was displayed if product found. ([issue #446](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/446))
 * Fixes files which are getting triggered for re-encoding after recent pull
   request (possibly #472).
+* Updates test helper Enter-DscResourceTestEnvironment to only clone or pull
+  DscResource.Tests a maximum of one time per build. Currently it will clone or
+  pull every time this function is hit.
 
 ### 8.5.0.0
 

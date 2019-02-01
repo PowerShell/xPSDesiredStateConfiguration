@@ -728,33 +728,15 @@ function Enter-DscResourceTestEnvironment
         $TestType
     )
 
-    $moduleRootPath = Split-Path -Path $PSScriptRoot -Parent
-    $dscResourceTestsPath = Join-Path -Path $moduleRootPath -ChildPath 'DSCResource.Tests'
-    $testHelperFilePath = Join-Path -Path $dscResourceTestsPath -ChildPath 'TestHelper.psm1'
+    $script:moduleRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
-    if (-not (Test-Path -Path $dscResourceTestsPath))
+    if ( (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests'))) -or `
+         (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests\TestHelper.psm1'))) )
     {
-        Push-Location $moduleRootPath
-        git clone 'https://github.com/PowerShell/DscResource.Tests' --quiet
-        Pop-Location
-    }
-    else
-    {
-        $gitInstalled = $null -ne (Get-Command -Name 'git' -ErrorAction 'SilentlyContinue')
-
-        if ($gitInstalled)
-        {
-            Push-Location $dscResourceTestsPath
-            git pull origin dev --quiet
-            Pop-Location
-        }
-        else
-        {
-            Write-Verbose -Message 'Git not installed. Leaving current DSCResource.Tests as is.'
-        }
+        & git @('clone', 'https://github.com/PowerShell/DscResource.Tests.git', (Join-Path -Path $script:moduleRoot -ChildPath 'DscResource.Tests'))
     }
 
-    Import-Module -Name $testHelperFilePath
+    Import-Module -Name (Join-Path -Path $script:moduleRoot -ChildPath (Join-Path -Path 'DSCResource.Tests' -ChildPath 'TestHelper.psm1')) -Force
 
     return Initialize-TestEnvironment `
         -DSCModuleName $DscResourceModuleName `
