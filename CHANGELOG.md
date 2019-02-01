@@ -88,6 +88,9 @@
   - Corrected style guideline violations. ([issue #496](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/496))
 - Changes to PSWSIISEndpoint.psm1
   - Fixes most PSScriptAnalyzer issues.
+- Updates test helper Enter-DscResourceTestEnvironment to only clone or pull
+  DscResource.Tests a maximum of one time per build. Currently it will clone or
+  pull every time this function is hit.
 - Changes to xRegistry
   - Fixed an issue that fails to remove reg key when the `Key` is specified as
     common registry path.
