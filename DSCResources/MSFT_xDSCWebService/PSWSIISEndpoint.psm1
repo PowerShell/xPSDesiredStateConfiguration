@@ -113,7 +113,11 @@ function Initialize-Endpoint
     Update-Site -siteName $site -siteAction Remove
 
     # Check for existing binding, there should be no binding with the same port
-    if ((Get-WebBinding | Where-Object -FilterScript {$_.BindingInformation -eq "*:$($port):"}).Count -gt 0)
+    $allWebBindingsOnPort = Get-WebBinding | Where-Object -FilterScript {
+        $_.BindingInformation -eq "*:$($port):"
+    }
+
+    if ($allWebBindingsOnPort.Count -gt 0)
     {
         throw "ERROR: Port $port is already used, please review existing sites and change the port to be used."
     }
@@ -261,7 +265,7 @@ function New-SiteID
     [CmdletBinding()]
     param()
 
-    return ((Get-Website | Foreach-Object { $_.Id } | Measure-Object -Maximum).Maximum + 1)
+    return ((Get-Website | Foreach-Object -Process { $_.Id } | Measure-Object -Maximum).Maximum + 1)
 }
 
 <#
@@ -457,7 +461,7 @@ function New-IISWebSite
         Allow Clients outsite the machine to access the setup endpoint on a
         User Port.
 #>
-function New-FirewallRule
+function Set-FirewallConfigurationToAllowPullServerAccess
 {
     [CmdletBinding()]
     param
@@ -657,7 +661,7 @@ function New-PSWSEndpoint
     if ($EnableFirewallException -eq $true)
     {
         Write-Verbose -Message "Enabling firewall exception for port $port"
-        $null = New-FirewallRule $port
+        $null = Set-FirewallConfigurationToAllowPullServerAccess $port
     }
 
     if ($EnablePSWSETW)
