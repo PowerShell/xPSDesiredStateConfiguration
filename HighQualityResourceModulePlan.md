@@ -56,7 +56,7 @@ the following resources:
   - [x] Service
   - [x] WindowsOptionalFeature
 - [x]
-  [3. Resolve Nano Server vs. Full Server Resources](#resolve-nano-server-vs-full-server-resources)
+  [3. Resolve Nano Server vs. Full Server Resources](#resolve-nano-server-vs-full-server-resources)  
   The general consensus is to leave the if-statements for now.
 - [ ]
   [4. Update Each Resource to Be High Quality](#update-each-resource-to-be-high-quality)
