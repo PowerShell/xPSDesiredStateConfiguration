@@ -1,13 +1,17 @@
 # PSDesiredStateConfiguration High Quality Resource Module Plan
 
-Any comments or questions about this plan can be submitted under issue [#160](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/160)
+Any comments or questions about this plan can be submitted under issue
+[#160](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/160)
 
 ## Goals
 
-1. Port the appropriate in-box DSC Resources to the open-source xPSDesiredStateConfiguration resource module.
-1. Make the open-source xPSDesiredStateConfiuration resource module a **High Quality Resource Module (HQRM)** to present to the community for feedback.
+1. Port the appropriate in-box DSC Resources to the open-source
+   xPSDesiredStateConfiguration resource module.
+1. Make the open-source xPSDesiredStateConfiuration resource module a **High
+   Quality Resource Module (HQRM)** to present to the community for feedback.
 
-The PSDesiredStateConfiguration High Quality Resource Module will consist of the following resources:
+The PSDesiredStateConfiguration High Quality Resource Module will consist of
+the following resources:
 
 - Archive
 - Environment
@@ -30,7 +34,8 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
 
 ## Progress
 
-- [x] [1. Port In-Box Only Resources](#port-in-box-only-resources)
+- [x]
+  [1. Port In-Box Only Resources](#port-in-box-only-resources)
   - [x] Environment
   - [x] GroupSet
   - [x] ProcessSet
@@ -41,7 +46,8 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
   - [x] WindowsFeatureSet
   - [x] WindowsOptionalFeatureSet
   - [x] WindowsPackageCab
-- [x] [2. Merge In-Box & Open-Source Resources](#merge-in-box-and-open-source-resources)
+- [x]
+  [2. Merge In-Box & Open-Source Resources](#merge-in-box-and-open-source-resources)
   - [x] Archive
   - [x] Group
   - [x] Package
@@ -49,9 +55,11 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
   - [x] Registry
   - [x] Service
   - [x] WindowsOptionalFeature
-- [x] [3. Resolve Nano Server vs. Full Server Resources](#resolve-nano-server-vs-full-server-resources)  
-    The general consensus is to leave the if-statements for now.
-- [ ] [4. Update Each Resource to Be High Quality](#update-each-resource-to-be-high-quality)
+- [x]
+  [3. Resolve Nano Server vs. Full Server Resources](#resolve-nano-server-vs-full-server-resources)
+  The general consensus is to leave the if-statements for now.
+- [ ]
+  [4. Update Each Resource to Be High Quality](#update-each-resource-to-be-high-quality)
   - [ ] Archive
   - [ ] Environment
   - [x] Group
@@ -70,9 +78,11 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
   - [x] WindowsOptionalFeature
   - [ ] WindowsOptionalFeatureSet
   - [x] WindowsPackageCab
-- [x] [5. Resolve Name of New High Quality Resource Module](#resolve-name-of-new-high-quality-resource-module)  
+- [x]
+  [5. Resolve Name of New High Quality Resource Module](#resolve-name-of-new-high-quality-resource-module)  
   The new high quality module name is PSDscResources.
-- [ ] [6. Move Resources to New High Quality Module](#move-resources-to-new-high-quality-module)
+- [ ]
+  [6. Move Resources to New High Quality Module](#move-resources-to-new-high-quality-module)
   - [ ] Archive
   - [ ] Environment
   - [x] Group
@@ -94,11 +104,15 @@ The PSDesiredStateConfiguration High Quality Resource Module will consist of the
 
 ## Port In-Box Only Resources
 
-We will port the appropriate in-box resources that will be in the HQRM to the open-source xPSDesiredStateConfiguration resource module. These resources are not currently in the open-source repository. Resources currently both in-box and open-source will be merged in step 2.
+We will port the appropriate in-box resources that will be in the HQRM to the
+open-source xPSDesiredStateConfiguration resource module. These resources are
+not currently in the open-source repository. Resources currently both in-box
+and open-source will be merged in step 2.
 
 ### In-Box Only Resources Moving to Open-Source HQRM
 
-These resources and any of their tests, examples, or documentation will be moved to the xPSDSC open-source repository:
+These resources and any of their tests, examples, or documentation will be
+moved to the xPSDSC open-source repository:
 
 - Environment
 - GroupSet
@@ -111,13 +125,20 @@ These resources and any of their tests, examples, or documentation will be moved
 - WindowsOptionalFeatureSet
 - WindowsPackageCab (**NEW**)
 
-When these resources are moved to GitHub, they will have 'x' appended before their names for now to indicate that they are still 'experimental' in this stage. This 'x' convention will change in the near future. The 'x' can be removed as part of step 5.
+When these resources are moved to GitHub, they will have 'x' appended before
+their names for now to indicate that they are still 'experimental' in this
+stage. This 'x' convention will change in the near future. The 'x' can be
+removed as part of step 5.
 
 ## Merge In-Box and Open-Source Resources
 
-We will merge in-box resources that are also currently in the open-source module. The in-box resources and any of their tests, examples, or documentation will be merged into the existing open-source resources in the xPSDesiredStateConfiguration resource module.
+We will merge in-box resources that are also currently in the open-source
+module. The in-box resources and any of their tests, examples, or documentation
+will be merged into the existing open-source resources in the
+xPSDesiredStateConfiguration resource module.
 
-Four of the current open-source resources are not provided in-box. The fate of these open-source-only resources has been addressed in this step as well.
+Four of the current open-source resources are not provided in-box. The fate of
+these open-source-only resources has been addressed in this step as well.
 
 ### Open-Source Resources Moving to HQRM
 
@@ -132,7 +153,9 @@ Four of the current open-source resources are not provided in-box. The fate of t
 - Service
 - WindowsOptionalFeature
 
-These resources will retain the 'x' appended before their names for now to indicate that they are still 'experimental' in this stage. This 'x' convention will change in the near future. The 'x' can be removed as part of step 5.
+These resources will retain the 'x' appended before their names for now to
+indicate that they are still 'experimental' in this stage. This 'x' convention
+will change in the near future. The 'x' can be removed as part of step 5.
 
 ### Open-Source Resources Not Moving to HQRM
 
@@ -144,7 +167,10 @@ These resources will retain the 'x' appended before their names for now to indic
 
 ## Resolve Nano Server vs Full Server Resources
 
-Some of the in-box resources (User especially) currently contain all-encompassing if-statements which tells the resource to act differently based on whether it is operating on a Nano server or a full server. These if-statements will make the resources difficult to maintain.
+Some of the in-box resources (User especially) currently contain
+all-encompassing if-statements which tells the resource to act differently
+based on whether it is operating on a Nano server or a full server. These
+if-statements will make the resources difficult to maintain.
 
 ### Potential Solutions
 
@@ -156,22 +182,32 @@ Some of the in-box resources (User especially) currently contain all-encompassin
 
 ## Update Each Resource to Be High Quality
 
-We will update the resouces, tests, exmaples, and documentation to ensure that the xPSDesiredStateConfiguration resource module meets the requirements to be a High Quality Resource Module (HQRM). These requirements can be found in the DSC Resource Kit High Quality Plan (not yet published publicly, sorry).  
+We will update the resouces, tests, exmaples, and documentation to ensure that
+the xPSDesiredStateConfiguration resource module meets the requirements to be a
+High Quality Resource Module (HQRM). These requirements can be found in the DSC
+Resource Kit High Quality Plan (not yet published publicly, sorry).  
 
 Here are the basic steps we will have to take based on this plan:  
 
-1. Fix PSSA issues per the DSC Resource Kit PSSA Rule Severity List (not yet published publicly, sorry).
-1. Ensure unit tests are present for each resource with more than 70% code coverage.
+1. Fix PSSA issues per the DSC Resource Kit PSSA Rule Severity List (not yet
+   published publicly, sorry).
+1. Ensure unit tests are present for each resource with more than 70% code
+   coverage.
 1. Ensure examples run correctly, work as expected, and are documented clearly.
 1. Ensure clear documentation is provided.
-1. Ensure the PSDesiredStateConfiguration module follows the standard DSC Resource Kit module format.
-1. Fix code styling to match the [DSC Resource Kit Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md).
+1. Ensure the PSDesiredStateConfiguration module follows the standard DSC
+   Resource Kit module format.
+1. Fix code styling to match the
+   [DSC Resource Kit Style Guidelines](https://github.com/PowerShell/DscResources/blob/master/StyleGuidelines.md).
 
 ## Resolve Name of New High Quality Resource Module
 
-The new High Quality Resource Module (HQRM) for xPSDesiredStateConfiguration is named [PSDscResources](https://github.com/PowerShell/PSDscResources).
+The new High Quality Resource Module (HQRM) for xPSDesiredStateConfiguration is
+named [PSDscResources](https://github.com/PowerShell/PSDscResources).
 
-It cannot be named PSDesiredStateCongfiguration since that would conflict with the in-box module, but this HQRM will not contain all the resources in the in-box module (File, Log cannot be ported).
+It cannot be named PSDesiredStateCongfiguration since that would conflict with
+the in-box module, but this HQRM will not contain all the resources in the
+in-box module (File, Log cannot be ported).
 
 All resources will have the 'x' removed in the HQRM.
 
@@ -180,4 +216,4 @@ All resources will have the 'x' removed in the HQRM.
 Each resource is transferred to the HQRM when it is ready with these steps:
 
 1. Rename the resource in all files (remove the 'x').
-1. Submit a PR with the new resource to the PSDscResources repository.  
+1. Submit a PR with the new resource to the PSDscResources repository.
