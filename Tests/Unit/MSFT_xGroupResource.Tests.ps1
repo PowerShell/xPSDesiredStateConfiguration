@@ -101,7 +101,7 @@ try
             }
 
             <#
-                Get-Group, Add-GroupMember, Remove-GroupMember, Clear-GroupMembers, Save-Group,
+                Get-Group, Add-GroupMember, Remove-GroupMember, Clear-GroupMember, Save-Group,
                 Remove-Group, Find-Principal, and Remove-DisposableObject cannot be unit tested
                 because they are wrapper functions for .NET class function calls.
             #>
@@ -929,7 +929,11 @@ try
                         return $memberPrincipals
                     }
 
+<<<<<<< HEAD
                     Mock -CommandName 'Clear-GroupMembers' -MockWith { }
+=======
+                    Mock -CommandName 'Clear-GroupMember' -MockWith { }
+>>>>>>> Renamed Clear-GroupMembers helper function to Clear-GroupMember to remove violation of PowerShell best practice.
                     Mock -CommandName 'Add-GroupMember' -MockWith { }
                     Mock -CommandName 'Remove-GroupMember' -MockWith { }
                     Mock -CommandName 'Remove-Group' -MockWith { }
@@ -1125,7 +1129,7 @@ try
                         Assert-MockCalled -CommandName 'Get-PrincipalContext'
                         Assert-MockCalled -CommandName 'Get-Group' -ParameterFilter { $GroupName -eq $script:testGroupName }
                         Assert-MockCalled -CommandName 'Get-MembersAsPrincipalsList' -ParameterFilter { $Group.Name -eq $script:testGroupName }
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -ParameterFilter { $Group.Name -eq $script:testGroupName }
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -ParameterFilter { $Group.Name -eq $script:testGroupName }
                         Assert-MockCalled -CommandName 'Save-Group' -ParameterFilter { $Group.Name -eq $script:testGroupName }
                         Assert-MockCalled -CommandName 'Remove-DisposableObject'
                     }
@@ -1216,7 +1220,7 @@ try
 
                         Set-TargetResourceOnFullSKU -GroupName $script:testGroupName -MembersToInclude $testMembers -Ensure 'Present'
 
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Add-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Remove-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Save-Group' -Times 0 -Scope 'It'
@@ -1230,7 +1234,7 @@ try
 
                         Set-TargetResourceOnFullSKU -GroupName $script:testGroupName -MembersToExclude $testMembers -Ensure 'Present'
 
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Add-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Remove-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Save-Group' -Times 0 -Scope 'It'
@@ -1244,7 +1248,7 @@ try
 
                         Set-TargetResourceOnFullSKU -GroupName $script:testGroupName -Members $testMembers -Ensure 'Present'
 
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Add-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Remove-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Save-Group' -Times 0 -Scope 'It'
@@ -1258,7 +1262,7 @@ try
 
                         Set-TargetResourceOnFullSKU -GroupName $script:testGroupName -MembersToInclude $testMembers -Ensure 'Present'
 
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Add-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Remove-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Save-Group' -Times 0 -Scope 'It'
@@ -1272,7 +1276,7 @@ try
 
                         Set-TargetResourceOnFullSKU -GroupName $script:testGroupName -MembersToExclude $testMembers -Ensure 'Present'
 
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Add-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Remove-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Save-Group' -Times 0 -Scope 'It'
@@ -1286,7 +1290,7 @@ try
 
                         Set-TargetResourceOnFullSKU -GroupName $script:testGroupName -MembersToInclude $testMembers -MembersToExclude $testMembers -Ensure 'Present'
 
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Add-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Remove-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Save-Group' -Times 0 -Scope 'It'
@@ -1300,7 +1304,7 @@ try
 
                         Set-TargetResourceOnFullSKU -GroupName $script:testGroupName -Members $testMembers -Ensure 'Present'
 
-                        Assert-MockCalled -CommandName 'Clear-GroupMembers' -Times 0 -Scope 'It'
+                        Assert-MockCalled -CommandName 'Clear-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Add-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Remove-GroupMember' -Times 0 -Scope 'It'
                         Assert-MockCalled -CommandName 'Save-Group' -Times 0 -Scope 'It'
