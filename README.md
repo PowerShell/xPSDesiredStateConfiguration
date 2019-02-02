@@ -716,8 +716,6 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 
 * xGroup
   * Corrected style guideline violations. ([issue #485](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/485))
-  * Renamed `Clear-GroupMembers` helper function to `Clear-GroupMember`
-    to remove violation of PowerShell best practice.
 * Changes to xPSDesiredStateConfiguration
   * In AppVeyor CI the tests are split into three separate jobs, and also
     run tests on two different build worker images (Windows Server 2012R2
