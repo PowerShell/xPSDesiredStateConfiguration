@@ -1,13 +1,15 @@
 # This module file contains a utility to perform PSWS IIS Endpoint setup
 # Module exports New-PSWSEndpoint function to perform the endpoint setup
 
-# name and description for the Firewall rules. Used in multiple locations
-$FireWallRuleDisplayName = "Desired State Configuration - Pull Server Port:{0}"
+# Name and description for the Firewall rules. Used in multiple locations
+$FireWallRuleDisplayName = 'Desired State Configuration - Pull Server Port:{0}'
 
-# Validate supplied configuration to setup the PSWS Endpoint
-# Function checks for the existence of PSWS Schema files, IIS config
-# Also validate presence of IIS on the target machine
-#
+<#
+    .SYNOPSIS
+        Validate supplied configuration to setup the PSWS Endpoint Function
+        checks for the existence of PSWS Schema files, IIS config Also validate
+        presence of IIS on the target machine
+#>
 function Initialize-Endpoint
 {
     [CmdletBinding()]
@@ -22,6 +24,7 @@ function Initialize-Endpoint
         $path,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $cfgfile,
 
@@ -38,10 +41,12 @@ function Initialize-Endpoint
         $applicationPoolIdentityType,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $svc,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $mof,
 
@@ -50,6 +55,7 @@ function Initialize-Endpoint
         $dispatch,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $asax,
 
@@ -82,30 +88,14 @@ function Initialize-Endpoint
         $enable32BitAppOnWin64
     )
 
-    if (!(Test-Path -Path $cfgfile))
-    {
-        throw "ERROR: $cfgfile does not exist"
-    }
-
-    if (!(Test-Path -Path $svc))
-    {
-        throw "ERROR: $svc does not exist"
-    }
-
-    if (!(Test-Path -Path $mof))
-    {
-        throw "ERROR: $mof does not exist"
-    }
-
-    if (!(Test-Path -Path $asax))
-    {
-        throw "ERROR: $asax does not exist"
-    }
-
     if ($certificateThumbPrint -ne 'AllowUnencryptedTraffic')
     {
         Write-Verbose -Message 'Verify that the certificate with the provided thumbprint exists in CERT:\LocalMachine\MY\'
-        $certificate = Get-ChildItem -Path CERT:\LocalMachine\MY\ | Where-Object -FilterScript {$_.Thumbprint -eq $certificateThumbPrint}
+
+        $certificate = Get-ChildItem -Path CERT:\LocalMachine\MY\ | Where-Object -FilterScript {
+            $_.Thumbprint -eq $certificateThumbPrint
+        }
+
         if (!$Certificate)
         {
              throw "ERROR: Certificate with thumbprint $certificateThumbPrint does not exist in CERT:\LocalMachine\MY\"
@@ -116,14 +106,13 @@ function Initialize-Endpoint
 
     $appPool = 'PSWS'
 
-
     Write-Verbose -Message 'Delete the App Pool if it exists'
     Remove-AppPool -apppool $appPool
 
     Write-Verbose -Message 'Remove the site if it already exists'
     Update-Site -siteName $site -siteAction Remove
 
-    # check for existing binding, there should be no binding with the same port
+    # Check for existing binding, there should be no binding with the same port
     if ((Get-WebBinding | Where-Object -FilterScript {$_.BindingInformation -eq "*:$($port):"}).Count -gt 0)
     {
         throw "ERROR: Port $port is already used, please review existing sites and change the port to be used."
@@ -137,37 +126,45 @@ function Initialize-Endpoint
         }
     }
 
-    Copy-Configuration -path $path -cfgfile $cfgfile -svc $svc -mof $mof -dispatch $dispatch -asax $asax -dependentBinaries $dependentBinaries -language $language -dependentMUIFiles $dependentMUIFiles -psFiles $psFiles
+    Copy-PSWSConfigurationToIISEndpointFolder -path $path -cfgfile $cfgfile -svc $svc -mof $mof -dispatch $dispatch -asax $asax -dependentBinaries $dependentBinaries -language $language -dependentMUIFiles $dependentMUIFiles -psFiles $psFiles
 
     New-IISWebSite -site $site -path $path -port $port -app $app -apppool $appPool -applicationPoolIdentityType $applicationPoolIdentityType -certificateThumbPrint $certificateThumbPrint -enable32BitAppOnWin64 $enable32BitAppOnWin64
 }
 
-# Validate if IIS and all required dependencies are installed on the target machine
-#
+<#
+    .SYNOPSIS
+        Validate if IIS and all required dependencies are installed on the
+        target machine
+#>
 function Test-IISInstall
 {
-        Write-Verbose -Message 'Checking IIS requirements'
-        $iisVersion = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\InetStp -ErrorAction silentlycontinue).MajorVersion
+    [CmdletBinding()]
+    param()
 
-        if ($iisVersion -lt 7)
-        {
-            throw "ERROR: IIS Version detected is $iisVersion , must be running higher than 7.0"
-        }
+    Write-Verbose -Message 'Checking IIS requirements'
+    $iisVersion = (Get-ItemProperty HKLM:\SOFTWARE\Microsoft\InetStp -ErrorAction silentlycontinue).MajorVersion
 
-        $wsRegKey = (Get-ItemProperty hklm:\SYSTEM\CurrentControlSet\Services\W3SVC -ErrorAction silentlycontinue).ImagePath
-        if ($null -eq $wsRegKey)
-        {
-            throw 'ERROR: Cannot retrive W3SVC key. IIS Web Services may not be installed'
-        }
+    if ($iisVersion -lt 7)
+    {
+        throw "ERROR: IIS Version detected is $iisVersion , must be running higher than 7.0"
+    }
 
-        if ((Get-Service w3svc).Status -ne 'running')
-        {
-            throw 'ERROR: service W3SVC is not running'
-        }
+    $wsRegKey = (Get-ItemProperty hklm:\SYSTEM\CurrentControlSet\Services\W3SVC -ErrorAction silentlycontinue).ImagePath
+    if ($null -eq $wsRegKey)
+    {
+        throw 'ERROR: Cannot retrive W3SVC key. IIS Web Services may not be installed'
+    }
+
+    if ((Get-Service w3svc).Status -ne 'running')
+    {
+        throw 'ERROR: service W3SVC is not running'
+    }
 }
 
-# Verify if a given IIS Site exists
-#
+<#
+    .SYNOPSIS
+        Verify if a given IIS Site exists
+#>
 function Test-ForIISSite
 {
     [CmdletBinding()]
@@ -187,8 +184,10 @@ function Test-ForIISSite
     return $false
 }
 
-# Perform an action (such as stop, start, delete) for a given IIS Site
-#
+<#
+    .SYNOPSIS
+        Perform an action (such as stop, start, delete) for a given IIS Site
+#>
 function Update-Site
 {
     param
@@ -227,14 +226,14 @@ function Update-Site
             'Stop'   {Stop-Website -Name "$name" -ErrorAction SilentlyContinue}
             'Remove' {Remove-Website -Name "$name"}
         }
-
-        Write-Verbose -Message 'p11'
     }
 }
 
-# Delete the given IIS Application Pool
-# This is required to cleanup any existing conflicting apppools before setting up the endpoint
-#
+<#
+    .SYNOPSIS
+        Delete the given IIS Application Pool. This is required to cleanup any
+        existing conflicting apppools before setting up the endpoint.
+#>
 function Remove-AppPool
 {
     [CmdletBinding()]
@@ -245,16 +244,18 @@ function Remove-AppPool
         $appPool
     )
 
-    # without this tests we may get a breaking error here, despite SilentlyContinue
+    # Without this tests we may get a breaking error here, despite SilentlyContinue
     if (Test-Path -Path "IIS:\AppPools\$appPool")
     {
         Remove-WebAppPool -Name $appPool -ErrorAction SilentlyContinue
     }
 }
 
-# Generate an IIS Site Id while setting up the endpoint
-# The Site Id will be the max available in IIS config + 1
-#
+<#
+    .SYNOPSIS
+        Generate an IIS Site Id while setting up the endpoint. The Site Id will
+        be the max available in IIS config + 1.
+#>
 function New-SiteID
 {
     [CmdletBinding()]
@@ -263,9 +264,11 @@ function New-SiteID
     return ((Get-Website | Foreach-Object { $_.Id } | Measure-Object -Maximum).Maximum + 1)
 }
 
-# Validate the PSWS config files supplied and copy to the IIS endpoint in inetpub
-#
-function Copy-Configuration
+<#
+    .SYNOPSIS
+        Copies the supplied PSWS config files to the IIS endpoint in inetpub
+#>
+function Copy-PSWSConfigurationToIISEndpointFolder
 {
     [CmdletBinding()]
     param
@@ -275,14 +278,17 @@ function Copy-Configuration
         $path,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $cfgfile,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $svc,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $mof,
 
@@ -291,6 +297,7 @@ function Copy-Configuration
         $dispatch,
 
         [Parameter()]
+        [ValidateScript({Test-Path -Path $_})]
         [System.String]
         $asax,
 
@@ -311,26 +318,6 @@ function Copy-Configuration
         $psFiles
     )
 
-    if (!(Test-Path -Path $cfgfile))
-    {
-        throw "ERROR: $cfgfile does not exist"
-    }
-
-    if (!(Test-Path -Path $svc))
-    {
-        throw "ERROR: $svc does not exist"
-    }
-
-    if (!(Test-Path -Path $mof))
-    {
-        throw "ERROR: $mof does not exist"
-    }
-
-    if (!(Test-Path -Path $asax))
-    {
-        throw "ERROR: $asax does not exist"
-    }
-
     if (!(Test-Path -Path $path))
     {
         $null = New-Item -ItemType container -Path $path
@@ -345,9 +332,9 @@ function Copy-Configuration
     }
 
     Write-Verbose -Message 'Create the bin folder for deploying custom dependent binaries required by the endpoint'
-    $binFolderPath = Join-Path $path 'bin'
-    $null = New-Item -path $binFolderPath  -itemType 'directory' -Force
-    Copy-Item $dependentBinaries $binFolderPath -Force
+    $binFolderPath = Join-Path -Path $path -ChildPath 'bin'
+    $null = New-Item -Path $binFolderPath  -ItemType 'directory' -Force
+    Copy-Item -Path $dependentBinaries -Destination $binFolderPath -Force
 
     foreach ($psFile in $psFiles)
     {
@@ -356,26 +343,28 @@ function Copy-Configuration
             throw "ERROR: $psFile does not exist"
         }
 
-        Copy-Item $psFile $path -Force
+        Copy-Item -Path $psFile -Destination $path -Force
     }
 
-    Copy-Item $cfgfile (Join-Path $path 'web.config') -Force
-    Copy-Item $svc $path -Force
-    Copy-Item $mof $path -Force
+    Copy-Item -Path $cfgfile (Join-Path -Path $path -ChildPath 'web.config') -Force
+    Copy-Item -Path $svc -Destination $path -Force
+    Copy-Item -Path $mof -Destination $path -Force
 
     if ($dispatch)
     {
-        Copy-Item $dispatch $path -Force
+        Copy-Item -Path $dispatch -Destination $path -Force
     }
 
     if ($asax)
     {
-        Copy-Item $asax $path -Force
+        Copy-Item -Path $asax -Destination $path -Force
     }
 }
 
-# Setup IIS Apppool, Site and Application
-#
+<#
+    .SYNOPSIS
+        Setup IIS Apppool, Site and Application
+#>
 function New-IISWebSite
 {
     [CmdletBinding()]
@@ -463,8 +452,11 @@ function New-IISWebSite
     Update-Site -siteName $site -siteAction Start
 }
 
-# Allow Clients outsite the machine to access the setup endpoint on a User Port
-#
+<#
+    .SYNOPSIS
+        Allow Clients outsite the machine to access the setup endpoint on a
+        User Port.
+#>
 function New-FirewallRule
 {
     [CmdletBinding()]
@@ -487,8 +479,10 @@ function New-FirewallRule
     & $script:netsh advfirewall firewall add rule name=DSCPullServer_IIS_Port dir=in action=allow protocol=TCP localport=$firewallPort
 }
 
-# Enable & Clear PSWS Operational/Analytic/Debug ETW Channels
-#
+<#
+    .SYNOPSIS
+        Enable & Clear PSWS Operational/Analytic/Debug ETW Channels.
+#>
 function Enable-PSWSETW
 {
     # Disable Analytic Log
