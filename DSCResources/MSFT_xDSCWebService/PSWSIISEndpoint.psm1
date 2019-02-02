@@ -502,19 +502,34 @@ function Enable-PSWSETW
 }
 
 <#
-.Synopsis
-   Create PowerShell WebServices IIS Endpoint
-.DESCRIPTION
-   Creates a PSWS IIS Endpoint by consuming PSWS Schema and related dependent files
-.EXAMPLE
-   New a PSWS Endpoint [@ http://Server:39689/PSWS_Win32Process] by consuming PSWS Schema Files and any dependent scripts/binaries
-   New-PSWSEndpoint -site Win32Process -path $env:SystemDrive\inetpub\PSWS_Win32Process -cfgfile Win32Process.config -port 39689 -app Win32Process -svc PSWS.svc -mof Win32Process.mof -dispatch Win32Process.xml -dependentBinaries ConfigureProcess.ps1, Rbac.dll -psFiles Win32Process.psm1
+    .SYNOPSIS
+        Create PowerShell WebServices IIS Endpoint
+
+    .DESCRIPTION
+        Creates a PSWS IIS Endpoint by consuming PSWS Schema and related
+        dependent files
+
+    .EXAMPLE
+        New PSWS Endpoint [@ http://Server:39689/PSWS_Win32Process] by
+        consuming PSWS Schema Files and any dependent scripts/binaries:
+
+        New-PSWSEndpoint
+            -site Win32Process
+            -path $env:SystemDrive\inetpub\PSWS_Win32Process
+            -cfgfile Win32Process.config
+            -port 39689
+            -app Win32Process
+            -svc PSWS.svc
+            -mof Win32Process.mof
+            -dispatch Win32Process.xml
+            -dependentBinaries ConfigureProcess.ps1, Rbac.dll
+            -psFiles Win32Process.psm1
 #>
 function New-PSWSEndpoint
 {
     [CmdletBinding()]
-    param (
-
+    param
+    (
         # Unique Name of the IIS Site
         [Parameter()]
         [System.String]
@@ -616,7 +631,8 @@ function New-PSWSEndpoint
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
         [System.Boolean]
-        $Enable32BitAppOnWin64 = $false)
+        $Enable32BitAppOnWin64 = $false
+    )
 
     $script:wevtutil = "$env:windir\system32\Wevtutil.exe"
 
@@ -651,13 +667,16 @@ function New-PSWSEndpoint
 }
 
 <#
-.Synopsis
-   Removes a DSC WebServices IIS Endpoint
-.DESCRIPTION
-   Removes a PSWS IIS Endpoint
-.EXAMPLE
-   Remove the endpoint with the specified name
-   Remove-PSWSEndpoint -siteName PSDSCPullServer
+    .SYNOPSIS
+        Removes a DSC WebServices IIS Endpoint
+
+    .DESCRIPTION
+        Removes a PSWS IIS Endpoint
+
+    .EXAMPLE
+        Remove the endpoint with the specified name:
+
+        Remove-PSWSEndpoint -siteName PSDSCPullServer
 #>
 function Remove-PSWSEndpoint
 {
@@ -670,51 +689,54 @@ function Remove-PSWSEndpoint
         $siteName
     )
 
-    # get the site to remove
+    # Get the site to remove
     $site = Get-Item -Path "IIS:\sites\$siteName"
-    # and the pool it is using
+    # And the pool it is using
     $pool = $site.applicationPool
 
-    # get the path so we can delete the files
+    # Get the path so we can delete the files
     $filePath = $site.PhysicalPath
-    # get the port number for the Firewall rule
+    # Get the port number for the Firewall rule
     $bindings = (Get-WebBinding -Name $siteName).bindingInformation
     $port = [regex]::match($bindings,':(\d+):').Groups[1].Value
 
-    # remove the actual site.
+    # Remove the actual site.
     Remove-Website -Name $siteName
-    # there may be running requests, wait a little
-    # I had an issue where the files were still in use
-    # when I tried to delete them
+    <#
+      There may be running requests, wait a little
+      I had an issue where the files were still in use
+      when I tried to delete them
+    #>
     Start-Sleep -Milliseconds 200
 
-    # remove the files for the site
+    # Remove the files for the site
     If (Test-Path -Path $filePath)
     {
         Get-ChildItem -Path $filePath -Recurse | Remove-Item -Recurse
         Remove-Item -Path $filePath
     }
 
-    # find out whether any other site is using this pool
+    # Find out whether any other site is using this pool
     $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "']"
     $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath 'machine/webroot/apphost' -name path).ItemXPath
     if (-not $apps -or $apps.count -eq 1)
     {
-       # if we are the only site in the pool, remove the pool as well.
+       # If we are the only site in the pool, remove the pool as well.
        Remove-WebAppPool -Name $pool
     }
 
-    # remove all rules with that name
+    # Remove all rules with that name
     $ruleName = ($($FireWallRuleDisplayName) -f $port)
     Get-NetFirewallRule | Where-Object DisplayName -eq "$ruleName" | Remove-NetFirewallRule
 }
 
 <#
-.Synopsis
-   Set the option into the web.config for an endpoint
-.DESCRIPTION
-   Set the options into the web.config for an endpoint allowing customization.
-.EXAMPLE
+    .SYNOPSIS
+        Set the option into the web.config for an endpoint
+
+    .DESCRIPTION
+        Set the options into the web.config for an endpoint allowing
+        customization.
 #>
 function Set-AppSettingsInWebconfig
 {
@@ -741,11 +763,11 @@ function Set-AppSettingsInWebconfig
     )
 
     $webconfig = Join-Path $path 'web.config'
-    [bool] $Found = $false
+    [System.Boolean] $Found = $false
 
     if (Test-Path -Path $webconfig)
     {
-        $xml = [xml](get-content $webconfig)
+        $xml = [xml] (get-content $webconfig)
         $root = $xml.get_DocumentElement()
 
         foreach( $item in $root.appSettings.add)
@@ -776,18 +798,20 @@ function Set-AppSettingsInWebconfig
 }
 
 <#
-.Synopsis
-   Set the binding redirect setting in the web.config to redirect 10.0.0.0 version of microsoft.isam.esent.interop to 6.3.0.0.
-.DESCRIPTION
-   This function creates the following section in the web.config:
-   <runtime>
-     <assemblyBinding xmlns='urn:schemas-microsoft-com:asm.v1'>
-       <dependentAssembly>
-         <assemblyIdentity name='microsoft.isam.esent.interop' publicKeyToken='31bf3856ad364e35' />
-       <bindingRedirect oldVersion='10.0.0.0' newVersion='6.3.0.0' />
-      </dependentAssembly>
-     </assemblyBinding>
-</runtime>
+    .SYNOPSIS
+        Set the binding redirect setting in the web.config to redirect 10.0.0.0
+        version of microsoft.isam.esent.interop to 6.3.0.0.
+
+    .DESCRIPTION
+        This function creates the following section in the web.config:
+        <runtime>
+          <assemblyBinding xmlns='urn:schemas-microsoft-com:asm.v1'>
+            <dependentAssembly>
+              <assemblyIdentity name='microsoft.isam.esent.interop' publicKeyToken='31bf3856ad364e35' />
+            <bindingRedirect oldVersion='10.0.0.0' newVersion='6.3.0.0' />
+           </dependentAssembly>
+          </assemblyBinding>
+        </runtime>
 #>
 function Set-BindingRedirectSettingInWebConfig
 {
@@ -834,7 +858,7 @@ function Set-BindingRedirectSettingInWebConfig
             # Create the <dependentAssembly> section
             $dependentAssemblySetting = $xml.CreateElement('dependentAssembly')
 
-            #The <dependentAssembly> section goes inside <assemblyBinding>
+            # The <dependentAssembly> section goes inside <assemblyBinding>
             $null = $assemblyBindingSetting.AppendChild($dependentAssemblySetting)
 
             # Create the <assemblyIdentity> section
