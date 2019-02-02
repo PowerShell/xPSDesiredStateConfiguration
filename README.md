@@ -716,6 +716,8 @@ Publishes a 'FileInfo' object(s) to the pullserver configuration repository. It 
 
 * xGroup
   * Corrected style guideline violations. ([issue #485](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/485))
+  * Renamed `Clear-GroupMembers` helper function to `Clear-GroupMember`
+    to remove violation of PowerShell best practice.
 * xWindowsOptionalFeature
   * Suppress useless verbose output from `Import-Module` cmdlet. ([issue #453](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/453))
 * Changes to xRemoteFile

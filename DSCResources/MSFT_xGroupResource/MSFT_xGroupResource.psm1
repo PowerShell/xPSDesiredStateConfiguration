@@ -642,7 +642,7 @@ function Set-TargetResourceOnFullSKU
 
                     if ($Members.Count -eq 0 -and $null -ne $actualMembersAsPrincipals -and $actualMembersAsPrincipals.Count -ne 0)
                     {
-                        Clear-GroupMembers -Group $group
+                        Clear-GroupMember -Group $group
                         $saveChanges = $true
                     }
                     elseif ($Members.Count -ne 0)
@@ -2470,7 +2470,7 @@ function Get-GroupMembersFromDirectoryEntry
     .PARAMETER Group
         The group to clear the members of.
 #>
-function Clear-GroupMembers
+function Clear-GroupMember
 {
     [CmdletBinding()]
     param
