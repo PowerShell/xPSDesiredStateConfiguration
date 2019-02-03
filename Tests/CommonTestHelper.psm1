@@ -830,6 +830,49 @@ function Test-SkipContinuousIntegrationTask
     return $result
 }
 
+<#
+    .SYNOPSIS
+        Verifies that the specified Windows Feature exists and is installed
+        on the local machine.
+
+    .PARAMETER Name
+        The name of the Windows Feature to verify installation of.
+#>
+function Install-WindowsFeatureAndVerify
+{
+    [OutputType([System.Boolean])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $Name
+    )
+
+    $featureInstalled = $true
+
+    $targetFeature = Get-WindowsFeature -Name $Name -ErrorAction SilentlyContinue
+
+    if ($null -eq $targetFeature)
+    {
+        Write-Warning -Message "Unable to find Windows Feature '$Name'."
+        $featureInstalled = $false
+    }
+    elseif (!$targetFeature.Installed)
+    {
+        $installResult = Install-WindowsFeature -Name $Name
+
+        if (!$installResult.Success)
+        {
+            Write-Error -Message "Failed to install Windows Feature '$Name'."
+            $featureInstalled = $false
+        }
+    }
+
+    return $featureInstalled
+}
+
 Export-ModuleMember -Function @(
     'Test-GetTargetResourceResult', `
     'Wait-ScriptBlockReturnTrue', `
@@ -843,5 +886,6 @@ Export-ModuleMember -Function @(
     'Invoke-TestTargetResourceUnitTest', `
     'Invoke-ExpectedMocksAreCalledTest', `
     'Invoke-GenericUnitTest',
-    'Test-SkipContinuousIntegrationTask'
+    'Test-SkipContinuousIntegrationTask',
+    'Install-WindowsFeatureAndVerify'
 )

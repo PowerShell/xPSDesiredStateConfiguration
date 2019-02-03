@@ -1,25 +1,6 @@
-<#
-    .SYNOPSIS
-       Template for creating DSC Resource Integration Tests
-
-    .DESCRIPTION
-        To Use:
-            1. Copy to \Tests\Integration\ folder and rename <ResourceName>.Integration.tests.ps1
-               (e.g. MSFT_Firewall.Integration.tests.ps1).
-            2. Customize TODO sections.
-            3. Remove TODO comments.
-            4. Create test DSC Configuration file <ResourceName>.config.ps1
-               (e.g. MSFT_Firewall.config.ps1) from integration_template.config.ps1 file.
-            5. Remove this comment-based help.
-
-    .NOTES
-        Code in HEADER and FOOTER regions are standard and should not be altered
-        if possible.
-#>
-
-$script:dscModuleName = 'xPSDesiredStateConfiguration' # TODO: Example 'NetworkingDsc'
-$script:dscResourceFriendlyName = 'xDSCWebService' # TODO: Example 'Firewall'
-$script:dcsResourceName = "MSFT_$($script:dscResourceFriendlyName)" # TODO: Update prefix
+$script:dscModuleName = 'xPSDesiredStateConfiguration'
+$script:dscResourceFriendlyName = 'xDSCWebService'
+$script:dcsResourceName = "MSFT_$($script:dscResourceFriendlyName)"
 
 #region HEADER
 # Integration Test Template Version: 1.3.1
@@ -35,26 +16,93 @@ $TestEnvironment = Initialize-TestEnvironment `
     -DSCModuleName $script:dscModuleName `
     -DSCResourceName $script:dcsResourceName `
     -TestType Integration
+
+Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'CommonTestHelper.psm1')
+
+[System.String] $tempFolderName = 'xDSCWebServiceTests_' + (Get-Date).ToString("yyyyMMdd_HHmmss")
+
+<#
+    .SYNOPSIS
+        Performs common DSC integration tests including compiling, setting,
+        testing, and getting a configuration.
+
+    .PARAMETER ConfigurationName
+        The name of the configuration being executed.
+#>
+function Invoke-CommonResourceTesting
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $ConfigurationName
+    )
+
+    It 'Should compile and apply the MOF without throwing' {
+        {
+            $configurationParameters = @{
+                OutputPath           = $TestDrive
+                ConfigurationData    = $ConfigurationData
+            }
+
+            & $configurationName @configurationParameters
+
+            $startDscConfigurationParameters = @{
+                Path         = $TestDrive
+                ComputerName = 'localhost'
+                Wait         = $true
+                Verbose      = $true
+                Force        = $true
+                ErrorAction  = 'Stop'
+            }
+
+            Start-DscConfiguration @startDscConfigurationParameters
+        } | Should -Not -Throw
+    }
+
+    It 'Should be able to call Get-DscConfiguration without throwing' {
+        {
+            $script:currentConfiguration = Get-DscConfiguration -Verbose -ErrorAction Stop
+        } | Should -Not -Throw
+    }
+
+    It 'Should return $true when Test-DscConfiguration is run' {
+        Test-DscConfiguration -Verbose | Should -Be $true
+    }
+}
+
+<#
+    .SYNOPSIS
+        Performs common tests to ensure that the DSC pull server was properly
+        installed.
+#>
+function Verify-DSCPullServerIsPresent
+{
+    [CmdletBinding()]
+    param
+    (
+    )
+
+    It 'Should create a web site to host the DSC Pull Server' {
+        (Get-ChildItem -Path IIS:\sites | Where-Object -Property Name -Match "^$($ConfigurationData.AllNodes.EndpointName)").Count | Should -Be 1
+    }
+
+    It 'Should create a web.config file at the web site root' {
+        Test-Path -Path (Join-Path -Path $ConfigurationData.AllNodes.PhysicalPath -ChildPath 'web.config') | Should -Be $true
+    }
+
+    It 'Should create a firewall rule for the chosen port' {
+        (Get-NetFirewallRule | Where-Object -FilterScript {$_.DisplayName -eq 'DSCPullServer_IIS_Port'} | Measure-Object).Count | Should -Be 1
+    }
+}
 #endregion
 
-# TODO: (Optional) Other init code goes here.
-# Make sure the DSC-Service feature is present and installed before running tests
-$dscFeature = Get-WindowsFeature -Name DSC-Service -ErrorAction SilentlyContinue
-
-if ($null -eq $dscFeature)
+if (!(Install-WindowsFeatureAndVerify -Name 'DSC-Service'))
 {
-    Write-Warning -Message 'Unable to find Windows Feature "DSC-Service". Skipping xDSCWebService Integration tests.'
+    Write-Verbose -Message 'Skipping xDSCWebService Integration tests.' -Verbose
     return
-}
-elseif (!$dscFeature.Installed)
-{
-    $installResult = Install-WindowsFeature -Name DSC-Service
-
-    if (!$installResult.Success)
-    {
-        Write-Error -Message 'Failed to install Windows Feature "DSC-Service". Skipping xDSCWebService Integration tests.'
-        return
-    }
 }
 
 # Using try/finally to always cleanup.
@@ -64,68 +112,32 @@ try
     $configurationFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:dcsResourceName).config.ps1"
     . $configurationFile
 
+    Backup-WebConfiguration -Name $tempFolderName
+
     Describe "$($script:dcsResourceName)_Integration" {
-        # TODO: Update with the correct name of the configuration.
-        $configurationName = 'MSFT_xDSCWebService_SimplePullSetup_Config'
+        $ensureAbsentConfigurationName = "$($script:dcsResourceName)_PullTestRemoval_Config"
 
-        Context ('When using configuration {0}' -f $configurationName) {
-            It 'Should compile and apply the MOF without throwing' {
-                {
-                    <#
-                        TODO: (Optional) Add any additional parameters needed
-                        for compilation of the configuration, like credentials.
-                    #>
-                    $configurationParameters = @{
-                        OutputPath           = $TestDrive
-                        <#
-                            TODO: The variable $ConfigurationData was dot-sourced
-                            above. (Optional) The configuration data hash table can
-                            be moved into this file as appropriate, see the
-                            integration_template.config.ps1 for more information.
-                        #>
-                        ConfigurationData    = $ConfigurationData
-                    }
+        $ensurePresentConfigurationNames = @(
+            "$($script:dcsResourceName)_PullTestWithSecurityBestPractices_Config",
+            "$($script:dcsResourceName)_PullTestWithoutSecurityBestPractices_Config"
+        )
 
-                    & $configurationName @configurationParameters
-
-                    $startDscConfigurationParameters = @{
-                        Path         = $TestDrive
-                        ComputerName = 'localhost'
-                        Wait         = $true
-                        Verbose      = $true
-                        Force        = $true
-                        ErrorAction  = 'Stop'
-                    }
-
-                    Start-DscConfiguration @startDscConfigurationParameters
-                } | Should -Not -Throw
-            }
-
-            It 'Should be able to call Get-DscConfiguration without throwing' {
-                {
-                    $script:currentConfiguration = Get-DscConfiguration -Verbose -ErrorAction Stop
-                } | Should -Not -Throw
-            }
-
-            It 'Should have set the resource and all the parameters should match' {
-                $resourceCurrentState = $script:currentConfiguration | Where-Object -FilterScript {
-                    $_.ConfigurationName -eq $configurationName `
-                    -and $_.ResourceId -eq "[$($script:dscResourceFriendlyName)]Integration_Test"
+        foreach ($configurationName in $ensurePresentConfigurationNames)
+        {
+            Context ('When using configuration {0}' -f $configurationName) {
+                BeforeAll {
+                    Invoke-CommonResourceTesting -ConfigurationName $ensureAbsentConfigurationName
                 }
 
-                # TODO: Validate the Config was Set Correctly Here...
-            }
+                AfterAll {
+                    Invoke-CommonResourceTesting -ConfigurationName $ensureAbsentConfigurationName
+                }
 
-            It 'Should return $true when Test-DscConfiguration is run' {
-                Test-DscConfiguration -Verbose | Should -Be $true
+                Invoke-CommonResourceTesting -ConfigurationName $configurationName
+
+                Verify-DSCPullServerIsPresent
             }
         }
-
-        <#
-            TODO: (Optional) Add a new context block for the next configuration
-            that should be tested.
-        #>
-
     }
     #endregion
 
@@ -136,5 +148,13 @@ finally
     Restore-TestEnvironment -TestEnvironment $TestEnvironment
     #endregion
 
-    # TODO: (Optional) Other cleanup code goes here.
+    # Roll back our changes
+    Restore-WebConfiguration -Name $tempFolderName
+    Remove-WebConfigurationBackup -Name $tempFolderName
+
+    # Remove the generated MoF files
+    Get-ChildItem -Path $ENV:TEMP -Filter $tempFolderName | Remove-Item -Recurse -Force
+
+    # Remove all firewall rules starting with port 21*
+    Get-NetFirewallRule | Where-Object -FilterScript {$_.DisplayName -eq 'DSCPullServer_IIS_Port'}  | Remove-NetFirewallRule
 }

@@ -165,7 +165,6 @@ function Get-TargetResource
 
         $output.Add('CertificateThumbPrint',   $webBinding.CertificateHash)
         $output.Add('CertificateSubject',      $certificate.Subject)
-        $output.Add('CertificateTemplateName', $certificate.Extensions.Where{$_.Oid.FriendlyName -eq 'Certificate Template Name'}.Format($false))
     }
 
     return $output

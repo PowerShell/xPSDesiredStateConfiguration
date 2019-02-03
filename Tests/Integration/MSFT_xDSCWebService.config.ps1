@@ -1,19 +1,3 @@
-<#
-    .SYNOPSIS
-        DSC Configuration Template for DSC Resource Integration tests.
-
-    .DESCRIPTION
-        To Use:
-            1. Copy to \Tests\Integration\ folder and rename xDSCWebService.config.ps1
-               (e.g. MSFT_Firewall.config.ps1).
-            2. Customize TODO sections.
-            3. Remove TODO comments and TODO comment-blocks.
-            4. Remove this comment-based help.
-
-    .NOTES
-        Comment in HEADER region are standard and should not be altered.
-#>
-
 #region HEADER
 # Integration Test Config Template Version: 1.2.0
 #endregion
@@ -21,34 +5,19 @@
 $configFile = [System.IO.Path]::ChangeExtension($MyInvocation.MyCommand.Path, 'json')
 if (Test-Path -Path $configFile)
 {
-    <#
-        TODO: Allows reading the configuration data from a JSON file,
-        e.g. integration_template.config.json for real testing
-        scenarios outside of the CI.
-    #>
     $ConfigurationData = Get-Content -Path $configFile | ConvertFrom-Json
 }
 else
 {
-    <#
-        TODO: (Optional) If appropriate, this configuration hash table
-        can be moved from here and into the integration test file.
-        For example, if there are several configurations which all
-        need different configuration properties, it might be easier
-        to have one ConfigurationData-block per configuration test
-        than one big ConfigurationData-block here.
-        It may also be moved if it is easier to read the tests when
-        the ConfigurationData-block is in the integration test file.
-        The reason for it being here is that it is easier to read
-        the configuration when the ConfigurationData-block is in this
-        file.
-    #>
     $ConfigurationData = @{
         AllNodes = @(
             @{
                 NodeName              = 'localhost'
                 CertificateFile       = $env:DscPublicCertificatePath
-                CertificateThumbprint = $env:DscCertificateThumbprint
+                CertificateThumbprint = 'A337EC24D2DE62C9C92EC398F83A4BC2F733F307' #$env:DscCertificateThumbprint
+                Port                  = 8080
+                EndpointName          = 'PSDSCPullServer'
+                PhysicalPath          = "$env:SystemDrive\inetpub\PSDSCPullServer"
             }
         )
     }
@@ -56,10 +25,9 @@ else
 
 <#
     .SYNOPSIS
-        TODO: Add a short but clear description of what this configuration does.
-        (e.g. Enables the TCP port for Remote Desktop Connection on the profile Public.)
+        Removes a configured DSC pull server
 #>
-Configuration MSFT_xDSCWebService_SimplePullSetup_Config
+Configuration MSFT_xDSCWebService_PullTestRemoval_Config
 {
     Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
 
@@ -67,10 +35,10 @@ Configuration MSFT_xDSCWebService_SimplePullSetup_Config
     {
         xDSCWebService Integration_Test
         {
-            Ensure                       = 'Present'
-            EndpointName                 = 'PSDSCPullServer'
-            Port                         = 8080
-            PhysicalPath                 = "$env:SystemDrive\inetpub\PSDSCPullServer"
+            Ensure                       = 'Absent'
+            EndpointName                 = $Node.EndpointName
+            Port                         = $Node.Port
+            PhysicalPath                 = $Node.PhysicalPath
             CertificateThumbPrint        = $Node.CertificateThumbprint
             ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
             ConfigurationPath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
@@ -83,4 +51,58 @@ Configuration MSFT_xDSCWebService_SimplePullSetup_Config
     }
 }
 
-# TODO: (Optional) Add More Configuration Templates as needed.
+<#
+    .SYNOPSIS
+        Sets up a DSC pull server using security best practices
+#>
+Configuration MSFT_xDSCWebService_PullTestWithSecurityBestPractices_Config
+{
+    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
+
+    node $AllNodes.NodeName
+    {
+        xDSCWebService Integration_Test
+        {
+            Ensure                       = 'Present'
+            EndpointName                 = $Node.EndpointName
+            Port                         = $Node.Port
+            PhysicalPath                 = $Node.PhysicalPath
+            CertificateThumbPrint        = $Node.CertificateThumbprint
+            ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
+            ConfigurationPath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
+            State                        = 'Started'
+            RegistrationKeyPath          = "$env:PROGRAMFILES\WindowsPowerShell\DscService"
+            AcceptSelfSignedCertificates = $true
+            Enable32BitAppOnWin64        = $false
+            UseSecurityBestPractices     = $true
+        }
+    }
+}
+
+<#
+    .SYNOPSIS
+        Sets up a DSC pull server without using security best practices
+#>
+Configuration MSFT_xDSCWebService_PullTestWithoutSecurityBestPractices_Config
+{
+    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
+
+    node $AllNodes.NodeName
+    {
+        xDSCWebService Integration_Test
+        {
+            Ensure                       = 'Present'
+            EndpointName                 = $Node.EndpointName
+            Port                         = $Node.Port
+            PhysicalPath                 = $Node.PhysicalPath
+            CertificateThumbPrint        = $Node.CertificateThumbprint
+            ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
+            ConfigurationPath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
+            State                        = 'Started'
+            RegistrationKeyPath          = "$env:PROGRAMFILES\WindowsPowerShell\DscService"
+            AcceptSelfSignedCertificates = $true
+            Enable32BitAppOnWin64        = $false
+            UseSecurityBestPractices     = $false
+        }
+    }
+}
