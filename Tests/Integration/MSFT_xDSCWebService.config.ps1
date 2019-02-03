@@ -14,7 +14,7 @@ else
             @{
                 NodeName              = 'localhost'
                 CertificateFile       = $env:DscPublicCertificatePath
-                CertificateThumbprint = 'A337EC24D2DE62C9C92EC398F83A4BC2F733F307' #$env:DscCertificateThumbprint
+                CertificateThumbprint = $env:DscCertificateThumbprint
                 Port                  = 8080
                 EndpointName          = 'PSDSCPullServer'
                 PhysicalPath          = "$env:SystemDrive\inetpub\PSDSCPullServer"
