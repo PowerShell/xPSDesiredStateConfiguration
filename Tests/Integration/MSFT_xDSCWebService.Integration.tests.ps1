@@ -78,7 +78,7 @@ function Invoke-CommonResourceTesting
         Performs common tests to ensure that the DSC pull server was properly
         installed.
 #>
-function Verify-DSCPullServerIsPresent
+function Test-DSCPullServerIsPresent
 {
     [CmdletBinding()]
     param
@@ -115,11 +115,11 @@ try
     Backup-WebConfiguration -Name $tempFolderName
 
     Describe "$($script:dcsResourceName)_Integration" {
-        $ensureAbsentConfigurationName = "$($script:dcsResourceName)_PullTestRemoval_Config"
+        $ensureAbsentConfigurationName = 'MSFT_xDSCWebService_PullTestRemoval_Config'
 
         $ensurePresentConfigurationNames = @(
-            "$($script:dcsResourceName)_PullTestWithSecurityBestPractices_Config",
-            "$($script:dcsResourceName)_PullTestWithoutSecurityBestPractices_Config"
+            'MSFT_xDSCWebService_PullTestWithSecurityBestPractices_Config',
+            'MSFT_xDSCWebService_PullTestWithoutSecurityBestPractices_Config'
         )
 
         foreach ($configurationName in $ensurePresentConfigurationNames)
@@ -135,7 +135,7 @@ try
 
                 Invoke-CommonResourceTesting -ConfigurationName $configurationName
 
-                Verify-DSCPullServerIsPresent
+                Test-DSCPullServerIsPresent
             }
         }
     }
@@ -148,13 +148,13 @@ finally
     Restore-TestEnvironment -TestEnvironment $TestEnvironment
     #endregion
 
-    # Roll back our changes
+    # Roll back our IIS changes
     Restore-WebConfiguration -Name $tempFolderName
     Remove-WebConfigurationBackup -Name $tempFolderName
 
-    # Remove the generated MoF files
+    # Remove any temp files
     Get-ChildItem -Path $ENV:TEMP -Filter $tempFolderName | Remove-Item -Recurse -Force
 
-    # Remove all firewall rules starting with port 21*
+    # Remove firewall port created by module
     Get-NetFirewallRule | Where-Object -FilterScript {$_.DisplayName -eq 'DSCPullServer_IIS_Port'}  | Remove-NetFirewallRule
 }

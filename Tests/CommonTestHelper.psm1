@@ -551,7 +551,7 @@ function Test-IsFileLocked
 
     try
     {
-        $content = Get-Content -Path $Path
+        Get-Content -Path $Path | Out-Null
         return $false
     }
     catch
