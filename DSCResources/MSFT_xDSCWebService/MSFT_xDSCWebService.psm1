@@ -1,6 +1,7 @@
 # Import the helper functions
 Import-Module -Name $PSScriptRoot\PSWSIISEndpoint.psm1 -Verbose:$false
 Import-Module -Name $PSScriptRoot\UseSecurityBestPractices.psm1 -Verbose:$false
+Import-Module -Name $PSScriptRoot\IISSelfSignedModule.psm1 -Verbose:$false
 
 #region LocalizedData
 $script:culture = 'en-US'
@@ -17,6 +18,11 @@ $ImportLocalizedDataParams = @{
     UICulture       = $script:culture
 }
 Import-LocalizedData @ImportLocalizedDataParams
+#endregion
+
+#region ScriptVariables
+New-Variable -Name iisSelfSignedModuleAssemblyName -Value 'IISSelfSignedCertModule.dll' -Option ReadOnly -Scope Script
+New-Variable -Name iisSelfSignedModuleName -Value 'IISSelfSignedCertModule(32bit)' -Option ReadOnly -Scope Script
 #endregion
 
 # The Get-TargetResource cmdlet.
@@ -126,7 +132,6 @@ function Get-TargetResource
 
             $webBinding = Get-WebBinding -Name $EndpointName
 
-            $iisSelfSignedModuleName = "IISSelfSignedCertModule(32bit)"
             $certNativeModule = Get-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $iisSelfSignedModuleName
             if($certNativeModule)
             {
@@ -310,9 +315,6 @@ function Set-TargetResource
     }
 
     # Initialize with default values
-    Push-Location -Path "$env:windir\system32\inetsrv"
-    $script:appCmd = Get-Command -Name '.\appcmd.exe' -CommandType 'Application'
-    Pop-Location
 
     $pathPullServer = "$pshome\modules\PSDesiredStateConfiguration\PullServer"
     $jet4provider = "System.Data.OleDb"
@@ -353,7 +355,7 @@ function Set-TargetResource
     if(($Ensure -eq "Absent"))
     {
          $website = Get-Website -Name $EndpointName
-         if($website -ne $null)
+         if($null -ne $website)
          {
             # there is a web site, but there shouldn't be one
             Write-Verbose -Message "Removing web site $EndpointName"
@@ -390,13 +392,13 @@ function Set-TargetResource
 
     if($SqlProvider)
     {
-            Write-Verbose -Message "Set values into the web.config that define the SQL Connection "
-            PSWSIISEndpoint\Set-AppSettingsInWebconfig -path $PhysicalPath -key "dbprovider" -value $jet4provider
-            PSWSIISEndpoint\Set-AppSettingsInWebconfig -path $PhysicalPath -key "dbconnectionstr"-value $SqlConnectionString
-            if ($isBlue)
-            {
-                Set-BindingRedirectSettingInWebConfig -path $PhysicalPath
-            }
+        Write-Verbose -Message "Set values into the web.config that define the SQL Connection "
+        PSWSIISEndpoint\Set-AppSettingsInWebconfig -path $PhysicalPath -key "dbprovider" -value $jet4provider
+        PSWSIISEndpoint\Set-AppSettingsInWebconfig -path $PhysicalPath -key "dbconnectionstr"-value $SqlConnectionString
+        if ($isBlue)
+        {
+            Set-BindingRedirectSettingInWebConfig -path $PhysicalPath
+        }
     }
     elseif ($isBlue)
     {
@@ -408,7 +410,7 @@ function Set-TargetResource
     }
     else
     {
-       if($isDownlevelOfBlue)
+        if($isDownlevelOfBlue)
         {
             Write-Verbose -Message "Set values into the web.config that define the repository for non-BLUE Downlevel OS"
             $repository = Join-Path -Path "$DatabasePath" -ChildPath "Devices.mdb"
@@ -445,41 +447,13 @@ function Set-TargetResource
 
     PSWSIISEndpoint\Set-AppSettingsInWebconfig -path $PhysicalPath -key "RegistrationKeyPath" -value $registrationKeyPath
 
-    $iisSelfSignedModuleAssemblyName = "IISSelfSignedCertModule.dll"
-    $iisSelfSignedModuleName = "IISSelfSignedCertModule(32bit)"
     if($AcceptSelfSignedCertificates)
     {
-        $preConditionBitnessArgumentFor32BitInstall=""
-        if ($Enable32BitAppOnWin64 -eq $true)
-        {
-            Write-Verbose -Message "Enabling Pull Server to run in a 32 bit process"
-            $sourceFilePath = Join-Path -Path "$env:windir\SysWOW64\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
-            $destinationFolderPath = "$env:windir\SysWOW64\inetsrv"
-            Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
-            $preConditionBitnessArgumentFor32BitInstall = "/preCondition:bitness32"
-        }
-        else {
-            Write-Verbose -Message "Enabling Pull Server to run in a 64 bit process"
-        }
-
-        if (-not ((& $script:appCmd list config -section:system.webServer/globalModules) -match 'IISSelfSignedCertModule'))
-        {
-            $sourceFilePath = Join-Path -Path "$env:windir\System32\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
-            $destinationFolderPath = "$env:windir\System32\inetsrv"
-            $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $iisSelfSignedModuleAssemblyName
-            Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
-
-            & $script:appCmd install module /name:$iisSelfSignedModuleName /image:$destinationFilePath /add:false /lock:false
-        }
-
-        & $script:appCmd add module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/" $preConditionBitnessArgumentFor32BitInstall
+        Enable-IISSelfSignedModule -EndpointName $EndpointName -Enable32BitAppOnWin64:$Enable32BitAppOnWin64
     }
     else
     {
-        if(($null -ne $acceptSelfSignedCertificates) -and ($AcceptSelfSignedCertificates -eq $false))
-        {
-            & $script:appCmd delete module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/"
-        }
+        Disable-IISSelfSignedModule -EndpointName $EndpointName
     }
 
     if($UseSecurityBestPractices)
@@ -608,19 +582,19 @@ function Test-TargetResource
     :WebSiteTests Do
     {
         Write-Verbose -Message "Check Ensure"
-        if(($Ensure -eq "Present" -and $website -eq $null))
+        if(($Ensure -eq "Present" -and $null -eq $website))
         {
             $desiredConfigurationMatch = $false
             Write-Verbose -Message "The Website $EndpointName is not present"
             break
         }
-        if(($Ensure -eq "Absent" -and $website -ne $null))
+        if(($Ensure -eq "Absent" -and $null -ne $website))
         {
             $desiredConfigurationMatch = $false
             Write-Verbose -Message "The Website $EndpointName is present but should not be"
             break
         }
-        if(($Ensure -eq "Absent" -and $website -eq $null))
+        if(($Ensure -eq "Absent" -and $null -eq $website))
         {
             $desiredConfigurationMatch = $true
             Write-Verbose -Message "The Website $EndpointName is not present as requested"
@@ -697,7 +671,7 @@ function Test-TargetResource
         }
 
         Write-Verbose -Message "Check State"
-        if($website.state -ne $State -and $State -ne $null)
+        if($website.state -ne $State -and $null -ne $State)
         {
             $desiredConfigurationMatch = $false
             Write-Verbose -Message "The state of Website $EndpointName does not match the desired state."
@@ -774,10 +748,24 @@ function Test-TargetResource
             Write-Verbose -Message "Check AcceptSelfSignedCertificates"
             if ($AcceptSelfSignedCertificates)
             {
-                if (-not (Test-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName "IISSelfSignedCertModule(32bit)" -ExpectedInstallationStatus $acceptSelfSignedCertificates))
+                Write-Verbose ("AcceptSelfSignedCertificates is enabled. Checking if module $iisSelfSignedModuleName is configured for web site at [$webConfigFullPath].")
+                if (Test-IISSelfSignedModule)
                 {
+                    if (-not (Test-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $iisSelfSignedModuleName -ExpectedInstallationStatus $AcceptSelfSignedCertificates))
+                    {
+                        Write-Verbose ("Module not present in web site. Current configuration does not match the desired state.")
+                        $desiredConfigurationMatch = $false
+                        break
+                    }
+                    else
+                    {
+                        Write-Verbose ("Module present in web site. Current configuration match the desired state.")
+                    }
+                }
+                else
+                {
+                    Write-Verbose ("$iisSelfSignedModuleName not installed in IIS. Current configuration match the desired state.")
                     $desiredConfigurationMatch = $false
-                    break
                 }
             }
         }
@@ -917,8 +905,6 @@ function Test-WebConfigModulesSetting
         $ExpectedInstallationStatus
     )
 
-    $returnValue = $false
-
     if (Test-Path -Path $WebConfigFullPath)
     {
         $webConfigXml = [System.Xml.XmlDocument] (Get-Content -Path $WebConfigFullPath)
@@ -967,16 +953,6 @@ function Get-WebConfigModulesSetting
     }
 
     $moduleValue
-}
-
-# Helper to get current script Folder
-function Get-ScriptFolder
-{
-    [CmdletBinding()]
-    param ()
-
-    $invocation = (Get-Variable -Name MyInvocation -Scope 1).Value
-    Split-Path -Path $invocation.MyCommand.Path
 }
 
 # Allow this Website to enable/disable specific Auth Schemes by adding <location> tag in applicationhost.config
@@ -1109,5 +1085,6 @@ function Get-OSVersion
     # Moved to a function to allow for the behaviour to be mocked.
     return [System.Environment]::OSVersion.Version
 }
+
 
 Export-ModuleMember -Function *-TargetResource
