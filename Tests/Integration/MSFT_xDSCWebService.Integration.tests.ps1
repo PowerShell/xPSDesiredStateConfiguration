@@ -107,7 +107,7 @@ function Test-DSCPullServerIsPresent
 # Using try/finally to always cleanup.
 try
 {
-    # Make sure the DSC-Service and Web-Server features are installed
+    # Make sure the DSC-Service and Web-Server Windows features are installed
     if (!(Install-WindowsFeatureAndVerify -Name 'DSC-Service') -or
         !(Install-WindowsFeatureAndVerify -Name 'Web-Server'))
     {
