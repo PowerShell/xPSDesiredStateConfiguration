@@ -15,9 +15,12 @@ else
                 NodeName              = 'localhost'
                 CertificateFile       = $env:DscPublicCertificatePath
                 CertificateThumbprint = $env:DscCertificateThumbprint
-                Port                  = 8080
+                ConfigurationPath     = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
                 EndpointName          = 'PSDSCPullServer'
+                ModulePath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
                 PhysicalPath          = "$env:SystemDrive\inetpub\PSDSCPullServer"
+                Port                  = 8080
+                RegistrationKeyPath   = "$env:PROGRAMFILES\WindowsPowerShell\DscService"
             }
         )
     }
@@ -36,16 +39,16 @@ Configuration MSFT_xDSCWebService_PullTestRemoval_Config
         xDSCWebService Integration_Test
         {
             Ensure                       = 'Absent'
+            AcceptSelfSignedCertificates = $true
+            CertificateThumbPrint        = $Node.CertificateThumbprint
+            ConfigurationPath            = $Node.ConfigurationPath
+            Enable32BitAppOnWin64        = $false
             EndpointName                 = $Node.EndpointName
+            ModulePath                   = $Node.ModulePath
             Port                         = $Node.Port
             PhysicalPath                 = $Node.PhysicalPath
-            CertificateThumbPrint        = $Node.CertificateThumbprint
-            ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
-            ConfigurationPath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
+            RegistrationKeyPath          = $Node.RegistrationKeyPath
             State                        = 'Started'
-            RegistrationKeyPath          = "$env:PROGRAMFILES\WindowsPowerShell\DscService"
-            AcceptSelfSignedCertificates = $true
-            Enable32BitAppOnWin64        = $false
             UseSecurityBestPractices     = $true
         }
     }
@@ -64,16 +67,16 @@ Configuration MSFT_xDSCWebService_PullTestWithSecurityBestPractices_Config
         xDSCWebService Integration_Test
         {
             Ensure                       = 'Present'
+            AcceptSelfSignedCertificates = $true
+            CertificateThumbPrint        = $Node.CertificateThumbprint
+            ConfigurationPath            = $Node.ConfigurationPath
+            Enable32BitAppOnWin64        = $false
             EndpointName                 = $Node.EndpointName
+            ModulePath                   = $Node.ModulePath
             Port                         = $Node.Port
             PhysicalPath                 = $Node.PhysicalPath
-            CertificateThumbPrint        = $Node.CertificateThumbprint
-            ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
-            ConfigurationPath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
+            RegistrationKeyPath          = $Node.RegistrationKeyPath
             State                        = 'Started'
-            RegistrationKeyPath          = "$env:PROGRAMFILES\WindowsPowerShell\DscService"
-            AcceptSelfSignedCertificates = $true
-            Enable32BitAppOnWin64        = $false
             UseSecurityBestPractices     = $true
         }
     }
@@ -92,16 +95,16 @@ Configuration MSFT_xDSCWebService_PullTestWithoutSecurityBestPractices_Config
         xDSCWebService Integration_Test
         {
             Ensure                       = 'Present'
+            AcceptSelfSignedCertificates = $true
+            CertificateThumbPrint        = $Node.CertificateThumbprint
+            ConfigurationPath            = $Node.ConfigurationPath
+            Enable32BitAppOnWin64        = $false
             EndpointName                 = $Node.EndpointName
+            ModulePath                   = $Node.ModulePath
             Port                         = $Node.Port
             PhysicalPath                 = $Node.PhysicalPath
-            CertificateThumbPrint        = $Node.CertificateThumbprint
-            ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
-            ConfigurationPath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
+            RegistrationKeyPath          = $Node.RegistrationKeyPath
             State                        = 'Started'
-            RegistrationKeyPath          = "$env:PROGRAMFILES\WindowsPowerShell\DscService"
-            AcceptSelfSignedCertificates = $true
-            Enable32BitAppOnWin64        = $false
             UseSecurityBestPractices     = $false
         }
     }
