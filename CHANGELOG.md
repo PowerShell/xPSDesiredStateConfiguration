@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Changes to PSWSIISEndpoint.psm1
+  - Fixes most PSScriptAnalyzer issues.
 - xWindowsOptionalFeature
   - Suppress useless verbose output from `Import-Module` cmdlet.
     ([issue 453](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/453))
@@ -81,11 +83,6 @@
   - Corrected style guideline violations. ([issue #485](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/485))
 - xWindowsProcess
   - Corrected style guideline violations. ([issue #496](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/496))
-- Changes to PSWSIISEndpoint.psm1
-  - Fixes most PSScriptAnalyzer issues.
-
-## 8.5.0.0
-
 - Changes to xRegistry
   - Fixed an issue that fails to remove reg key when the `Key` is specified as
     common registry path.
