@@ -99,7 +99,8 @@ function Test-DSCPullServerIsPresent
 }
 #endregion
 
-if (!(Install-WindowsFeatureAndVerify -Name 'DSC-Service'))
+if (!(Install-WindowsFeatureAndVerify -Name 'DSC-Service') -or 
+    !(Install-WindowsFeatureAndVerify -Name 'Web-Server'))
 {
     Write-Verbose -Message 'Skipping xDSCWebService Integration tests.' -Verbose
     return
