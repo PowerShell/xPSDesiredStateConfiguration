@@ -106,6 +106,8 @@ if (!(Install-WindowsFeatureAndVerify -Name 'DSC-Service') -or
     return
 }
 
+Start-Service -Name w3svc
+
 # Using try/finally to always cleanup.
 try
 {
