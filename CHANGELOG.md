@@ -92,7 +92,8 @@
     ([issue #444](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/444))
 - Changes to xService
   - Added support for Group Managed Service Accounts
-- Adds new Integration tests for MSFT_xDSCWebService.
+- Adds new Integration tests for MSFT_xDSCWebService and removes old
+  Integration test file.
 
 ## 8.4.0.0
 
