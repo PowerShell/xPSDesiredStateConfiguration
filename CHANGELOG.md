@@ -93,7 +93,7 @@
 - Changes to xService
   - Added support for Group Managed Service Accounts
 - Adds new Integration tests for MSFT_xDSCWebService and removes old
-  Integration test file.
+  Integration test file, MSFT_xDSCWebService.xxx.ps1.
 
 ## 8.4.0.0
 
