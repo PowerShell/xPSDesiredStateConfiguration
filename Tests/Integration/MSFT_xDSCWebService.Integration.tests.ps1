@@ -19,6 +19,11 @@ $TestEnvironment = Initialize-TestEnvironment `
 
 Import-Module -Name (Join-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -ChildPath 'CommonTestHelper.psm1')
 
+if (Test-SkipContinuousIntegrationTask -Type 'Integration')
+{
+    return
+}
+
 [System.String] $tempFolderName = 'xDSCWebServiceTests_' + (Get-Date).ToString("yyyyMMdd_HHmmss")
 
 <#
@@ -99,6 +104,7 @@ function Test-DSCPullServerIsPresent
 }
 #endregion
 
+# Make sure the DSC-Service and Web-Server features are installed
 if (!(Install-WindowsFeatureAndVerify -Name 'DSC-Service') -or 
     !(Install-WindowsFeatureAndVerify -Name 'Web-Server'))
 {
@@ -106,7 +112,11 @@ if (!(Install-WindowsFeatureAndVerify -Name 'DSC-Service') -or
     return
 }
 
-Start-Service -Name w3svc
+# Make sure the w3svc is running before proceeding with tests
+if ((Get-Service -Name w3svc).Status -ne 'Running')
+{
+    Start-Service -Name w3svc -ErrorAction Stop
+}
 
 # Using try/finally to always cleanup.
 try
@@ -115,6 +125,7 @@ try
     $configurationFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:dcsResourceName).config.ps1"
     . $configurationFile
 
+    # Backup the existing web configuration before making any changes
     Backup-WebConfiguration -Name $tempFolderName
 
     Describe "$($script:dcsResourceName)_Integration" {
