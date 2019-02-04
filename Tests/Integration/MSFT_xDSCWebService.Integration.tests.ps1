@@ -88,10 +88,6 @@ function Test-DSCPullServerIsPresent
     (
     )
 
-    It 'Should create a web site to host the DSC Pull Server' {
-        (Get-ChildItem -Path IIS:\sites | Where-Object -Property Name -Match "^$($ConfigurationData.AllNodes.EndpointName)").Count | Should -Be 1
-    }
-
     It 'Should create a web.config file at the web site root' {
         Test-Path -Path (Join-Path -Path $ConfigurationData.AllNodes.PhysicalPath -ChildPath 'web.config') | Should -Be $true
     }
