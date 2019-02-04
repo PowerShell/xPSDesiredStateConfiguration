@@ -1,4 +1,4 @@
-﻿# xPSDesiredStateConfiguration
+# xPSDesiredStateConfiguration
 
 The **xPSDesiredStateConfiguration** module is a more recent, experimental
 version of the PSDesiredStateConfiguration module that ships in Windows as part
