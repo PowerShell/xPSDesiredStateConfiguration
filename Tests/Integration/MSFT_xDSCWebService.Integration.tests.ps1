@@ -24,8 +24,6 @@ if (Test-SkipContinuousIntegrationTask -Type 'Integration')
     return
 }
 
-[System.String] $tempFolderName = 'xDSCWebServiceTests_' + (Get-Date).ToString("yyyyMMdd_HHmmss")
-
 <#
     .SYNOPSIS
         Performs common DSC integration tests including compiling, setting,
@@ -121,9 +119,6 @@ try
         Start-Service -Name w3svc -ErrorAction Stop
     }
 
-    # Backup the existing web configuration before making any changes
-    Backup-WebConfiguration -Name $tempFolderName
-
     #region Integration Tests
     $configurationFile = Join-Path -Path $PSScriptRoot -ChildPath "$($script:dcsResourceName).config.ps1"
     . $configurationFile
@@ -161,14 +156,4 @@ finally
     #region FOOTER
     Restore-TestEnvironment -TestEnvironment $TestEnvironment
     #endregion
-
-    # Roll back our IIS changes
-    Restore-WebConfiguration -Name $tempFolderName
-    Remove-WebConfigurationBackup -Name $tempFolderName
-
-    # Remove any temp files
-    Get-ChildItem -Path $ENV:TEMP -Filter $tempFolderName | Remove-Item -Recurse -Force
-
-    # Remove firewall port created by module
-    Get-NetFirewallRule | Where-Object -FilterScript {$_.DisplayName -eq 'DSCPullServer_IIS_Port'}  | Remove-NetFirewallRule
 }
