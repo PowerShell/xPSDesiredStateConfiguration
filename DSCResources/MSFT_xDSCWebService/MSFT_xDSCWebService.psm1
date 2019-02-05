@@ -20,11 +20,6 @@ $ImportLocalizedDataParams = @{
 Import-LocalizedData @ImportLocalizedDataParams
 #endregion
 
-#region ScriptVariables
-New-Variable -Name iisSelfSignedModuleAssemblyName -Value 'IISSelfSignedCertModule.dll' -Option ReadOnly -Scope Script
-New-Variable -Name iisSelfSignedModuleName -Value 'IISSelfSignedCertModule(32bit)' -Option ReadOnly -Scope Script
-#endregion
-
 # The Get-TargetResource cmdlet.
 function Get-TargetResource
 {
@@ -132,7 +127,7 @@ function Get-TargetResource
 
             $webBinding = Get-WebBinding -Name $EndpointName
 
-            $certNativeModule = Get-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $iisSelfSignedModuleName
+            $certNativeModule = Get-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $global:iisSelfSignedModuleName
             if($certNativeModule)
             {
                 $acceptSelfSignedCertificates = $true
@@ -449,6 +444,7 @@ function Set-TargetResource
 
     if($AcceptSelfSignedCertificates)
     {
+        Write-Verbose ('Accepting self signed certificates from incoming hosts')
         Enable-IISSelfSignedModule -EndpointName $EndpointName -Enable32BitAppOnWin64:$Enable32BitAppOnWin64
     }
     else
@@ -748,10 +744,10 @@ function Test-TargetResource
             Write-Verbose -Message "Check AcceptSelfSignedCertificates"
             if ($AcceptSelfSignedCertificates)
             {
-                Write-Verbose ("AcceptSelfSignedCertificates is enabled. Checking if module $iisSelfSignedModuleName is configured for web site at [$webConfigFullPath].")
+                Write-Verbose ("AcceptSelfSignedCertificates is enabled. Checking if module $global:iisSelfSignedModuleName is configured for web site at [$webConfigFullPath].")
                 if (Test-IISSelfSignedModule)
                 {
-                    if (-not (Test-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $iisSelfSignedModuleName -ExpectedInstallationStatus $AcceptSelfSignedCertificates))
+                    if (-not (Test-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $global:iisSelfSignedModuleName -ExpectedInstallationStatus $AcceptSelfSignedCertificates))
                     {
                         Write-Verbose ("Module not present in web site. Current configuration does not match the desired state.")
                         $desiredConfigurationMatch = $false
@@ -764,7 +760,7 @@ function Test-TargetResource
                 }
                 else
                 {
-                    Write-Verbose ("$iisSelfSignedModuleName not installed in IIS. Current configuration match the desired state.")
+                    Write-Verbose ("$global:iisSelfSignedModuleName not installed in IIS. Current configuration match the desired state.")
                     $desiredConfigurationMatch = $false
                 }
             }

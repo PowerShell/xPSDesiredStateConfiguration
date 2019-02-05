@@ -1,3 +1,6 @@
+New-Variable -Name iisSelfSignedModuleAssemblyName -Value 'IISSelfSignedCertModule.dll' -Option ReadOnly -Scope Script
+New-Variable -Name iisSelfSignedModuleName -Value 'IISSelfSignedCertModule(32bit)' -Option ReadOnly -Scope Script
+
 function Get-IISAppCmd {
     Push-Location -Path "$env:windir\system32\inetsrv"
     $appCmd = Get-Command -Name '.\appcmd.exe' -CommandType 'Application' -ErrorAction:Stop
@@ -23,7 +26,7 @@ function Install-IISSelfSignedModule
         [switch]$Enable32BitAppOnWin64
     )
 
-    if ($Enable32BitAppOnWin64 -eq $true)
+    if ($Enable32BitAppOnWin64)
     {
         Write-Verbose ("Install-IISSelfSignedModule: Providing $iisSelfSignedModuleAssemblyName to run in a 32 bit process")
         $sourceFilePath = Join-Path -Path "$env:windir\SysWOW64\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
@@ -33,7 +36,7 @@ function Install-IISSelfSignedModule
 
     if (Test-IISSelfSignedModule)
     {
-        Write-Verbose ("Install-IISSelfSignedModule: module $iisSelfSignedModuleName altready installed")
+        Write-Verbose ("Install-IISSelfSignedModule: module $iisSelfSignedModuleName already installed")
     }
     else
     {
@@ -80,4 +83,4 @@ function Disable-IISSelfSignedModule
     & /(Get-IISAppCmd) delete module /name:$iisSelfSignedModuleName  /app.name:"$EndpointName/"
 }
 
-Export-ModuleMember -Function Disable-IISSelfSignedModule,Enable-IISSelfSignedModule,Test-IISSelfSignedModule
+Export-ModuleMember -Function Disable-IISSelfSignedModule,Enable-IISSelfSignedModule,Test-IISSelfSignedModule -Variable iisSelfSignedModuleAssemblyName,iisSelfSignedModuleName
