@@ -130,36 +130,46 @@ function Set-TargetResource
         [String]
         $Path,
 
+        [Parameter()]
         [ValidateSet('Present', 'Absent')]
         [String]
         $Ensure = 'Present',
 
+        [Parameter()]
         [String]
         $Arguments,
 
+        [Parameter()]
         [PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
 
+        [Parameter()]
         [String]
         $LogPath,
 
+        [Parameter()]
         [String]
         $FileHash,
 
+        [Parameter()]
         [ValidateSet('SHA1', 'SHA256', 'SHA384', 'SHA512', 'MD5', 'RIPEMD160')]
         [String]
         $HashAlgorithm = 'SHA256',
 
+        [Parameter()]
         [String]
         $SignerSubject,
 
+        [Parameter()]
         [String]
         $SignerThumbprint,
 
+        [Parameter()]
         [String]
         $ServerCertificateValidationCallback,
 
+        [Parameter()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.CredentialAttribute()]
         $RunAsCredential
@@ -411,36 +421,46 @@ function Test-TargetResource
         [String]
         $Path,
 
+        [Parameter()]
         [ValidateSet('Present', 'Absent')]
         [String]
         $Ensure = 'Present',
 
+        [Parameter()]
         [String]
         $Arguments,
 
+        [Parameter()]
         [PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
 
+        [Parameter()]
         [String]
         $LogPath,
 
+        [Parameter()]
         [String]
         $FileHash,
 
+        [Parameter()]
         [ValidateSet('SHA1', 'SHA256', 'SHA384', 'SHA512', 'MD5', 'RIPEMD160')]
         [String]
         $HashAlgorithm = 'SHA256',
 
+        [Parameter()]
         [String]
         $SignerSubject,
 
+        [Parameter()]
         [String]
         $SignerThumbprint,
 
+        [Parameter()]
         [String]
         $ServerCertificateValidationCallback,
 
+        [Parameter()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.CredentialAttribute()]
         $RunAsCredential
@@ -748,6 +768,7 @@ function Get-WebRequestResponse
         [Uri]
         $Uri,
 
+        [Parameter()]
         [String]
         $ServerCertificateValidationCallback
     )
@@ -941,15 +962,19 @@ function Assert-FileValid
         [String]
         $Path,
 
+        [Parameter()]
         [String]
         $FileHash,
 
+        [Parameter()]
         [String]
         $HashAlgorithm = 'SHA256',
 
+        [Parameter()]
         [String]
         $SignerThumbprint,
 
+        [Parameter()]
         [String]
         $SignerSubject
     )
@@ -992,6 +1017,7 @@ function Assert-FileHashValid
         [String]
         $Hash,
 
+        [Parameter()]
         [String]
         $Algorithm = 'SHA256'
     )
@@ -1028,9 +1054,11 @@ function Assert-FileSignatureValid
         [String]
         $Path,
 
+        [Parameter()]
         [String]
         $Thumbprint,
 
+        [Parameter()]
         [String]
         $Subject
     )
@@ -1098,16 +1126,20 @@ function Start-MsiProcess
         [String]
         $Path,
 
+        [Parameter()]
         [ValidateSet('Present', 'Absent')]
         [String]
         $Ensure = 'Present',
 
+        [Parameter()]
         [String]
         $Arguments,
 
+        [Parameter()]
         [String]
         $LogPath,
 
+        [Parameter()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.CredentialAttribute()]
         $RunAsCredential
