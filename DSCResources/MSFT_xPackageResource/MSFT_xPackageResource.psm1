@@ -19,6 +19,7 @@ $script:msiTools = $null
 
 function Get-TargetResource
 {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSDSCUseVerboseMessageInDSCResource', '')]
     [OutputType([Hashtable])]
     [CmdletBinding()]
     param
@@ -38,25 +39,30 @@ function Get-TargetResource
         [String]
         $ProductId,
 
+        [Parameter()]
         [Boolean]
         $CreateCheckRegValue = $false,
 
+        [Parameter()]
         [ValidateSet('LocalMachine','CurrentUser')]
         [String]
         $InstalledCheckRegHive = 'LocalMachine',
 
+        [Parameter()]
         [String]
         $InstalledCheckRegKey,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueName,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueData
     )
 
     Assert-PathExtensionValid -Path $Path
-    $uri = Convert-PathToUri -Path $Path
+
     $identifyingNumber = [String]::Empty
 
     if (-not [String]::IsNullOrEmpty($ProductId))
@@ -173,6 +179,7 @@ function Set-TargetResource
     [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
+        [Parameter()]
         [ValidateSet('Present', 'Absent')]
         [String]
         $Ensure = 'Present',
@@ -192,53 +199,68 @@ function Set-TargetResource
         [String]
         $ProductId,
 
+        [Parameter()]
         [String]
         $Arguments,
 
+        [Parameter()]
         [PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
 
         # Return codes 1641 and 3010 indicate success when a restart is requested per installation
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
         [UInt32[]]
         $ReturnCode = @( 0, 1641, 3010 ),
 
+        [Parameter()]
         [String]
         $LogPath,
 
+        [Parameter()]
         [String]
         $FileHash,
 
+        [Parameter()]
         [ValidateSet('SHA1', 'SHA256', 'SHA384', 'SHA512', 'MD5', 'RIPEMD160')]
         [String]
         $HashAlgorithm,
 
+        [Parameter()]
         [String]
         $SignerSubject,
 
+        [Parameter()]
         [String]
         $SignerThumbprint,
 
+        [Parameter()]
         [String]
         $ServerCertificateValidationCallback,
 
+        [Parameter()]
         [Boolean]
         $CreateCheckRegValue = $false,
 
+        [Parameter()]
         [ValidateSet('LocalMachine','CurrentUser')]
         [String]
         $InstalledCheckRegHive = 'LocalMachine',
 
+        [Parameter()]
         [String]
         $InstalledCheckRegKey,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueName,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueData,
 
+        [Parameter()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.CredentialAttribute()]
         $RunAsCredential
@@ -688,6 +710,7 @@ function Test-TargetResource
     [CmdletBinding()]
     param
     (
+        [Parameter()]
         [ValidateSet('Present', 'Absent')]
         [String]
         $Ensure = 'Present',
@@ -707,59 +730,74 @@ function Test-TargetResource
         [String]
         $ProductId,
 
+        [Parameter()]
         [String]
         $Arguments,
 
+        [Parameter()]
         [PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
 
         # Return codes 1641 and 3010 indicate success when a restart is requested per installation
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
         [UInt32[]]
         $ReturnCode = @( 0, 1641, 3010 ),
 
+        [Parameter()]
         [String]
         $LogPath,
 
+        [Parameter()]
         [String]
         $FileHash,
 
+        [Parameter()]
         [ValidateSet('SHA1', 'SHA256', 'SHA384', 'SHA512', 'MD5', 'RIPEMD160')]
         [String]
         $HashAlgorithm,
 
+        [Parameter()]
         [String]
         $SignerSubject,
 
+        [Parameter()]
         [String]
         $SignerThumbprint,
 
+        [Parameter()]
         [String]
         $ServerCertificateValidationCallback,
 
+        [Parameter()]
         [Boolean]
         $CreateCheckRegValue = $false,
 
+        [Parameter()]
         [ValidateSet('LocalMachine','CurrentUser')]
         [String]
         $InstalledCheckRegHive = 'LocalMachine',
 
+        [Parameter()]
         [String]
         $InstalledCheckRegKey,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueName,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueData,
 
+        [Parameter()]
         [PSCredential]
         $RunAsCredential
     )
 
     Assert-PathExtensionValid -Path $Path
-    $uri = Convert-PathToUri -Path $Path
+
     $identifyingNumber = $null
 
     if (-not [String]::IsNullOrEmpty($ProductId))
@@ -958,12 +996,15 @@ function Assert-RegistryParametersValid
     [CmdletBinding()]
     param
     (
+        [Parameter()]
         [String]
         $InstalledCheckRegKey,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueName,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueData
     )
@@ -1007,25 +1048,32 @@ function Get-ProductEntry
     [CmdletBinding()]
     param
     (
+        [Parameter()]
         [String]
         $Name,
 
+        [Parameter()]
         [String]
         $IdentifyingNumber,
 
+        [Parameter()]
         [Switch]
         $CreateCheckRegValue,
 
+        [Parameter()]
         [ValidateSet('LocalMachine', 'CurrentUser')]
         [String]
         $InstalledCheckRegHive = 'LocalMachine',
 
+        [Parameter()]
         [String]
         $InstalledCheckRegKey,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueName,
 
+        [Parameter()]
         [String]
         $InstalledCheckRegValueData
     )
@@ -1166,6 +1214,7 @@ function Get-LocalizedRegistryKeyValue
     [CmdletBinding()]
     param
     (
+        [Parameter()]
         [Object]
         $RegistryKey,
 
@@ -1213,15 +1262,19 @@ function Assert-FileValid
         [String]
         $Path,
 
+        [Parameter()]
         [String]
         $FileHash,
 
+        [Parameter()]
         [String]
         $HashAlgorithm,
 
+        [Parameter()]
         [String]
         $SignerThumbprint,
 
+        [Parameter()]
         [String]
         $SignerSubject
     )
@@ -1259,10 +1312,12 @@ function Assert-FileHashValid
         [String]
         $Path,
 
+        [Parameter()]
         [Parameter(Mandatory)]
         [String]
         $Hash,
 
+        [Parameter()]
         [String]
         $Algorithm = 'SHA256'
     )
@@ -1304,9 +1359,11 @@ function Assert-FileSignatureValid
         [String]
         $Path,
 
+        [Parameter()]
         [String]
         $Thumbprint,
 
+        [Parameter()]
         [String]
         $Subject
     )

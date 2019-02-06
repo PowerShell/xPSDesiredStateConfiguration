@@ -215,6 +215,7 @@
     scheme.
   - Sample\_xEnvironment\_CreatePathVariable.ps1 - Same as the new example
     xEnvironment\_AddMultiplePaths.ps1
+- Fixes script analyzer issues in MSFT_xPackageResource.psm1.
 
 ## 8.3.0.0
 
