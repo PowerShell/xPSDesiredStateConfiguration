@@ -96,6 +96,7 @@
   - Added support for Group Managed Service Accounts
 - Adds new Integration tests for MSFT_xDSCWebService and removes old
   Integration test file, MSFT_xDSCWebService.xxx.ps1.
+- Fixes script analyzer issues in MSFT_xMsiPackage.psm1.
 
 ## 8.4.0.0
 
