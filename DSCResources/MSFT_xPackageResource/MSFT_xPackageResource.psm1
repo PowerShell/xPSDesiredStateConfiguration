@@ -1313,7 +1313,7 @@ function Assert-FileHashValid
         $Path,
 
         [Parameter()]
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [String]
         $Hash,
 
@@ -1541,7 +1541,7 @@ function Invoke-PInvoke
         [String]
         $CommandLine,
 
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [PSCredential]
         [System.Management.Automation.CredentialAttribute()]
         $Credential
@@ -1578,7 +1578,7 @@ function Invoke-Process
     [CmdletBinding()]
     [OutputType([System.Diagnostics.Process])]
     param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
         [System.Diagnostics.Process]
         $Process,
 
