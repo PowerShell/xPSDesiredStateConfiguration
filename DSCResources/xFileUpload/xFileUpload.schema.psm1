@@ -50,14 +50,12 @@ Configuration xFileUpload
         # Get script is not implemented cause reusing Script resource's schema does not make sense
         GetScript = {
             $returnValue = @{
-
             }
 
             $returnValue
         };
 
         SetScript = {
-
             # Generating credential object if password and username are specified
             $credential = $null
             if (($using:password) -and ($using:username))
@@ -220,7 +218,6 @@ Configuration xFileUpload
         };
 
         TestScript = {
-
             # Generating credential object if password and username are specified
             $credential = $null
             if (($using:password) -and ($using:username))
