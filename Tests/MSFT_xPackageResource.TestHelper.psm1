@@ -1219,7 +1219,7 @@ function New-MockFileServer
         # Prepare binary buffer for http/https response
         $fileInfo = New-Object -TypeName 'System.IO.FileInfo' -ArgumentList @( $args[0] )
         $numBytes = $fileInfo.Length
-        $fileStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @(  $args[0] , 'Open' )
+        $fileStream = New-Object -TypeName 'System.IO.FileStream' -ArgumentList @(  $args[0], 'Open' )
         $binaryReader = New-Object -TypeName 'System.IO.BinaryReader' -ArgumentList @( $fileStream )
         [Byte[]] $buf = $binaryReader.ReadBytes($numBytes)
         $fileStream.Close()
@@ -1263,7 +1263,8 @@ function New-TestExecutable
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $DestinationPath
+        [String]
+        $DestinationPath
     )
 
     if (Test-Path -Path $DestinationPath)

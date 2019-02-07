@@ -87,7 +87,7 @@ Configuration xProcessSet
     }
 
     # Arguments is a key parameter in xWindowsProcess resource. Adding it as a common parameter with an empty value string
-    $newResourceSetConfigurationParams['Parameters'] ['Arguments'] = ''
+    $newResourceSetConfigurationParams['Parameters']['Arguments'] = ''
 
     $configurationScriptBlock = New-ResourceSetConfigurationScriptBlock @newResourceSetConfigurationParams
 

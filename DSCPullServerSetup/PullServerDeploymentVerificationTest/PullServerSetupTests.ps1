@@ -35,14 +35,14 @@ Describe PullServerInstallationTests {
         }
 
         # Get web.config content as XML
-        $DscWebConfigXML = [xml] (Get-Content $DscWebConfigPath)
+        $DscWebConfigXML = [System.Xml.XmlDocument] (Get-Content -Path $DscWebConfigPath)
 
         # Registration Keys info.
         $DscRegKeyName = 'RegistrationKeys.txt'
         $DscRegKeyXMLNode = "//appSettings/add[@key = 'RegistrationKeyPath']"
         $DscRegKeyParentPath = ($DscWebConfigXML.SelectNodes($DscRegKeyXMLNode)).value
         $DscRegKeyPath = Join-Path -Path $DscRegKeyParentPath -ChildPath $DscRegKeyName
-        $DscRegKey = Get-Content $DscRegKeyPath
+        $DscRegKey = Get-Content -Path $DscRegKeyPath
 
         # Configuration repository info.
         $DscConfigPathXMLNode = "//appSettings/add[@key = 'ConfigurationPath']"
