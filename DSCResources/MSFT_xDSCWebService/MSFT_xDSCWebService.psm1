@@ -209,7 +209,8 @@ function Set-TargetResource
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [String] $CertificateThumbPrint,
+        [String]
+        $CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
