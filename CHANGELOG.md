@@ -109,6 +109,7 @@
 - Fixes script analyzer issues in MSFT_xPSSessionConfiguration.psm1
   and convert Type Accelerators to Fully Qualified Type Names
   [issue #488](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/488).
+- Adds spaces between comment hashtags and comments.
 
 ## 8.4.0.0
 
