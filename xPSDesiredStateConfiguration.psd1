@@ -31,7 +31,7 @@ FunctionsToExport = '*'
 # Cmdlets to export from this module
 CmdletsToExport = '*'
 
-#Root module
+# Root module
 RootModule = 'DSCPullServerSetup\PublishModulesAndMofsToPullServer.psm1'
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.

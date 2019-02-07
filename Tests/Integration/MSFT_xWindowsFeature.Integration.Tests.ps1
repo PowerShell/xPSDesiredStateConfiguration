@@ -34,7 +34,7 @@ try {
             $script:testFeatureName = 'Telnet-Client'
             $script:testFeatureWithSubFeaturesName = 'RSAT-File-Services'
 
-            #Saving the state so we can clean up afterwards
+            # Saving the state so we can clean up afterwards
             $testFeature = Get-WindowsFeature -Name $script:testFeatureName
             $script:installStateOfTestFeature = $testFeature.Installed
 
