@@ -848,7 +848,7 @@ function Get-WebRequestResponseStream
         $WebRequest
     )
 
-    return (([System.Net.HttpWebRequest]$WebRequest).GetResponse()).GetResponseStream()
+    return (([System.Net.HttpWebRequest] $WebRequest).GetResponse()).GetResponseStream()
 }
 
 <#

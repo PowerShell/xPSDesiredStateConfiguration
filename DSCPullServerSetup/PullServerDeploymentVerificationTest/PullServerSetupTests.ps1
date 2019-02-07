@@ -35,7 +35,7 @@ Describe PullServerInstallationTests {
         }
 
         # Get web.config content as XML
-        $DscWebConfigXML = [xml](Get-Content $DscWebConfigPath)
+        $DscWebConfigXML = [xml] (Get-Content $DscWebConfigPath)
 
         # Registration Keys info.
         $DscRegKeyName = 'RegistrationKeys.txt'

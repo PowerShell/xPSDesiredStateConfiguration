@@ -440,7 +440,7 @@ function New-GroupOnFullSKU
 
     if ($PSBoundParameters.ContainsKey("Members"))
     {
-        $adsiGroupEntry = [ADSI]"WinNT://$env:computerName/$GroupName,group"
+        $adsiGroupEntry = [ADSI] "WinNT://$env:computerName/$GroupName,group"
 
         foreach ($memberUserName in $Members)
         {
@@ -545,7 +545,7 @@ function Remove-GroupOnFullSKU
         $GroupName
     )
 
-    $adsiComputerEntry = [ADSI]("WinNT://$env:computerName")
+    $adsiComputerEntry = [ADSI] ("WinNT://$env:computerName")
     $null = $adsiComputerEntry.Delete('Group', $GroupName)
 }
 
@@ -720,7 +720,7 @@ function New-UserOnFullSKU
     $userName = $Credential.UserName
     $password = $Credential.GetNetworkCredential().Password
 
-    $adsiComputerEntry = [ADSI]("WinNT://$env:computerName")
+    $adsiComputerEntry = [ADSI] ("WinNT://$env:computerName")
     $adsiUserEntry = $adsiComputerEntry.Create('User', $userName)
     $null = $adsiUserEntry.SetPassword($password)
     $null = $adsiUserEntry.SetInfo()
@@ -799,7 +799,7 @@ function Remove-UserOnFullSKU
         $UserName
     )
 
-    $adsiComputerEntry = [ADSI]("WinNT://$env:computerName")
+    $adsiComputerEntry = [ADSI] ("WinNT://$env:computerName")
     $null = $adsiComputerEntry.Delete('User', $UserName)
 }
 

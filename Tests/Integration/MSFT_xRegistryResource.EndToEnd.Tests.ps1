@@ -163,10 +163,10 @@ try
             $expectedRegistryKeyValue = switch ($registryKeyValueType)
             {
                 'String' { 'TestString2'; break }
-                'Binary' { [Byte[]]@( 12, 172, 17, 17 ); break }
+                'Binary' { [Byte[]] @( 12, 172, 17, 17 ); break }
                 'DWord' { [Int32]::MaxValue; break }
                 'QWord' { [Int64]::MaxValue; break }
-                'MultiString' { [String[]]@('MultiString1', 'MultiString2'); break }
+                'MultiString' { [String[]] @('MultiString1', 'MultiString2'); break }
                 'ExpandString' { 'C:\windows'; break }
             }
 
@@ -220,7 +220,7 @@ try
                 ValueData = '0x00'
             }
 
-            $expectedRegistryKeyValue = [Byte[]]@(0)
+            $expectedRegistryKeyValue = [Byte[]] @(0)
 
             It 'Should compile and run configuration' {
                 {

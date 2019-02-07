@@ -25,9 +25,9 @@ function Publish-DSCModuleAndMof
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $True)]
-        [string]$Source = $pwd,
-        [switch]$Force,
-        [string[]]$ModuleNameList
+        [string] $Source = $pwd,
+        [switch] $Force,
+        [string[]] $ModuleNameList
     )
 
     # Create working directory
@@ -248,7 +248,7 @@ function Publish-ModuleToPullServer
             else
             {
                 # Pull Server exist figure out the module path of the pullserver and use this value as output folder path.
-                $webConfigXml = [xml](cat $PullServerWebConfig)
+                $webConfigXml = [xml] (cat $PullServerWebConfig)
                 $moduleXElement = $webConfigXml.SelectNodes("//appSettings/add[@key = 'ModulePath']")
                 $OutputFolderPath = $moduleXElement.Value
             }
@@ -304,7 +304,7 @@ function Publish-MOFToPullServer
 
     Begin
     {
-        $webConfigXml = [xml](Get-Content -Path $PullServerWebConfig)
+        $webConfigXml = [xml] (Get-Content -Path $PullServerWebConfig)
         $configXElement = $webConfigXml.SelectNodes("//appSettings/add[@key = 'ConfigurationPath']")
         $OutputFolderPath = $configXElement.Value
     }

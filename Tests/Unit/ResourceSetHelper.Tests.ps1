@@ -149,7 +149,7 @@ InModuleScope 'ResourceSetHelper' {
 
         It 'Should call New-ResourceSetConfigurationString with the correct KeyParameterValues' {
             Assert-MockCalled -CommandName 'New-ResourceSetConfigurationString' -ParameterFilter {
-                $null -eq (Compare-Object -ReferenceObject $newResourceSetConfigurationParams['Parameters']['KeyParameter'] -DifferenceObject $KeyParameterValues)
+                $null -eq (Compare-Object -ReferenceObject $newResourceSetConfigurationParams['Parameters'] ['KeyParameter'] -DifferenceObject $KeyParameterValues)
             }
         }
 

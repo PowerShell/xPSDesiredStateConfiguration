@@ -612,7 +612,7 @@ function Test-SetTargetResourceWithWhatIf
         $transcriptContent = Get-Content -Path $transcriptPath -Raw
         $transcriptContent | Should Not Be $null
 
-        $regexString = '\*+[^\*]*\*+'
+        $regexString = '\*+[^\*] *\*+'
 
         # Removing transcript diagnostic logging at top and bottom of file
         $selectedString = Select-String -InputObject $transcriptContent `
@@ -674,13 +674,13 @@ function Get-AppVeyorAdministratorCredential
 
         while ($password.Length -lt $passwordLength)
         {
-            $password = $password + [Char]$randomGenerator.Next(45, 126)
+            $password = $password + [Char] $randomGenerator.Next(45, 126)
         }
 
         # Change password
         $appVeyorAdministratorUsername = 'appveyor'
 
-        $appVeyorAdministratorUser = [ADSI]("WinNT://$($env:computerName)/$appVeyorAdministratorUsername")
+        $appVeyorAdministratorUser = [ADSI] ("WinNT://$($env:computerName)/$appVeyorAdministratorUsername")
 
         $null = $appVeyorAdministratorUser.SetPassword($password)
         [Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon', 'DefaultPassword', $password)
@@ -811,7 +811,7 @@ function Test-SkipContinuousIntegrationTask
         [Parameter()]
         [ValidateNotNullOrEmpty()]
         [System.String]
-        $Name = $MyInvocation.PSCommandPath.Split('\')[-1],
+        $Name = $MyInvocation.PSCommandPath.Split('\')[-1] ,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('Unit', 'Integration')]

@@ -209,7 +209,7 @@ function Set-TargetResource
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [String]$CertificateThumbPrint,
+        [String] $CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
@@ -839,7 +839,7 @@ function Test-WebConfigAppSetting
 
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml](Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root.appSettings.add)
@@ -877,7 +877,7 @@ function Get-WebConfigAppSetting
     $appSettingValue = ""
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml](Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root.appSettings.add)
@@ -915,7 +915,7 @@ function Test-WebConfigModulesSetting
 
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml](Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root."system.webServer".modules.add)
@@ -947,7 +947,7 @@ function Get-WebConfigModulesSetting
     $moduleValue = ""
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml](Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root."system.webServer".modules.add)

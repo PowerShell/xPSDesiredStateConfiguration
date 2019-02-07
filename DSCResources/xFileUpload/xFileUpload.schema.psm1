@@ -413,7 +413,7 @@ $getEncryptedPassword = @'
     if($cert)
     {
         # Cast the public key correctly
-        $rsaProvider = [System.Security.Cryptography.RSACryptoServiceProvider]$cert.PublicKey.Key
+        $rsaProvider = [System.Security.Cryptography.RSACryptoServiceProvider] $cert.PublicKey.Key
         
         if($rsaProvider -eq $null)
         {
@@ -521,7 +521,7 @@ $getDecryptedPassword = @'
     $decryptedPassword = $null
 
     # Get RSA provider
-    $rsaProvider = [System.Security.Cryptography.RSACryptoServiceProvider]$cert.PrivateKey
+    $rsaProvider = [System.Security.Cryptography.RSACryptoServiceProvider] $cert.PrivateKey
 
     if($rsaProvider -eq $null)
     {

@@ -721,7 +721,7 @@ function Remove-PSWSEndpoint
     }
 
     # Find out whether any other site is using this pool
-    $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "']"
+    $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "'] "
     $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath 'machine/webroot/apphost' -name path).ItemXPath
     if (-not $apps -or $apps.count -eq 1)
     {
@@ -843,7 +843,7 @@ function Set-BindingRedirectSettingInWebConfig
 
     if (Test-Path -Path $webconfig)
     {
-        $xml = [xml](get-content $webconfig)
+        $xml = [xml] (get-content $webconfig)
 
         if(-not($xml.get_DocumentElement().runtime))
         {

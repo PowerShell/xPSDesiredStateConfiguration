@@ -941,7 +941,7 @@ function ConvertTo-ReadableString
 
         if ($RegistryKeyValueType -ne 'MultiString')
         {
-            $RegistryKeyValue = [String[]]@() + $RegistryKeyValue
+            $RegistryKeyValue = [String[]] @() + $RegistryKeyValue
         }
 
         if ($RegistryKeyValue.Count -eq 1 -and -not [String]::IsNullOrEmpty($RegistryKeyValue[0]))
@@ -1191,7 +1191,7 @@ function ConvertTo-MultiString
 
     if (($null -ne $RegistryKeyValue) -and ($RegistryKeyValue.Length -gt 0))
     {
-        $multiStringRegistryKeyValue = [String[]]$RegistryKeyValue
+        $multiStringRegistryKeyValue = [String[]] $RegistryKeyValue
     }
 
     return $multiStringRegistryKeyValue
@@ -1289,7 +1289,7 @@ function ConvertTo-String
 
     if (($null -ne $RegistryKeyValue) -and ($RegistryKeyValue.Count -eq 1))
     {
-        $registryKeyValueAsString = [String]$RegistryKeyValue[0]
+        $registryKeyValueAsString = [String] $RegistryKeyValue[0]
     }
 
     return $registryKeyValueAsString
@@ -1341,11 +1341,11 @@ function Set-RegistryKeyValue
 
     if ($ValueType -eq 'Binary')
     {
-        $RegistryKeyValue = [Byte[]]$RegistryKeyValue
+        $RegistryKeyValue = [Byte[]] $RegistryKeyValue
     }
     elseif ($ValueType -eq 'MultiString')
     {
-        $RegistryKeyValue = [String[]]$RegistryKeyValue
+        $RegistryKeyValue = [String[]] $RegistryKeyValue
     }
 
     $null = [Microsoft.Win32.Registry]::SetValue($RegistryKeyName, $RegistryKeyValueName, $RegistryKeyValue, $ValueType)

@@ -408,7 +408,7 @@ function Set-TargetResource
                         }
 
                         Write-Verbose -Message ($script:localizedData.Gettingtheschemeresponsestream -f $uriScheme)
-                        $responseStream = (([System.Net.HttpWebRequest]$webRequest).GetResponse()).GetResponseStream()
+                        $responseStream = (([System.Net.HttpWebRequest] $webRequest).GetResponse()).GetResponseStream()
                     }
                     catch
                     {
@@ -837,7 +837,7 @@ function Test-TargetResource
         Write-Verbose -Message 'Product installation cannot be determined'
     }
 
-    Write-Verbose -Message ($script:localizedData.ProductAsBooleanIs -f [System.Boolean]$productEntry)
+    Write-Verbose -Message ($script:localizedData.ProductAsBooleanIs -f [System.Boolean] $productEntry)
 
     if ($null -ne $productEntry)
     {

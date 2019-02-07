@@ -3460,7 +3460,7 @@ try
                 $expectedRegistryKeyValue = switch ($registryKeyValueType)
                 {
                     'String' { 'String1' }
-                    'Binary' { [Byte[]]@( 12, 172, 17, 17 ) }
+                    'Binary' { [Byte[]] @( 12, 172, 17, 17 ) }
                     'DWord' { 169 }
                     'QWord' { 92 }
                     'MultiString' { @( 'String1', 'String2' ) }
@@ -3470,7 +3470,7 @@ try
                 $mismatchingActualRegistryKeyValue = switch ($registryKeyValueType)
                 {
                     'String' { 'String2' }
-                    'Binary' { [Byte[]]@( 11, 172, 17, 1 ) }
+                    'Binary' { [Byte[]] @( 11, 172, 17, 1 ) }
                     'DWord' { 12 }
                     'QWord' { 64 }
                     'MultiString' { @( 'String3', 'String2' ) }
@@ -3566,7 +3566,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of an odd length' {
                 $validBinaryString = '0xCAC1111'
-                $expectedByteArray = [Byte[]]@( 12, 172, 17, 17 )
+                $expectedByteArray = [Byte[]] @( 12, 172, 17, 17 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3585,7 +3585,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of an even length' {
                 $validBinaryString = '0x0CAC1111'
-                $expectedByteArray = [Byte[]]@( 12, 172, 17, 17 )
+                $expectedByteArray = [Byte[]] @( 12, 172, 17, 17 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3604,7 +3604,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of an even length not starting with 0x' {
                 $validBinaryString = '0CAC1111'
-                $expectedByteArray = [Byte[]]@( 12, 172, 17, 17 )
+                $expectedByteArray = [Byte[]] @( 12, 172, 17, 17 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3623,7 +3623,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of 0x00' {
                 $validBinaryString = '0x00'
-                $expectedByteArray = [Byte[]]@( 0 )
+                $expectedByteArray = [Byte[]] @( 0 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3848,7 +3848,7 @@ try
                 $convertToMultiStringResult =  ConvertTo-MultiString @convertToMultiStringParameters
 
                 It 'Should return an array containing null' {
-                    Compare-Object -ReferenceObject ([String[]]@($null)) -DifferenceObject $convertToMultiStringResult | Should Be $null
+                    Compare-Object -ReferenceObject ([String[]] @($null)) -DifferenceObject $convertToMultiStringResult | Should Be $null
                 }
             }
 

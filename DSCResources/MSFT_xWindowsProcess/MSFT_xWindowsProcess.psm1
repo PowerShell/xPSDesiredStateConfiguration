@@ -1013,7 +1013,7 @@ function Start-ProcessAsLocalSystemUser
 
     [PSDesiredStateConfiguration.NativeMethods]::CreateProcessAsUser( "$Path $Arguments", $splitCredentialResult.Domain,
                                                                       $splitCredentialResult.UserName, $Credential.Password,
-                                                                      $false, [Ref]$null )
+                                                                      $false, [Ref] $null )
 }
 
 <#

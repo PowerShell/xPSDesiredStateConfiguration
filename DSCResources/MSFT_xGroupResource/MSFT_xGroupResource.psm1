@@ -992,7 +992,7 @@ function Set-TargetResourceOnNanoServer
             }
             elseif ($PSBoundParameters.ContainsKey('MembersToInclude') -or $PSBoundParameters.ContainsKey('MembersToExclude'))
             {
-                [array]$groupMembers = Get-MembersOnNanoServer -Group $group
+                [array] $groupMembers = Get-MembersOnNanoServer -Group $group
 
                 $uniqueMembersToInclude = $MembersToInclude | Select-Object -Unique
                 $uniqueMembersToExclude = $MembersToExclude | Select-Object -Unique
@@ -1458,7 +1458,7 @@ function Test-TargetResourceOnNanoServer
             }
         }
 
-        [array]$groupMembers = Get-MembersOnNanoServer -Group $group
+        [array] $groupMembers = Get-MembersOnNanoServer -Group $group
 
         # Remove duplicate names as strings.
         $uniqueMembers = $Members | Select-Object -Unique
