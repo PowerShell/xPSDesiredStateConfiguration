@@ -1,7 +1,7 @@
 $errorActionPreference = 'Stop'
 Set-StrictMode -Version 'Latest'
 
-#Import CommonResourceHelper for Test-IsNanoServer
+# Import CommonResourceHelper for Test-IsNanoServer
 $moduleRootFilePath = Split-Path -Path $PSScriptRoot -Parent
 $dscResourcesFolderFilePath = Join-Path -Path $moduleRootFilePath -ChildPath 'DSCResources'
 $commonResourceHelperFilePath = Join-Path -Path $dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
