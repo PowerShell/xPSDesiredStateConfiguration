@@ -65,4 +65,5 @@ ConvertFrom-StringData @'
     ErrorSettingRegistryValue = An error occured while attempting to set the registry key {0} value {1} to {2}
     ErrorRemovingRegistryValue = An error occured while attempting to remove the registry key {0} value {1}
     ExeCouldNotBeUninstalled = The .exe file found at {0} could not be uninstalled. The uninstall functionality may not be implemented in this .exe file.
+    EnteringGetTargetResource = Entering Get-TargetResource in file MSFT_xPackageResource.psm1.
 '@
