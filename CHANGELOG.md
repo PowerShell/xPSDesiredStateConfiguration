@@ -116,6 +116,7 @@
   correct general style violations.
   ([issue #490](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/490))
 - Remove unnecessary whitespace from line endings.
+- Adds spaces between comment hashtags and comments.
 
 ## 8.4.0.0
 
