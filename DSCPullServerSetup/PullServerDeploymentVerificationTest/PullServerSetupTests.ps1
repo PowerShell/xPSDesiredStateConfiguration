@@ -20,7 +20,6 @@
 
 Describe PullServerInstallationTests {
     BeforeAll{
-
         # UPDATE THE PULLSERVER URL, If it is different from the default value.
         $DscHostFQDN = [System.Net.Dns]::GetHostEntry([string]$env:computername).HostName
         $DscPullServerURL = "https://$($DscHostFQDN):8080/PSDSCPullserver.svc"
@@ -80,7 +79,7 @@ Describe PullServerInstallationTests {
             {
                 Settings
                 {
-                    RefreshMode = "PULL"
+                    RefreshMode = 'PULL'
                 }
                 ConfigurationRepositoryWeb ConfigurationManager
                 {
@@ -104,8 +103,8 @@ Describe PullServerInstallationTests {
                 {
                     Script script
                     {
-                        GetScript = "@{}"
-                        SetScript = "{}"
+                        GetScript = '@{}'
+                        SetScript = '{}'
                         TestScript =  {
                             if ($false) { return $true } else {return $false}
                         }
