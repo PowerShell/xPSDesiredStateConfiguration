@@ -30,7 +30,6 @@ function Get-TargetResource
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({Assert-PathExtensionValid -Path $_})]
         [System.String]
         $Path,
 
@@ -62,6 +61,8 @@ function Get-TargetResource
     )
 
     Write-Verbose -Message $script:localizedData.EnteringGetTargetResource
+
+    Assert-PathExtensionValid -Path $Path
 
     $identifyingNumber = [System.String]::Empty
 
@@ -191,7 +192,6 @@ function Set-TargetResource
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({Assert-PathExtensionValid -Path $_})]
         [System.String]
         $Path,
 
@@ -274,6 +274,7 @@ function Set-TargetResource
         return
     }
 
+    Assert-PathExtensionValid -Path $Path
     $uri = Convert-PathToUri -Path $Path
 
     if (-not [System.String]::IsNullOrEmpty($ProductId))
@@ -722,7 +723,6 @@ function Test-TargetResource
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [ValidateScript({Assert-PathExtensionValid -Path $_})]
         [System.String]
         $Path,
 
@@ -797,6 +797,7 @@ function Test-TargetResource
         $RunAsCredential
     )
 
+    Assert-PathExtensionValid -Path $Path
     $identifyingNumber = $null
 
     if (-not [System.String]::IsNullOrEmpty($ProductId))
