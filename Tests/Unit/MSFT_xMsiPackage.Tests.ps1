@@ -153,7 +153,7 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
             Mock -CommandName 'Test-Path' -MockWith { return $true }
             Mock -CommandName 'New-Item' -MockWith {}
-            Mock -CommandName 'New-Object' -MockWith { return $script:mockStream } #-ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
+            Mock -CommandName 'New-Object' -MockWith { return $script:mockStream } # -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
             Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:mockStream }
             Mock -CommandName 'Copy-ResponseStreamToFileStream' -MockWith {}
             Mock -CommandName 'Close-Stream' -MockWith {}

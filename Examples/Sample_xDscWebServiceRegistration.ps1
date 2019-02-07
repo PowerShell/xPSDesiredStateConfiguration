@@ -85,11 +85,11 @@ configuration Sample_MetaConfigurationToRegisterWithLessSecurePullServer
 
         [ValidateNotNullOrEmpty()]
         [string]
-        $RegistrationKey, #same as the one used to setup pull server in previous configuration
+        $RegistrationKey, # Same as the one used to setup pull server in previous configuration
 
         [ValidateNotNullOrEmpty()]
         [string]
-        $ServerName = 'localhost' #node name of the pull server, same as $NodeName used in previous configuration
+        $ServerName = 'localhost' # Node name of the pull server, same as $NodeName used in previous configuration
     )
 
     Node $NodeName

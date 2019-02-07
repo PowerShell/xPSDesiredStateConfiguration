@@ -168,7 +168,7 @@ function Set-TargetResource
 
     Write-Verbose -Message ($LocalizedData.SetTargetResourceStartMessage -f $Name)
 
-    #Check if the session configuration exists
+    # Check if the session configuration exists
     Write-Verbose -Message ($LocalizedData.CheckEndpointMessage -f $Name)
 
     # Try to get a named session configuration
@@ -495,7 +495,7 @@ function Test-TargetResource
     }
     #endregion
 
-    #Check if the session configuration exists
+    # Check if the session configuration exists
     Write-Verbose -Message ($LocalizedData.CheckEndpointMessage -f $Name)
 
     try
