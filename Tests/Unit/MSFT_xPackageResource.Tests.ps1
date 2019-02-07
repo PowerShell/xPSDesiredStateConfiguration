@@ -479,7 +479,7 @@ try
                     Get-Content -Path $logPath | Should Not Be $null
                 }
 
-                It 'Should add space after .MSI installation arguments (# 195)' {
+                It 'Should add space after .MSI installation arguments (#195)' {
                     Mock Invoke-Process -ParameterFilter { $Process.StartInfo.Arguments.EndsWith($script:msiArguments) } { return @{ ExitCode = 0 } }
                     Mock Test-TargetResource { return $false }
                     Mock Get-ProductEntry { return $script:packageId }
@@ -496,7 +496,7 @@ try
                     Assert-MockCalled Invoke-Process -ParameterFilter { $Process.StartInfo.Arguments.EndsWith(" $script:msiArguments") } -Scope It
                 }
 
-                It 'Should not check for product installation when rebooted is required (# 52)' {
+                It 'Should not check for product installation when rebooted is required (#52)' {
                     Mock Invoke-Process { return [PSCustomObject] @{ ExitCode = 3010 } }
                     Mock Test-TargetResource { return $false }
                     Mock Get-ProductEntry { return $null }

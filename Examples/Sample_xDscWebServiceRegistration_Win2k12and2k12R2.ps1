@@ -34,7 +34,8 @@ configuration Sample_xDscWebServiceRegistration_Win2k12and2k12R2
         [Parameter(HelpMessage = 'This should be a string with enough entropy (randomness) to protect the registration of clients to the pull server.  We will use new GUID by default.')]
         [ValidateNotNullOrEmpty()]
         [string]
-        $RegistrationKey # A guid that clients use to initiate conversation with pull server
+        # A guid that clients use to initiate conversation with pull server
+        $RegistrationKey
     )
 
     Import-DSCResource -ModuleName xPSDesiredStateConfiguration
@@ -93,11 +94,13 @@ configuration Sample_MetaConfigurationToRegisterWithSecurePullServer
 
         [ValidateNotNullOrEmpty()]
         [string]
-        $RegistrationKey, # Same as the one used to setup pull server in previous configuration
+        # Same as the one used to setup pull server in previous configuration
+        $RegistrationKey,
 
         [ValidateNotNullOrEmpty()]
         [string]
-        $ServerName = 'localhost' # Node name of the pull server, same as $NodeName used in previous configuration
+        # Node name of the pull server, same as $NodeName used in previous configuration
+        $ServerName = 'localhost'
     )
 
     Node $NodeName
