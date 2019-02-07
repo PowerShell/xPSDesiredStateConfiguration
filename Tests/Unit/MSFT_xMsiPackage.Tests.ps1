@@ -153,13 +153,14 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'New-PSDrive' -MockWith { return $script:mockPSDrive }
             Mock -CommandName 'Test-Path' -MockWith { return $true }
             Mock -CommandName 'New-Item' -MockWith {}
-            Mock -CommandName 'New-Object' -MockWith { return $script:mockStream } # -ParameterFilter { $TypeName -eq 'System.IO.FileStream' }
+            Mock -CommandName 'New-Object' -MockWith { return $script:mockStream }
             Mock -CommandName 'Get-WebRequestResponse' -MockWith { return $script:mockStream }
             Mock -CommandName 'Copy-ResponseStreamToFileStream' -MockWith {}
             Mock -CommandName 'Close-Stream' -MockWith {}
             Mock -CommandName 'Assert-FileValid' -MockWith {}
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testIdentifyingNumber }
-            Mock -CommandName 'Start-MsiProcess' -MockWith { return 0 } # returns the exit code
+            # Returns the exit code
+            Mock -CommandName 'Start-MsiProcess' -MockWith { return 0 }
             Mock -CommandName 'Remove-PSDrive' -MockWith {}
             Mock -CommandName 'Remove-Item' -MockWith {}
             Mock -CommandName 'Invoke-CimMethod' -MockWith {}

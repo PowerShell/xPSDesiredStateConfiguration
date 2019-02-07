@@ -585,10 +585,12 @@ function Set-TargetResource
 
             if ($logStream)
             {
-                # We have to re-mux these since they appear to us as different streams
-                # The underlying Win32 APIs prevent this problem, as would constructing a script
-                # On the fly and executing it, but the former is highly problematic from PowerShell
-                # And the latter doesn't let us get the return code for UI-based EXEs
+                <#
+                    We have to re-mux these since they appear to us as different streams
+                    the underlying Win32 APIs prevent this problem, as would constructing a script
+                    on the fly and executing it, but the former is highly problematic from PowerShell
+                    and the latter doesn't let us get the return code for UI-based EXEs
+                #>
                 $outputEvents = Get-Event -SourceIdentifier $LogPath
                 $errorEvents = Get-Event -SourceIdentifier $errorLogPath
                 $masterEvents = @() + $outputEvents + $errorEvents
