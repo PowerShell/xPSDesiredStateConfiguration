@@ -20,7 +20,7 @@
 
 Describe PullServerInstallationTests {
     BeforeAll{
- 
+
         # UPDATE THE PULLSERVER URL, If it is different from the default value.
         $DscHostFQDN = [System.Net.Dns]::GetHostEntry([string]$env:computername).HostName
         $DscPullServerURL = "https://$($DscHostFQDN):8080/PSDSCPullserver.svc"
@@ -63,10 +63,10 @@ Describe PullServerInstallationTests {
             $DscRegKeyPath | Should Exist
         }
         It "Module repository $DscModulePath exists" {
-            $DscModulePath | Should Exist 
+            $DscModulePath | Should Exist
         }
         It "Configuration repository $DscConfigPath exists" {
-            $DscConfigPath | Should Exist 
+            $DscConfigPath | Should Exist
         }
         It "Verify server $DscPullServerURL is up and running" {
             $DscPullServerResponse = Invoke-WebRequest -Uri $DscPullServerURL -UseBasicParsing
@@ -80,7 +80,7 @@ Describe PullServerInstallationTests {
             {
                 Settings
                 {
-                    RefreshMode = "PULL"             
+                    RefreshMode = "PULL"
                 }
                 ConfigurationRepositoryWeb ConfigurationManager
                 {
@@ -97,7 +97,7 @@ Describe PullServerInstallationTests {
             $DscLocalConfigNames -contains $DscTestConfigName | Should Be True
         }
         It "Creates mof and checksum files in $DscConfigPath" {
-            # Sample test configuration 
+            # Sample test configuration
             Configuration NoOpConfig {
                 Import-DscResource -ModuleName PSDesiredStateConfiguration
                 Node ($DscTestConfigName)
@@ -105,7 +105,7 @@ Describe PullServerInstallationTests {
                     Script script
                     {
                         GetScript = "@{}"
-                        SetScript = "{}"            
+                        SetScript = "{}"
                         TestScript =  {
                             if ($false) { return $true } else {return $false}
                         }
@@ -113,16 +113,16 @@ Describe PullServerInstallationTests {
                 }
             }
 
-            # Create a mof file copy it to 
+            # Create a mof file copy it to
             NoOpConfig -OutputPath $DscConfigPath -Verbose:$VerbosePreference
             $DscTestMofPath | Should Exist
 
-            # Create checksum 
+            # Create checksum
             New-DscChecksum $DscConfigPath -Verbose:$VerbosePreference -Force
             "$DscTestMofPath.checksum" | Should Exist
         }
         It 'Updates DscConfiguration Successfully' {
-            Update-DscConfiguration -Wait -Verbose:$VerbosePreference 
+            Update-DscConfiguration -Wait -Verbose:$VerbosePreference
             (Get-DscConfiguration).ConfigurationName | Should Be "NoOpConfig"
         }
     }

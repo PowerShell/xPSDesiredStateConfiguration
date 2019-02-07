@@ -318,7 +318,7 @@ function Set-TargetResource
     $jet4database = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$DatabasePath\Devices.mdb;"
     $eseprovider = "ESENT"
     $esedatabase = "$DatabasePath\Devices.edb"
-    
+
     $cultureInfo = Get-Culture
     $languagePath = $cultureInfo.IetfLanguageTag
     $language = $cultureInfo.TwoLetterISOLanguageName

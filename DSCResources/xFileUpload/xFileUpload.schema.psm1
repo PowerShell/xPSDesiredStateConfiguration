@@ -1,10 +1,10 @@
 Configuration xFileUpload
 {
-    <# 
-    .SYNOPSIS 
+    <#
+    .SYNOPSIS
         Configuration uploads file or folder to the smb share
     .DESCRIPTION
-    .EXAMPLE 
+    .EXAMPLE
         xFileUpload -destinationPath "\\machine\share" -sourcePath "C:\folder\file" -username "domain\user" -password "password"
     .PARAMETER destinationPath
         Upload destination (has to point to a share or it's existing subfolder) e.g. \\machinename\sharename\destinationfolder
@@ -26,7 +26,7 @@ Configuration xFileUpload
         $destinationPath,
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]        
+        [String]
         $sourcePath,
         [PSCredential]
         $credential,
@@ -35,7 +35,7 @@ Configuration xFileUpload
     )
 
     $cacheLocation = "$env:ProgramData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xFileUpload"
-    
+
     if ($credential)
     {
         $username = $credential.UserName
@@ -44,19 +44,19 @@ Configuration xFileUpload
         $password = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($getEncryptedPassword)) -ArgumentList $credential, $certificateThumbprint
 
     }
-    
-    Script FileUpload 
+
+    Script FileUpload
     {
         # Get script is not implemented cause reusing Script resource's schema does not make sense
-        GetScript = { 
+        GetScript = {
             $returnValue = @{
-                   
+
             }
 
             $returnValue
         };
-            
-        SetScript = { 
+
+        SetScript = {
 
             # Generating credential object if password and username are specified
             $credential = $null
@@ -73,7 +73,7 @@ Configuration xFileUpload
 
                 # Decrypt password
                 $decryptedPassword = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:getDecryptedPassword)) -ArgumentList $using:password, $using:certificateThumbprint
-                
+
                 # Generate credential
                 $securePassword = ConvertTo-SecureString $decryptedPassword -AsPlainText -Force
                 $credential = New-Object System.Management.Automation.PSCredential ($using:username, $securePassword)
@@ -218,9 +218,9 @@ Configuration xFileUpload
                 }
             }
         };
-            
-        TestScript = { 
-            
+
+        TestScript = {
+
             # Generating credential object if password and username are specified
             $credential = $null
             if (($using:password) -and ($using:username))
@@ -233,7 +233,7 @@ Configuration xFileUpload
                 }
 
                 Write-Debug "Username and password specified. Generating credential"
-                
+
                 # Decrypt password
                 $decryptedPassword = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:getDecryptedPassword)) -ArgumentList $using:password, $using:certificateThumbprint
 
@@ -341,7 +341,7 @@ Configuration xFileUpload
                 {
                     $expectedItem = Get-Item $expectedDestinationPath
                     $expectedItemType = $expectedItem.GetType().Name
-                        
+
                     # If expectedDestinationPath has same type as sourcePathType, we need to verify cache to determine whether no upload is needed
                     if ((($expectedItemType -eq "FileInfo") -and ($sourcePathType -eq "File")) -or (($expectedItemType -eq "DirectoryInfo") -and ($sourcePathType -eq "Directory")))
                     {
@@ -364,14 +364,14 @@ Configuration xFileUpload
                         # Verify whether cache reflects current state or upload is needed
                         if ($cacheContent -ne $null -and ($cacheContent.LastWriteTimeUtc -eq $expectedItem.LastWriteTimeUtc))
                         {
-                            # No upload needed                                
+                            # No upload needed
                             Write-Debug "Cache reflects current state. No need for upload."
                             $itemExists = $true
                         }
                         else
                         {
                             Write-Debug "Cache is empty or it doesn't reflect current state. Upload will be performed."
-                        }    
+                        }
                     }
                     else
                     {
@@ -405,16 +405,16 @@ $getEncryptedPassword = @'
         )
 
     $value = $credential.GetNetworkCredential().Password
-    
+
     $cert = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($getCertificate)) -ArgumentList $certificateThumbprint
-    
+
     $encryptedPassword = $null
 
     if($cert)
     {
         # Cast the public key correctly
         $rsaProvider = [System.Security.Cryptography.RSACryptoServiceProvider]$cert.PublicKey.Key
-        
+
         if($rsaProvider -eq $null)
         {
             $errorMessage = "Could not get public key from certificate with thumbprint: $certificateThumbprint . Please verify certificate is valid for encryption."
@@ -462,9 +462,9 @@ $getCertificate = @'
     }
 
     if(-not $cert)
-    {        
+    {
         $errorMessage = "Error Reading certificate store for {0}. Please verify thumbprint is correct and certificate belongs to cert:\LocalMachine\My store." -f ${certificateThumbprint};
-        Invoke-Command -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) -ArgumentList "InvalidPathSpecified", $errorMessage, "InvalidOperation" 
+        Invoke-Command -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) -ArgumentList "InvalidPathSpecified", $errorMessage, "InvalidOperation"
     }
     else
     {
@@ -476,7 +476,7 @@ $getCertificate = @'
 $throwTerminatingError = @'
     param(
         [parameter(Mandatory = $true)]
-        [System.String] 
+        [System.String]
         $errorId,
         [parameter(Mandatory = $true)]
         [System.String]
@@ -485,7 +485,7 @@ $throwTerminatingError = @'
         $errorCategory
     )
 
-    $exception = New-Object System.InvalidOperationException $errorMessage 
+    $exception = New-Object System.InvalidOperationException $errorMessage
     $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, $errorId, $errorCategory, $null
     throw $errorRecord
 '@
@@ -511,9 +511,9 @@ $getDecryptedPassword = @'
     }
 
     if(-not $cert)
-    {        
+    {
         $errorMessage = "Error Reading certificate store for {0}. Please verify thumbprint is correct and certificate belongs to cert:\LocalMachine\My store." -f ${certificateThumbprint};
-        $exception = New-Object System.InvalidOperationException $errorMessage 
+        $exception = New-Object System.InvalidOperationException $errorMessage
         $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, "InvalidPathSpecified", "InvalidOperation", $null
         throw $errorRecord
     }
@@ -526,7 +526,7 @@ $getDecryptedPassword = @'
     if($rsaProvider -eq $null)
     {
         $errorMessage = "Could not get private key from certificate with thumbprint: $certificateThumbprint . Please verify certificate is valid for decryption."
-        $exception = New-Object System.InvalidOperationException $errorMessage 
+        $exception = New-Object System.InvalidOperationException $errorMessage
         $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, "DecryptionCertificateNotFound", "InvalidOperation", $null
         throw $errorRecord
     }
@@ -536,7 +536,7 @@ $getDecryptedPassword = @'
 
     # Decrypt bytes
     $decryptedBytes = $rsaProvider.Decrypt($encBytes, $false)
-        
+
     # Convert to string
     $decryptedPassword = [System.Text.Encoding]::Unicode.GetString($decryptedBytes)
 

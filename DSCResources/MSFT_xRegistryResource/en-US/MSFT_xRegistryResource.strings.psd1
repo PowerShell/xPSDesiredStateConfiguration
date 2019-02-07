@@ -30,7 +30,7 @@ ConvertFrom-StringData @'
     RegistryDriveInvalid = The registry drive specified in the registry key path {0} is missing or invalid.
     ArrayNotAllowedForExpectedType = The specified value data has been declared as a string array, but the registry key type {0} cannot be converted from an array. Please declare the value data as only one string or use the registry type MultiString.
     DWordDataNotInHexFormat = The specified registry key value data {0} is not in the correct hex format to parse as an Int32 (dword).
-    QWordDataNotInHexFormat = The specified registry key value data {0} is not in the correct hex format to parse as an Int64 (qword). 
+    QWordDataNotInHexFormat = The specified registry key value data {0} is not in the correct hex format to parse as an Int64 (qword).
     BinaryDataNotInHexFormat = The specified registry key value data {0} is not in the correct hex format to parse as a Byte array (Binary).
     InvalidRegistryDrive = The registry drive {0} is invalid. Please update the Key parameter to include a valid registry drive.
     InvalidRegistryDriveAbbreviation = The registry drive abbreviation {0} is invalid. Please update the Key parameter to include a valid registry drive.

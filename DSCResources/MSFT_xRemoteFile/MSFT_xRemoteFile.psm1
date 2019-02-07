@@ -154,7 +154,7 @@ function Set-TargetResource
 
     # Validate DestinationPath is not UNC path
     if ($DestinationPath.StartsWith("\\"))
-    { 
+    {
         $errorMessage = $($LocalizedData.DestinationPathIsUncError `
             -f ${DestinationPath})
         New-InvalidDataException `
@@ -163,7 +163,7 @@ function Set-TargetResource
     }
 
     # Validate DestinationPath does not contain invalid characters
-    @('*','?','"','<','>','|') | % { 
+    @('*','?','"','<','>','|') | % {
         if ($DestinationPath.Contains($_) ){
             $errorMessage = $($LocalizedData.DestinationPathHasInvalidCharactersError `
                 -f ${DestinationPath})
@@ -395,11 +395,11 @@ function New-InvalidDataException
         [System.String]
         $errorMessage
     )
-    
+
     $errorCategory = [System.Management.Automation.ErrorCategory]::InvalidData
     $exception = New-Object `
         -TypeName System.InvalidOperationException `
-        -ArgumentList $errorMessage 
+        -ArgumentList $errorMessage
     $errorRecord = New-Object `
         -TypeName System.Management.Automation.ErrorRecord `
         -ArgumentList $exception, $errorId, $errorCategory, $null
@@ -430,7 +430,7 @@ function Test-UriScheme
 
 <#
 .Synopsis
-Gets type of the item which path points to. 
+Gets type of the item which path points to.
 .Outputs
 File, Directory, Other or NotExists
 #>
@@ -550,7 +550,7 @@ function Update-Cache
         [ValidateNotNullOrEmpty()]
         [System.String]
         $Uri,
-        
+
         [parameter(Mandatory = $true)]
         [Object]
         $InputObject

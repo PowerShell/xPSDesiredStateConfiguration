@@ -26,17 +26,17 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xScriptResource'
     .PARAMETER Credential
         The Credential to run the get script under if needed.
 #>
-function Get-TargetResource 
+function Get-TargetResource
 {
     [OutputType([Hashtable])]
     [CmdletBinding()]
-    param 
+    param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $GetScript,
-      
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -55,7 +55,7 @@ function Get-TargetResource
     )
 
     Write-Verbose -Message $script:localizedData.GetTargetResourceStartVerboseMessage
- 
+
     $invokeScriptParameters = @{
         ScriptBlock = [ScriptBlock]::Create($GetScript)
     }
@@ -101,16 +101,16 @@ function Get-TargetResource
     .PARAMETER Credential
         The Credential to run the set script under if needed.
 #>
-function Set-TargetResource 
+function Set-TargetResource
 {
     [CmdletBinding()]
-    param 
-    (       
+    param
+    (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $GetScript,
-      
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -166,17 +166,17 @@ function Set-TargetResource
     .PARAMETER Credential
         The Credential to run the test script under if needed.
 #>
-function Test-TargetResource 
+function Test-TargetResource
 {
     [OutputType([Boolean])]
     [CmdletBinding()]
-    param 
-    (     
+    param
+    (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
         $GetScript,
-      
+
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
@@ -245,12 +245,12 @@ function Invoke-Script
 {
     [OutputType([Object])]
     [CmdletBinding()]
-    param 
+    param
     (
         [Parameter(Mandatory = $true)]
-        [ScriptBlock] 
+        [ScriptBlock]
         $ScriptBlock,
-    
+
         [Parameter()]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]

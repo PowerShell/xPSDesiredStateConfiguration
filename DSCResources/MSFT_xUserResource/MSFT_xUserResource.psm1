@@ -46,7 +46,7 @@ function Get-TargetResource
 <#
     .SYNOPSIS
         Creates, modifies, or deletes a user.
-    
+
     .PARAMETER UserName
         The name of the user to create, modify, or delete.
 
@@ -80,7 +80,7 @@ function Get-TargetResource
         Specifies whether the user is allowed to change their password or not.
         By default this is set to $false
 
-    .NOTES 
+    .NOTES
         If Ensure is set to 'Present' then the password parameter is required.
 #>
 function Set-TargetResource
@@ -290,7 +290,7 @@ function Get-TargetResourceOnFullSKU
 <#
     .SYNOPSIS
         Creates, modifies, or deletes a user when on a full server.
-    
+
     .PARAMETER UserName
         The name of the user to create, modify, or delete.
 
@@ -324,7 +324,7 @@ function Get-TargetResourceOnFullSKU
         Specifies whether the user is allowed to change their password or not.
         By default this is set to $false
 
-    .NOTES 
+    .NOTES
         If Ensure is set to 'Present' then the Password parameter is required.
 #>
 function Set-TargetResourceOnFullSKU
@@ -780,7 +780,7 @@ function Get-TargetResourceOnNanoServer
 <#
     .SYNOPSIS
         Creates, modifies, or deletes a user when on Nano Server.
-    
+
     .PARAMETER UserName
         The name of the user to create, modify, or delete.
 
@@ -814,7 +814,7 @@ function Get-TargetResourceOnNanoServer
         Specifies whether the user is allowed to change their password or not.
         By default this is set to $false
 
-    .NOTES 
+    .NOTES
         If Ensure is set to 'Present' then the Password parameter is required.
 #>
 function Set-TargetResourceOnNanoServer
@@ -862,7 +862,7 @@ function Set-TargetResourceOnNanoServer
 
     # Try to find a user by a name.
     $userExists = $false
-    
+
     try
     {
         [Microsoft.PowerShell.Commands.LocalUser] $user = Get-LocalUser -Name $UserName -ErrorAction Stop
@@ -960,12 +960,12 @@ function Set-TargetResourceOnNanoServer
         # NOTE: The parameter name and the property name have opposite meaning.
         [System.Boolean] $expected = -not $PasswordChangeNotAllowed
         $actual = $expected
-        
+
         if ($userExists)
         {
             $actual = $user.UserMayChangePassword
         }
-        
+
         if ($PSBoundParameters.ContainsKey('PasswordChangeNotAllowed') -and ((-not $userExists) -or ($expected -ne $actual)))
         {
             Set-LocalUser -Name $UserName -UserMayChangePassword $expected
@@ -1171,7 +1171,7 @@ function Assert-UserNameValid
 
     # Check if the name consists of only periods and/or white spaces
     $wrongName = $true
-    
+
     for ($i = 0; $i -lt $UserName.Length; $i++)
     {
         if (-not [Char]::IsWhiteSpace($UserName, $i) -and $UserName[$i] -ne '.')
@@ -1237,7 +1237,7 @@ function New-ConnectionException
 <#
     .SYNOPSIS
         Tests the local user's credentials on the local machine.
-    
+
     .PARAMETER UserName
         The username to validate the credentials of.
 

@@ -28,11 +28,11 @@ function Get-TargetResource
     Assert-ResourcePrerequisitesValid
 
     $windowsOptionalFeature = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
-    
+
     <#
         $windowsOptionalFeatureProperties and this section of code are needed because an error will be thrown if a property
         is not found in WMF 4 instead of returning null.
-    #> 
+    #>
     $windowsOptionalFeatureProperties = @{}
     $propertiesNeeded = @( 'LogPath', 'State', 'CustomProperties', 'FeatureName', 'LogLevel', 'Description', 'DisplayName' )
 
@@ -81,7 +81,7 @@ function Get-TargetResource
         being disabled.
 
     .PARAMETER NoWindowsUpdateCheck
-        Specifies whether or not DISM contacts Windows Update (WU) when searching for the source 
+        Specifies whether or not DISM contacts Windows Update (WU) when searching for the source
         files to enable the feature.
         If $true, DISM will not contact WU.
 
@@ -179,7 +179,7 @@ function Set-TargetResource
     <#
         $restartNeeded and this section of code are needed because an error will be thrown if the
         RestartNeeded property is not found in WMF 4.
-    #> 
+    #>
     try
     {
         $restartNeeded = $windowsOptionalFeature.RestartNeeded
@@ -256,7 +256,7 @@ function Test-TargetResource
     Assert-ResourcePrerequisitesValid
 
     $windowsOptionalFeature = Dism\Get-WindowsOptionalFeature -FeatureName $Name -Online
-    
+
     $featureIsInDesiredState = $false
 
     if ($null -eq $windowsOptionalFeature -or $windowsOptionalFeature.State -eq 'Disabled')
@@ -267,9 +267,9 @@ function Test-TargetResource
     {
         $featureIsInDesiredState = $Ensure -eq 'Present'
     }
-    
+
     Write-Verbose -Message ($script:localizedData.TestTargetResourceEndMessage -f $Name)
-    
+
     return $featureIsInDesiredState
 }
 
@@ -366,7 +366,7 @@ function Assert-ResourcePrerequisitesValid
     # Check that we are running as an administrator
     $windowsIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     $windowsPrincipal = New-Object -TypeName 'System.Security.Principal.WindowsPrincipal' -ArgumentList @( $windowsIdentity )
-    
+
     $adminRole = [System.Security.Principal.WindowsBuiltInRole]::Administrator
     if (-not $windowsPrincipal.IsInRole($adminRole))
     {

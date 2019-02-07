@@ -3,14 +3,14 @@
         Tests if a registry key exists.
 
     .PARAMETER KeyPath
-        The path to the registry key to test for existence. 
+        The path to the registry key to test for existence.
         Must include the registry hive.
 #>
 function Test-RegistryKeyExists
 {
     [CmdletBinding()]
     [OutputType([Boolean])]
-    param 
+    param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -26,7 +26,7 @@ function Test-RegistryKeyExists
         Tests if a registry key value exists.
 
     .PARAMETER KeyPath
-        The path to the registry key that should contain the value to test for existence. 
+        The path to the registry key that should contain the value to test for existence.
         Must include the registry hive.
 
     .PARAMETER ValueName
@@ -62,7 +62,7 @@ function Test-RegistryValueExists
         $ValueType
     )
 
-    try 
+    try
     {
         $registryValue = Get-ItemProperty -Path $KeyPath -Name $ValueName -ErrorAction 'SilentlyContinue'
         Write-Verbose -Message "Test-RegistryValueExists - Registry key value: $registryKeyValue"
@@ -87,7 +87,7 @@ function Test-RegistryValueExists
                 $registryValueExists = $registryValueExists -and ($registryValue.GetType().Name -eq 'Byte[]')
                 $registryValue = Convert-ByteArrayToHexString -Data $registryValue
             }
-            else 
+            else
             {
                 $registryValueExists = $registryValueExists -and ($registryValue.GetType().Name -eq $ValueType)
             }
@@ -113,7 +113,7 @@ function Test-RegistryValueExists
         Creates a registry key.
 
     .PARAMETER KeyPath
-        The path to the registry key to be created. 
+        The path to the registry key to be created.
         Must include the registry hive.
 #>
 function New-TestRegistryKey
@@ -128,12 +128,12 @@ function New-TestRegistryKey
     )
 
     $parentPath = Split-Path -Path $KeyPath -Parent
-    
+
     if (-not (Test-RegistryKeyExists -KeyPath $parentPath))
     {
         New-TestRegistryKey -KeyPath $parentPath
     }
-    
+
     Write-Verbose -Message "New-TestRegistryKey - Creating new registry key at: $KeyPath"
 
     $null = New-Item -Path $KeyPath
@@ -144,7 +144,7 @@ function New-TestRegistryKey
         Creates a registry key.
 
     .PARAMETER KeyPath
-        The path to the registry key to be created. 
+        The path to the registry key to be created.
         Must include the registry hive.
 
     .PARAMETER ValueName
@@ -203,7 +203,7 @@ function New-RegistryValue
 
         Write-Verbose -Message "New-RegistryValue - Binary data: $ValueData"
     }
-    
+
     $null = New-ItemProperty -Path $KeyPath -Name $ValueName -Value $ValueData -PropertyType $ValueType
 }
 
@@ -212,13 +212,13 @@ function New-RegistryValue
         Removes a registry key.
 
     .PARAMETER KeyPath
-        The path to the registry key to remove 
+        The path to the registry key to remove
         Must include the registry hive.
 #>
 function Remove-TestRegistryKey
 {
     [CmdletBinding()]
-    param 
+    param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -234,7 +234,7 @@ function Remove-TestRegistryKey
         Removes a registry value.
 
     .PARAMETER KeyPath
-        The path to the registry key that contains the value to remove. 
+        The path to the registry key that contains the value to remove.
         Must include the registry hive.
 
     .PARAMETER ValueName
@@ -243,7 +243,7 @@ function Remove-TestRegistryKey
 function Remove-TestRegistryValue
 {
     [CmdletBinding()]
-    param 
+    param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -270,7 +270,7 @@ function Remove-TestRegistryValue
 function Mount-RegistryDrive
 {
     [CmdletBinding()]
-    param 
+    param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
@@ -327,7 +327,7 @@ function Mount-RegistryDrive
 function Dismount-RegistryDrive
 {
     [CmdletBinding()]
-    param 
+    param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
