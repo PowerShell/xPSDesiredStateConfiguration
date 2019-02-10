@@ -151,6 +151,10 @@ try
 
             Mock -CommandName Get-WebSite
 
+            $webConfigPath = 'TestDrive:\inetpub\PesterTestSite\Web.config'
+            $null = New-Item -ItemType Directory -Path (Split-Path -Parent $webConfigPath)
+            $null = New-Item -Path $webConfigPath -Value $webConfig
+
             Context -Name 'DSC Web Service is not installed' -Fixture {
                 $script:result = $null
 
@@ -175,9 +179,18 @@ try
             Mock -CommandName Get-WebConfigModulesSetting `
                 -ParameterFilter {$webConfigFullPath.StartsWith($websiteDataHTTP.physicalPath) -and $ModuleName -eq 'IISSelfSignedCertModule(32bit)'} `
                 -MockWith {return 'IISSelfSignedCertModule(32bit)'}
+            <#
+            Mock -CommandName Test-WebConfigModulesSetting `
+                -ParameterFilter {$ModuleName -eq 'IISSelfSignedCertModule(32bit)'}  `
+                -MockWith { param ($ExpectedInstallationStatus)
+                    Write-Verbose -Message 'Test-WebConfigAppSetting - IISSelfSignedCertModule';
+                    $acceptSelfSignedCertificates -eq $ExpectedInstallationStatus
+                }
+            #>
             #endregion
 
             Context -Name 'DSC Web Service is installed without certificate' -Fixture {
+
                 $script:result = $null
 
                 $ipProperties = [Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties()
@@ -278,10 +291,10 @@ try
                     $script:result.DisableSecurityBestPractices | Should -BeNullOrEmpty
                 }
                 It 'Should call expected mocks' {
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Get-WebSite
+                    Assert-MockCalled -Exactly -Times 2 -CommandName Get-WebSite
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-ChildItem
                     Assert-MockCalled -Exactly -Times 5 -CommandName Get-WebConfigAppSetting
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Get-WebConfigModulesSetting
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-WebConfigModulesSetting
                 }
             }
 
@@ -375,7 +388,7 @@ try
                 }
                 It 'Should call expected mocks' {
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Get-WebSite
+                    Assert-MockCalled -Exactly -Times 2 -CommandName Get-WebSite
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-WebBinding
                     Assert-MockCalled -Exactly -Times 2 -CommandName Get-ChildItem
                 }
@@ -429,7 +442,7 @@ try
                 }
                 It 'Should call expected mocks' {
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Get-WebSite
+                    Assert-MockCalled -Exactly -Times 2 -CommandName Get-WebSite
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-WebBinding
                     Assert-MockCalled -Exactly -Times 2 -CommandName Get-ChildItem
                 }
@@ -495,7 +508,7 @@ try
             Mock -CommandName Set-AppSettingsInWebconfig
             Mock -CommandName Set-BindingRedirectSettingInWebConfig
             Mock -CommandName Copy-Item
-            Mock -CommandName Test-IISSelfSignedModule
+            Mock -CommandName Test-IISSelfSignedModuleInstalled
             Mock -CommandName Enable-IISSelfSignedModule
             Mock -CommandName Disable-IISSelfSignedModule
             #endregion
@@ -521,7 +534,7 @@ try
                     Assert-MockCalled -Exactly -Times 5 -CommandName Set-AppSettingsInWebconfig
                     Assert-MockCalled -Exactly -Times 1 -CommandName Set-BindingRedirectSettingInWebConfig
                     Assert-MockCalled -Exactly -Times 0 -CommandName Copy-Item
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                     Assert-MockCalled -Exactly -Times 1 -CommandName Enable-IISSelfSignedModule
                     Assert-MockCalled -Exactly -Times 0 -CommandName Disable-IISSelfSignedModule
                 }
@@ -573,7 +586,7 @@ try
                     Assert-MockCalled -Exactly -Times 0 -CommandName Set-BindingRedirectSettingInWebConfig
                     Assert-MockCalled -Exactly -Times 1 -CommandName Copy-Item
                     Assert-MockCalled -Exactly -Times 1 -CommandName Enable-IISSelfSignedModule
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                     Assert-MockCalled -Exactly -Times 0 -CommandName Disable-IISSelfSignedModule
                 }
             }
@@ -605,7 +618,7 @@ try
                     Assert-MockCalled -Exactly -Times 0 -CommandName Set-BindingRedirectSettingInWebConfig
                     Assert-MockCalled -Exactly -Times 0 -CommandName Copy-Item
                     Assert-MockCalled -Exactly -Times 1 -CommandName Enable-IISSelfSignedModule
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                     Assert-MockCalled -Exactly -Times 0 -CommandName Disable-IISSelfSignedModule
                 }
             }
@@ -632,7 +645,7 @@ try
                     Assert-MockCalled -Exactly -Times 1 -CommandName Set-BindingRedirectSettingInWebConfig
                     Assert-MockCalled -Exactly -Times 0 -CommandName Copy-Item
                     Assert-MockCalled -Exactly -Times 1 -CommandName Enable-IISSelfSignedModule
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                     Assert-MockCalled -Exactly -Times 0 -CommandName Disable-IISSelfSignedModule
                 }
             }
@@ -660,7 +673,7 @@ try
                     Assert-MockCalled -Exactly -Times 1 -CommandName Set-BindingRedirectSettingInWebConfig
                     Assert-MockCalled -Exactly -Times 0 -CommandName Copy-Item
                     Assert-MockCalled -Exactly -Times 0 -CommandName Enable-IISSelfSignedModule
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                     Assert-MockCalled -Exactly -Times 1 -CommandName Disable-IISSelfSignedModule
                 }
             }
@@ -741,7 +754,7 @@ try
             $testArguments = 'if ($allowedArgs -notcontains $MyInvocation.Line.Trim()) {throw ''Mock test failed.''}'
 
             Mock -CommandName Get-IISAppCmd -MockWith {[ScriptBlock]::Create($testArguments)} -ModuleName IISSelfSignedModule
-            Mock -CommandName Test-IISSelfSignedModule
+            Mock -CommandName Test-IISSelfSignedModuleInstalled
             #endregion
 
             Context -Name 'DSC Service is not installed' -Fixture {
@@ -761,19 +774,19 @@ try
                 It 'Should return $false when Ensure is Absent' {
                     Test-TargetResource @testParameters -Ensure Absent | Should -Be $false
 
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
                 It 'Should return $false if Port doesn''t match' {
                     Test-TargetResource @testParameters -Ensure Present -Port 8081 | Should -Be $false
 
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
                 It 'Should return $false if Certificate Thumbprint is set' {
                     $altTestParameters = $testParameters.Clone()
                     $altTestParameters.CertificateThumbprint = $certificateData[0].Thumbprint
 
                     Test-TargetResource @altTestParameters -Ensure Present | Should -Be $false
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
                 It 'Should return $false if Physical Path doesn''t match' {
                     Mock -CommandName Test-WebsitePath -MockWith {$true} -Verifiable
@@ -781,7 +794,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 Mock -CommandName Get-WebBinding -MockWith {return @{CertificateHash = $websiteDataHTTPS.bindings.collection[0].certificateHash}}
@@ -791,7 +804,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -State Stopped | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
                 It 'Should return $false when dbProvider is not set' {
                     Mock -CommandName Get-WebConfigAppSetting -MockWith {''} -Verifiable
@@ -799,7 +812,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 Mock -CommandName Test-WebConfigAppSetting -MockWith {Write-Verbose -Message 'Test-WebConfigAppSetting'; $true}
@@ -813,7 +826,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -DatabasePath $DatabasePath  | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when dbProvider is set to ESENT and ConnectionString does match the value in web.config' {
@@ -823,7 +836,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $true when dbProvider is set to System.Data.OleDb and ConnectionString does not match the value in web.config' {
@@ -835,7 +848,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -DatabasePath $DatabasePath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when dbProvider is set to System.Data.OleDb and ConnectionString does match the value in web.config' {
@@ -845,7 +858,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 Mock -CommandName Get-WebConfigAppSetting -MockWith {'ESENT'} -Verifiable
@@ -859,7 +872,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -ModulePath $modulePath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when ModulePath is not set the same as in web.config' {
@@ -868,7 +881,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 Mock -CommandName Test-WebConfigAppSetting -MockWith {$true} -ParameterFilter {$AppSettingName -eq 'ModulePath'} -Verifiable
@@ -881,7 +894,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -ConfigurationPath $configurationPath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when ConfigurationPath is not set the same as in web.config' {
@@ -892,7 +905,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -ConfigurationPath $configurationPath | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 Mock -CommandName Test-WebConfigAppSetting -MockWith {$true} -ParameterFilter {$AppSettingName -eq 'ConfigurationPath'} -Verifiable
@@ -905,7 +918,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -RegistrationKeyPath $registrationKeyPath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when RegistrationKeyPath is not set the same as in web.config' {
@@ -916,31 +929,31 @@ try
                     Test-TargetResource @testParameters -Ensure Present -RegistrationKeyPath $registrationKeyPath | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $true when AcceptSelfSignedCertificates is set the same as in web.config' {
                     $acceptSelfSignedCertificates = $true
 
-                    Mock -CommandName Test-IISSelfSignedModule -MockWith { $true }
+                    Mock -CommandName Test-IISSelfSignedModuleInstalled -MockWith { $true }
                     Mock -CommandName Test-WebConfigModulesSetting -MockWith {param ($ExpectedInstallationStatus) Write-Verbose -Message 'Test-WebConfigAppSetting - IISSelfSignedCertModule'; $acceptSelfSignedCertificates -eq $ExpectedInstallationStatus} -ParameterFilter {$ModuleName -eq 'IISSelfSignedCertModule(32bit)'} -Verifiable
 
                     Test-TargetResource @testParameters -Ensure Present -AcceptSelfSignedCertificates $acceptSelfSignedCertificates | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when AcceptSelfSignedCertificates is not set the same as in web.config' {
                     $acceptSelfSignedCertificates = $true
 
-                    Mock -CommandName Test-IISSelfSignedModule -MockWith { $true }
+                    Mock -CommandName Test-IISSelfSignedModuleInstalled -MockWith { $true }
                     Mock -CommandName Test-WebConfigModulesSetting -MockWith {Write-Verbose -Message 'Test-WebConfigAppSetting - IISSelfSignedCertModule'; $false} -ParameterFilter {$ModuleName -eq 'IISSelfSignedCertModule(32bit)'} -Verifiable
 
                     Test-TargetResource @testParameters -Ensure Present -AcceptSelfSignedCertificates $acceptSelfSignedCertificates | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModule -Scope It
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
             }
 
@@ -952,7 +965,7 @@ try
                 It 'Should return $false if Certificate Thumbprint is set to AllowUnencryptedTraffic' {
                     Test-TargetResource @testParameters -Ensure Present | Should -Be $false
 
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                 }
 
                 It 'Should return $false if Certificate Subject does not match the current certificate' {
@@ -963,7 +976,7 @@ try
 
                     Test-TargetResource @altTestParameters -Ensure Present -CertificateSubject 'Invalid Certifcate' | Should -Be $false
 
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                 }
 
                 Mock -CommandName Test-WebsitePath -MockWith {$false} -Verifiable
@@ -981,7 +994,7 @@ try
                     Test-TargetResource @altTestParameters -Ensure Present | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModule
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
                 }
 
             }
