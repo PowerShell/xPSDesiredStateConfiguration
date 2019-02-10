@@ -471,7 +471,7 @@ try
             #region Mocks
             $testArguments = 'if ($allowedArgs -notcontains $MyInvocation.Line.Trim()) {throw ''Mock test failed.''}'
 
-            Mock -CommandName Get-IISAppCmd -MockWith {[ScriptBlock]::Create($testArguments)} -ModuleName IISSelfSignedModule
+            Mock -CommandName Get-IISAppCmd -MockWith {[ScriptBlock]::Create($testArguments)}
             Mock -CommandName Get-OSVersion -MockWith {@{Major = 6; Minor = 3}}
             Mock -CommandName Get-Website
             #endregion
@@ -753,7 +753,7 @@ try
             #region Mocks
             $testArguments = 'if ($allowedArgs -notcontains $MyInvocation.Line.Trim()) {throw ''Mock test failed.''}'
 
-            Mock -CommandName Get-IISAppCmd -MockWith {[ScriptBlock]::Create($testArguments)} -ModuleName IISSelfSignedModule
+            Mock -CommandName Get-IISAppCmd -MockWith {[ScriptBlock]::Create($testArguments)}
             Mock -CommandName Test-IISSelfSignedModuleInstalled
             #endregion
 
