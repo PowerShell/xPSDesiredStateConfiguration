@@ -103,9 +103,12 @@
 - Fixes script analyzer issues in MSFT_xMsiPackage.psm1.
   [issue #486](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/486)
 - Fixes script analyzer issues in MSFT_xPackageResource.psm1.
-  [issue #487](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/487).
+  [issue #487](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/487)
 - Adds spaces between variable types and variables, and changes Type
   Accelerators to Fully Qualified Type Names on affected code.
+- Fixes script analyzer issues in MSFT_xRemoteFile.psm1 and
+  correct general style violations.
+  ([issue #490](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/490))
 
 ## 8.4.0.0
 
