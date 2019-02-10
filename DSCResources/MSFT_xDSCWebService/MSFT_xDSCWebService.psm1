@@ -1,7 +1,6 @@
 # Import the helper functions
 Import-Module -Name $PSScriptRoot\PSWSIISEndpoint.psm1 -Verbose:$false
 Import-Module -Name $PSScriptRoot\UseSecurityBestPractices.psm1 -Verbose:$false
-Import-Module -Name $PSScriptRoot\IISSelfSignedModule.psm1 -Verbose:$false
 
 #region LocalizedData
 $script:culture = 'en-US'
@@ -127,8 +126,7 @@ function Get-TargetResource
 
             $webBinding = Get-WebBinding -Name $EndpointName
 
-            $certNativeModule = Get-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $global:iisSelfSignedModuleName
-            if($certNativeModule)
+            if((Test-IISSelfSignedModuleEnabled -EndpointName $EndpointName))
             {
                 $acceptSelfSignedCertificates = $true
             }
@@ -744,12 +742,12 @@ function Test-TargetResource
             Write-Verbose -Message "Check AcceptSelfSignedCertificates"
             if ($AcceptSelfSignedCertificates)
             {
-                Write-Verbose ("AcceptSelfSignedCertificates is enabled. Checking if module $global:iisSelfSignedModuleName is configured for web site at [$webConfigFullPath].")
-                if (Test-IISSelfSignedModule)
+                Write-Verbose ("AcceptSelfSignedCertificates is enabled. Checking if module Selfsigned IIS module is configured for web site at [$webConfigFullPath].")
+                if (Test-IISSelfSignedModuleInstalled)
                 {
-                    if (-not (Test-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $global:iisSelfSignedModuleName -ExpectedInstallationStatus $AcceptSelfSignedCertificates))
+                    if (-not (Test-IISSelfSignedModuleEnabled -EndpointName $EndpointName))
                     {
-                        Write-Verbose ("Module not present in web site. Current configuration does not match the desired state.")
+                        Write-Verbose ("Module not enabled in web site. Current configuration does not match the desired state.")
                         $desiredConfigurationMatch = $false
                         break
                     }
@@ -760,7 +758,7 @@ function Test-TargetResource
                 }
                 else
                 {
-                    Write-Verbose ("$global:iisSelfSignedModuleName not installed in IIS. Current configuration match the desired state.")
+                    Write-Verbose ("Selfsigned module not installed in IIS. Current configuration does not match the desired state.")
                     $desiredConfigurationMatch = $false
                 }
             }
@@ -781,6 +779,130 @@ function Test-TargetResource
     While($stop)
 
     $desiredConfigurationMatch
+}
+
+function Get-OSVersion
+{
+    [CmdletBinding()]
+    param ()
+
+    # Moved to a function to allow for the behaviour to be mocked.
+    return [System.Environment]::OSVersion.Version
+}
+
+#region IIS Utils
+
+function Get-WebConfigModulesSetting
+{
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $WebConfigFullPath,
+
+        [Parameter(Mandatory = $true)]
+        [String]
+        $ModuleName
+    )
+
+    $moduleValue = ""
+    if (Test-Path -Path $WebConfigFullPath)
+    {
+        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
+        $root = $webConfigXml.get_DocumentElement()
+
+        foreach ($item in $root."system.webServer".modules.add)
+        {
+            if( $item.name -eq $ModuleName )
+            {
+                $moduleValue = $item.name
+                break
+            }
+        }
+    }
+
+    $moduleValue
+}
+
+# Allow this Website to enable/disable specific Auth Schemes by adding <location> tag in applicationhost.config
+function Update-LocationTagInApplicationHostConfigForAuthentication
+{
+    param
+    (
+        # Name of the WebSite
+        [Parameter(Mandatory = $true)]
+        [String]
+        $WebSite,
+
+        # Authentication Type
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('anonymous', 'basic', 'windows')]
+        [String]
+        $Authentication
+    )
+
+    $webAdminSrvMgr = Get-IISServerManager
+    $appHostConfig = $webAdminSrvMgr.GetApplicationHostConfiguration()
+
+    $authenticationType = $Authentication + 'Authentication'
+    $appHostConfigSection = $appHostConfig.GetSection("system.webServer/security/authentication/$authenticationType", $WebSite)
+    $appHostConfigSection.OverrideMode = 'Allow'
+    $webAdminSrvMgr.CommitChanges()
+}
+
+function Get-IISServerManager
+{
+    [CmdletBinding()]
+    [OutputType([System.Object])]
+    param ()
+
+    $iisInstallPath = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\INetStp' -Name InstallPath).InstallPath
+    if (-not $iisInstallPath)
+    {
+        throw ($LocalizedData.IISInstallationPathNotFound)
+    }
+    $assyPath = Join-Path -Path $iisInstallPath -ChildPath 'Microsoft.Web.Administration.dll' -Resolve -ErrorAction:SilentlyContinue
+    if (-not $assyPath)
+    {
+        throw ($LocalizedData.IISWebAdministrationAssemblyNotFound)
+    }
+    $assy = [System.Reflection.Assembly]::LoadFrom($assyPath)
+    return [System.Activator]::CreateInstance($assy.FullName, 'Microsoft.Web.Administration.ServerManager').Unwrap()
+}
+
+# Helper function to Test the specified Web.Config Modules Setting
+function Test-WebConfigModulesSetting
+{
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $WebConfigFullPath,
+
+        [Parameter(Mandatory = $true)]
+        [String]
+        $ModuleName,
+
+        [Parameter(Mandatory = $true)]
+        [Boolean]
+        $ExpectedInstallationStatus
+    )
+
+    if (Test-Path -Path $WebConfigFullPath)
+    {
+        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
+        $root = $webConfigXml.get_DocumentElement()
+
+        foreach ($item in $root."system.webServer".modules.add)
+        {
+            if( $item.name -eq $ModuleName )
+            {
+                return $ExpectedInstallationStatus -eq $true
+            }
+        }
+    }
+    Write-Verbose ("Test-WebConfigModulesSetting: web.config file not found at [$WebConfigFullPath]")
+    return $ExpectedInstallationStatus -eq $false
 }
 
 # Helper function used to validate website path
@@ -883,119 +1005,123 @@ function Get-WebConfigAppSetting
     $appSettingValue
 }
 
-# Helper function to Test the specified Web.Config Modules Setting
-function Test-WebConfigModulesSetting
-{
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [String]
-        $WebConfigFullPath,
+#endregion
 
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ModuleName,
+#region IIS Selfsegned Certficate Module
 
-        [Parameter(Mandatory = $true)]
-        [Boolean]
-        $ExpectedInstallationStatus
-    )
+New-Variable -Name iisSelfSignedModuleAssemblyName -Value 'IISSelfSignedCertModule.dll' -Option ReadOnly -Scope Script
+New-Variable -Name iisSelfSignedModuleName -Value 'IISSelfSignedCertModule(32bit)' -Option ReadOnly -Scope Script
 
-    if (Test-Path -Path $WebConfigFullPath)
-    {
-        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
-        $root = $webConfigXml.get_DocumentElement()
-
-        foreach ($item in $root."system.webServer".modules.add)
-        {
-            if( $item.name -eq $ModuleName )
-            {
-                return $ExpectedInstallationStatus -eq $true
-            }
-        }
-    }
-
-    return $ExpectedInstallationStatus -eq $false
+function Get-IISAppCmd {
+    Push-Location -Path "$env:windir\system32\inetsrv"
+    $appCmd = Get-Command -Name '.\appcmd.exe' -CommandType 'Application' -ErrorAction:Stop
+    Pop-Location
+    $appCmd
 }
 
-# Helper function to Get the specified Web.Config Modules Setting
-function Get-WebConfigModulesSetting
-{
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [String]
-        $WebConfigFullPath,
-
-        [Parameter(Mandatory = $true)]
-        [String]
-        $ModuleName
-    )
-
-    $moduleValue = ""
-    if (Test-Path -Path $WebConfigFullPath)
-    {
-        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
-        $root = $webConfigXml.get_DocumentElement()
-
-        foreach ($item in $root."system.webServer".modules.add)
-        {
-            if( $item.name -eq $ModuleName )
-            {
-                $moduleValue = $item.name
-                break
-            }
-        }
-    }
-
-    $moduleValue
-}
-
-# Allow this Website to enable/disable specific Auth Schemes by adding <location> tag in applicationhost.config
-function Update-LocationTagInApplicationHostConfigForAuthentication
-{
-    param
-    (
-        # Name of the WebSite
-        [Parameter(Mandatory = $true)]
-        [String]
-        $WebSite,
-
-        # Authentication Type
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('anonymous', 'basic', 'windows')]
-        [String]
-        $Authentication
-    )
-
-    $webAdminSrvMgr = Get-IISServerManager
-    $appHostConfig = $webAdminSrvMgr.GetApplicationHostConfiguration()
-
-    $authenticationType = $Authentication + 'Authentication'
-    $appHostConfigSection = $appHostConfig.GetSection("system.webServer/security/authentication/$authenticationType", $WebSite)
-    $appHostConfigSection.OverrideMode = 'Allow'
-    $webAdminSrvMgr.CommitChanges()
-}
-
-function Get-IISServerManager
+function Test-IISSelfSignedModuleInstalled
 {
     [CmdletBinding()]
-    [OutputType([System.Object])]
-    param ()
+    [OutputType([bool])]
+    param (
+        [switch]$Enable32BitAppOnWin64
+    )
 
-    $iisInstallPath = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\INetStp' -Name InstallPath).InstallPath
-    if (-not $iisInstallPath)
-    {
-        throw ($LocalizedData.IISInstallationPathNotFound)
-    }
-    $assyPath = Join-Path -Path $iisInstallPath -ChildPath 'Microsoft.Web.Administration.dll' -Resolve -ErrorAction:SilentlyContinue
-    if (-not $assyPath)
-    {
-        throw ($LocalizedData.IISWebAdministrationAssemblyNotFound)
-    }
-    $assy = [System.Reflection.Assembly]::LoadFrom($assyPath)
-    return [System.Activator]::CreateInstance($assy.FullName, 'Microsoft.Web.Administration.ServerManager').Unwrap()
+    ('' -ne ((& (Get-IISAppCmd) list config -section:system.webServer/globalModules) -like "*$iisSelfSignedModuleName*"))
 }
+
+function Install-IISSelfSignedModule
+{
+    [CmdletBinding()]
+    param (
+        [switch]$Enable32BitAppOnWin64
+    )
+
+    if ($Enable32BitAppOnWin64)
+    {
+        Write-Verbose ("Install-IISSelfSignedModule: Providing $iisSelfSignedModuleAssemblyName to run in a 32 bit process")
+        $sourceFilePath = Join-Path -Path "$env:windir\SysWOW64\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
+        $destinationFolderPath = "$env:windir\SysWOW64\inetsrv"
+        Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
+    }
+
+    if (Test-IISSelfSignedModule)
+    {
+        Write-Verbose ("Install-IISSelfSignedModule: module $iisSelfSignedModuleName already installed")
+    }
+    else
+    {
+        Write-Verbose ("Install-IISSelfSignedModule: Installing module $iisSelfSignedModuleName")
+        $sourceFilePath = Join-Path -Path "$env:windir\System32\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
+        $destinationFolderPath = "$env:windir\System32\inetsrv"
+        $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $iisSelfSignedModuleAssemblyName
+        Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
+
+        & (Get-IISAppCmd) install module /name:$iisSelfSignedModuleName /image:$destinationFilePath /add:false /lock:false
+    }
+}
+
+function Enable-IISSelfSignedModule
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$EndpointName,
+        [switch]$Enable32BitAppOnWin64
+    )
+
+    Write-Verbose ("Enable-IISSelfSignedModule: EndpointName [$EndpointName]; Enable32BitAppOnWin64 [$Enable32BitAppOnWin64]")
+
+    Install-IISSelfSignedModule -Enable32BitAppOnWin64:$Enable32BitAppOnWin64
+    $preConditionBitnessArgumentFor32BitInstall=""
+    if ($Enable32BitAppOnWin64) {
+        $preConditionBitnessArgumentFor32BitInstall = "/preCondition:bitness32"
+    }
+    & (Get-IISAppCmd) add module /name:$iisSelfSignedModuleName /app.name:"$EndpointName/" $preConditionBitnessArgumentFor32BitInstall
+}
+
+function Disable-IISSelfSignedModule
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$EndpointName
+    )
+    Write-Verbose ("Disable-IISSelfSignedModule: EndpointName [$EndpointName]")
+
+    & (Get-IISAppCmd) delete module /name:$iisSelfSignedModuleName  /app.name:"$EndpointName/"
+}
+
+function Test-IISSelfSignedModuleEnabled
+{
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [string]$EndpointName
+    )
+
+    Write-Verbose ("Test-IISSelfSignedModuleEnabled: EndpointName [$EndpointName]")
+
+    $webSite = Get-Website -Name $EndpointName
+
+    if ($webSite)
+    {
+        $webConfigFullPath = Join-Path -Path $website.physicalPath -ChildPath "web.config"
+        Write-Verbose ("Test-IISSelfSignedModuleEnabled: web.confg path [$webConfigFullPath]")
+        Test-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $iisSelfSignedModuleName -ExpectedInstallationStatus $true
+    }
+    else
+    {
+        Write-Error ("Website [$EndpointName] not found")
+    }
+}
+
+#endregion
+
+#region Certificate Utils
 
 function Find-CertificateThumbprintWithSubjectAndTemplateName
 {
@@ -1073,14 +1199,6 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
     }
 }
 
-function Get-OSVersion
-{
-    [CmdletBinding()]
-    param ()
-
-    # Moved to a function to allow for the behaviour to be mocked.
-    return [System.Environment]::OSVersion.Version
-}
-
+#endregion
 
 Export-ModuleMember -Function *-TargetResource
