@@ -1045,7 +1045,7 @@ function Install-IISSelfSignedModule
         Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
     }
 
-    if (Test-IISSelfSignedModule)
+    if (Test-IISSelfSignedModuleInstalled)
     {
         Write-Verbose ("Install-IISSelfSignedModule: module $iisSelfSignedModuleName already installed")
     }
