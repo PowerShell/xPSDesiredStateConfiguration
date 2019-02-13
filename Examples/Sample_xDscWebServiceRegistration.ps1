@@ -1,32 +1,54 @@
-# DSC configuration for Pull Server using registration
+<#
+    .SYNOPSIS
+        The Sample_xDscWebServiceRegistration configuration sets up a DSC pull
+        server that is capable for client nodes to register with it and
+        retrieve configuration documents with configuration names instead of
+        configuration id.
 
-# The Sample_xDscWebServiceRegistration configuration sets up a DSC pull server that is capable for client nodes
-# to register with it and retrieve configuration documents with configuration names instead of configuration id
+        Prerequisite: Install a certificate in 'CERT:\LocalMachine\MY\' store
+                      For testing environments, you could use a self-signed
+                      certificate. (New-SelfSignedCertificate cmdlet could
+                      generate one for you). For production environments, you
+                      will need a certificate signed by valid CA. Registration
+                      only works over https protocols. So to use registration
+                      feature, a secure pull server setup with certificate is
+                      necessary.
 
-# Prerequisite: Install a certificate in "CERT:\LocalMachine\MY\" store
-#               For testing environments, you could use a self-signed certificate. (New-SelfSignedCertificate cmdlet could generate one for you).
-#               For production environments, you will need a certificate signed by valid CA.
-#               Registration only works over https protocols. So to use registration feature, a secure pull server setup with certificate is necessary
+    .PARAMETER NodeName
+        The name of the node being configured as a DSC Pull Server.
 
+    .PARAMETER CertificateThumbPrint
+        Certificate thumbprint for creating an HTTPS endpoint. Use
+        "AllowUnencryptedTraffic" for setting up a non SSL based endpoint.
 
-# The Sample_MetaConfigurationToRegisterWithLessSecurePullServer register a DSC client node with the pull server
+    .PARAMETER RegistrationKey
+        This key will be used by client nodes as a shared key to authenticate
+        during registration. This should be a string with enough entropy
+        (randomness) to protect the registration of clients to the pull server.
+        The example creates a new GUID for the registration key.
 
-# =================================== Section Pull Server =================================== #
-configuration Sample_xDscWebServiceRegistration
+    .EXAMPLE
+        $thumbprint = (New-SelfSignedCertificate -Subject 'TestPullServer').Thumbprint
+        $registrationkey = [System.Guid]::NewGuid()
+
+        Sample_xDscWebServiceRegistration -RegistrationKey $registrationkey -CertificateThumbPrint $thumbprint
+#>
+Configuration Sample_xDscWebServiceRegistration
 {
     param
     (
-        [string[]]
+        [Parameter()]
+        [System.String[]]
         $NodeName = 'localhost',
 
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]
-        $certificateThumbPrint,
+        [System.String]
+        $CertificateThumbPrint,
 
-        [Parameter(HelpMessage = 'This should be a string with enough entropy (randomness) to protect the registration of clients to the pull server.  We will use new GUID by default.')]
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]
-        # A guid that clients use to initiate conversation with pull server
+        [System.String]
         $RegistrationKey
     )
 
@@ -36,21 +58,21 @@ configuration Sample_xDscWebServiceRegistration
     {
         WindowsFeature DSCServiceFeature
         {
-            Ensure = "Present"
-            Name   = "DSC-Service"
+            Ensure = 'Present'
+            Name   = 'DSC-Service'
         }
 
         xDscWebService PSDSCPullServer
         {
-            Ensure                       = "Present"
-            EndpointName                 = "PSDSCPullServer"
+            Ensure                       = 'Present'
+            EndpointName                 = 'PSDSCPullServer'
             Port                         = 8080
             PhysicalPath                 = "$env:SystemDrive\inetpub\PSDSCPullServer"
-            CertificateThumbPrint        = $certificateThumbPrint
+            CertificateThumbPrint        = $CertificateThumbPrint
             ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
             ConfigurationPath            = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration"
-            State                        = "Started"
-            DependsOn                    = "[WindowsFeature]DSCServiceFeature"
+            State                        = 'Started'
+            DependsOn                    = '[WindowsFeature]DSCServiceFeature'
             RegistrationKeyPath          = "$env:PROGRAMFILES\WindowsPowerShell\DscService"
             AcceptSelfSignedCertificates = $true
             Enable32BitAppOnWin64        = $false
@@ -67,31 +89,47 @@ configuration Sample_xDscWebServiceRegistration
     }
 }
 
-# Sample use (please change values of parameters according to your scenario):
-# $thumbprint = (New-SelfSignedCertificate -Subject "TestPullServer").Thumbprint
-# $registrationkey = [guid]::NewGuid()
-# Sample_xDscWebServiceRegistration -RegistrationKey $registrationkey -certificateThumbPrint $thumbprint
+<#
+    .SYNOPSIS
+        The Sample_MetaConfigurationToRegisterWithSecurePullServer registers
+        a DSC client node with the pull server.
 
-# =================================== Section Pull Server =================================== #
+    .PARAMETER NodeName
+        The name of the node being configured as a DSC Pull Server.
 
-# =================================== Section DSC Client =================================== #
+    .PARAMETER RegistrationKey
+        This key will be used by client nodes as a shared key to authenticate
+        during registration. This should be a string with enough entropy
+        (randomness) to protect the registration of clients to the pull server.
+        The example creates a new GUID for the registration key.
+
+    .PARAMETER ServerName
+        The HostName to use when configuring the Pull Server URL on the DSC
+        client.
+
+    .EXAMPLE
+        $registrationKey = [System.Guid]::NewGuid()
+
+        Sample_MetaConfigurationToRegisterWithSecurePullServer -RegistrationKey $registrationKey
+#>
 [DSCLocalConfigurationManager()]
-configuration Sample_MetaConfigurationToRegisterWithLessSecurePullServer
+Configuration Sample_MetaConfigurationToRegisterWithSecurePullServer
 {
     param
     (
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]
+        [System.String]
         $NodeName = 'localhost',
 
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]
-        # Same as the one used to setup pull server in previous configuration
+        [System.String]
         $RegistrationKey,
 
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [string]
-        # Node name of the pull server, same as $NodeName used in previous configuration
+        [System.String]
         $ServerName = 'localhost'
     )
 
@@ -104,20 +142,15 @@ configuration Sample_MetaConfigurationToRegisterWithLessSecurePullServer
 
         ConfigurationRepositoryWeb CONTOSO-PullSrv
         {
-            ServerURL          = "https://$ServerName`:8080/PSDSCPullServer.svc" # notice it is https
+            ServerURL          = "https://$ServerName`:8080/PSDSCPullServer.svc"
             RegistrationKey    = $RegistrationKey
             ConfigurationNames = @('ClientConfig')
         }
 
         ReportServerWeb CONTOSO-PullSrv
         {
-            ServerURL       = "https://$ServerName`:8080/PSDSCPullServer.svc" # notice it is https
+            ServerURL       = "https://$ServerName`:8080/PSDSCPullServer.svc"
             RegistrationKey = $RegistrationKey
         }
     }
 }
-
-# Sample use (please change values of parameters according to your scenario):
-# Sample_MetaConfigurationToRegisterWithLessSecurePullServer -RegistrationKey $registrationkey
-
-# =================================== Section DSC Client =================================== #
