@@ -159,8 +159,10 @@ Describe 'xMsiPackage Unit Tests' {
             Mock -CommandName 'Close-Stream' -MockWith {}
             Mock -CommandName 'Assert-FileValid' -MockWith {}
             Mock -CommandName 'Get-MsiProductCode' -MockWith { return $script:testIdentifyingNumber }
-            # Returns the exit code
-            Mock -CommandName 'Start-MsiProcess' -MockWith { return 0 }
+            Mock -CommandName 'Start-MsiProcess' -MockWith {
+                # Returns the exit code
+                return 0
+            }
             Mock -CommandName 'Remove-PSDrive' -MockWith {}
             Mock -CommandName 'Remove-Item' -MockWith {}
             Mock -CommandName 'Invoke-CimMethod' -MockWith {}
