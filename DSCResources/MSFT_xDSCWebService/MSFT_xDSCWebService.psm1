@@ -742,35 +742,35 @@ function Test-TargetResource
             Write-Verbose -Message "Check AcceptSelfSignedCertificates"
             if ($AcceptSelfSignedCertificates)
             {
-                Write-Verbose ("AcceptSelfSignedCertificates is enabled. Checking if module Selfsigned IIS module is configured for web site at [$webConfigFullPath].")
+                Write-Verbose -Message "AcceptSelfSignedCertificates is enabled. Checking if module Selfsigned IIS module is configured for web site at [$webConfigFullPath]."
                 if (Test-IISSelfSignedModuleInstalled)
                 {
                     if (-not (Test-IISSelfSignedModuleEnabled -EndpointName $EndpointName))
                     {
-                        Write-Verbose ("Module not enabled in web site. Current configuration does not match the desired state.")
+                        Write-Verbose -Message 'Module not enabled in web site. Current configuration does not match the desired state.'
                         $desiredConfigurationMatch = $false
                         break
                     }
                     else
                     {
-                        Write-Verbose ("Module present in web site. Current configuration match the desired state.")
+                        Write-Verbose -Message 'Module present in web site. Current configuration match the desired state.'
                     }
                 }
                 else
                 {
-                    Write-Verbose ("Selfsigned module not installed in IIS. Current configuration does not match the desired state.")
+                    Write-Verbose -Message 'Selfsigned module not installed in IIS. Current configuration does not match the desired state.'
                     $desiredConfigurationMatch = $false
                 }
             }
         }
 
-        Write-Verbose -Message "Check UseSecurityBestPractices"
+        Write-Verbose -Message 'Check UseSecurityBestPractices'
         if ($UseSecurityBestPractices)
         {
             if (-not (UseSecurityBestPractices\Test-UseSecurityBestPractice -DisableSecurityBestPractices $DisableSecurityBestPractices))
             {
                 $desiredConfigurationMatch = $false
-                Write-Verbose -Message "The state of security settings does not match the desired state."
+                Write-Verbose -Message 'The state of security settings does not match the desired state.'
                 break
             }
         }
@@ -781,9 +781,25 @@ function Test-TargetResource
     $desiredConfigurationMatch
 }
 
+<#
+.SYNOPSIS
+
+The function returns the OS version string detected by .Net
+
+.DESCRIPTION
+
+The function returns the OS version which ahs been detected by .NET.
+The function is added so that the dectection of the OS is mockable in Pester tests.
+
+.OUTPUTS
+
+System.String. The operating system version
+
+#>
 function Get-OSVersion
 {
     [CmdletBinding()]
+    [OutputType([System.String])]
     param ()
 
     # Moved to a function to allow for the behaviour to be mocked.
@@ -792,8 +808,28 @@ function Get-OSVersion
 
 #region IIS Utils
 
+<#
+.SYNOPSIS
+
+Returns the configuration value for a module settings from web.config
+
+.PARAMETER WebConfigFullPath
+
+The full path to the web.config
+
+.PARAMETER ModuleName
+
+The name of the IIS module
+
+.OUTPUTS
+
+System.String. The configured value
+
+#>
 function Get-WebConfigModulesSetting
 {
+    [CmdletBinding()]
+    [OutputType([System.String])]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -824,9 +860,27 @@ function Get-WebConfigModulesSetting
     $moduleValue
 }
 
-# Allow this Website to enable/disable specific Auth Schemes by adding <location> tag in applicationhost.config
+<#
+.SYNOPSIS
+
+Unlocks a specifc authentication configuration section for a IIS website
+
+.PARAMETER WebSite
+
+The name of the website
+
+.PARAMETER Authentication
+
+The authentication section which should be unlocked
+
+.OUTPUTS
+
+System.String. The configured value
+
+#>
 function Update-LocationTagInApplicationHostConfigForAuthentication
 {
+    [CmdletBinding()]
     param
     (
         # Name of the WebSite
@@ -850,6 +904,16 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
     $webAdminSrvMgr.CommitChanges()
 }
 
+<#
+.SYNOPSIS
+
+Returns an instance of the Microsoft.Web.Administration.ServerManager
+
+.OUTPUTS
+
+Microsoft.Web.Administration.ServerManager. The server manager
+
+#>
 function Get-IISServerManager
 {
     [CmdletBinding()]
@@ -870,9 +934,32 @@ function Get-IISServerManager
     return [System.Activator]::CreateInstance($assy.FullName, 'Microsoft.Web.Administration.ServerManager').Unwrap()
 }
 
-# Helper function to Test the specified Web.Config Modules Setting
+<#
+.SYNOPSIS
+
+Tests if a module installation status is equal to an expected status.
+
+.PARAMETER WebConfigFullPath
+
+The full path to the web.config
+
+.PARAMETER ModuleName
+
+The name of the IIS module for which the state should be checked
+
+.PARAMETER ExpectedInstallationStatus
+
+Test if the module is installed ($true) or absent ($false)
+
+.OUTPUTS
+
+System.Boolean. true if the current installation status is equal to the expected installation status
+
+#>
 function Test-WebConfigModulesSetting
 {
+    [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -901,13 +988,32 @@ function Test-WebConfigModulesSetting
             }
         }
     }
-    Write-Verbose ("Test-WebConfigModulesSetting: web.config file not found at [$WebConfigFullPath]")
+    Write-Verbose -Message "Test-WebConfigModulesSetting: web.config file not found at [$WebConfigFullPath]"
     return $ExpectedInstallationStatus -eq $false
 }
 
-# Helper function used to validate website path
+<#
+.SYNOPSIS
+
+Tests if a the currently configured path for a website is equal to a given path
+
+.PARAMETER EndpointName
+
+The endpoint name (website name) to test
+
+.PARAMETER PhysicalPath
+
+The full physical path to check
+
+.OUTPUTS
+
+System.Boolean. true if the current installation status is equal to the expected installation status
+
+#>
 function Test-WebsitePath
 {
+    [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -929,9 +1035,33 @@ function Test-WebsitePath
     $pathNeedsUpdating
 }
 
-# Helper function to Test the specified Web.Config App Setting
+<#
+.SYNOPSIS
+
+Test if a currently configured app setting is equal to a given value
+
+.PARAMETER WebConfigFullPath
+
+The full path to the web.config
+
+
+.PARAMETER AppSettingName
+
+The app setting name to check
+
+.PARAMETER ExpectedAppSettingValue
+
+The expected value
+
+.OUTPUTS
+
+System.Boolean. true if the current value is equal to the expected value
+
+#>
 function Test-WebConfigAppSetting
 {
+    [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -972,9 +1102,29 @@ function Test-WebConfigAppSetting
     $returnValue
 }
 
-# Helper function to Get the specified Web.Config App Setting
+<#
+.SYNOPSIS
+
+Helper function to Get the specified Web.Config App Setting
+
+.PARAMETER WebConfigFullPath
+
+The full path to the web.config
+
+
+.PARAMETER AppSettingName
+
+The app settings name to get the value for
+
+.OUTPUTS
+
+System.String. the current app settings value
+
+#>
 function Get-WebConfigAppSetting
 {
+    [CmdletBinding()]
+    [OutputType([System.String])]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -1012,24 +1162,58 @@ function Get-WebConfigAppSetting
 New-Variable -Name iisSelfSignedModuleAssemblyName -Value 'IISSelfSignedCertModule.dll' -Option ReadOnly -Scope Script
 New-Variable -Name iisSelfSignedModuleName -Value 'IISSelfSignedCertModule(32bit)' -Option ReadOnly -Scope Script
 
+<#
+.SYNOPSIS
+
+Get a powershell command instance for appcmd.exe
+
+.OUTPUTS
+
+System.Management.Automation.CommandInfo. The appcmd.exe
+
+#>
 function Get-IISAppCmd {
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.CommandInfo])]
+    param(
+    )
+
     Push-Location -Path "$env:windir\system32\inetsrv"
     $appCmd = Get-Command -Name '.\appcmd.exe' -CommandType 'Application' -ErrorAction:Stop
     Pop-Location
     $appCmd
 }
 
+<#
+.SYNOPSIS
+
+Tests if the IISSelfSignedModule module is installed
+
+.OUTPUTS
+
+System.Boolean. true if the module is installed
+
+#>
 function Test-IISSelfSignedModuleInstalled
 {
     [CmdletBinding()]
-    [OutputType([bool])]
+    [OutputType([System.Boolean])]
     param (
-        [switch]$Enable32BitAppOnWin64
     )
 
     ('' -ne ((& (Get-IISAppCmd) list config -section:system.webServer/globalModules) -like "*$iisSelfSignedModuleName*"))
 }
 
+<#
+.SYNOPSIS
+
+Install the IISSelfSignedModule module
+
+.PARAMETER Enable32BitAppOnWin64
+
+If set install the module as 32bit module
+
+#>
 function Install-IISSelfSignedModule
 {
     [CmdletBinding()]
@@ -1039,7 +1223,7 @@ function Install-IISSelfSignedModule
 
     if ($Enable32BitAppOnWin64)
     {
-        Write-Verbose ("Install-IISSelfSignedModule: Providing $iisSelfSignedModuleAssemblyName to run in a 32 bit process")
+        Write-Verbose -Message "Install-IISSelfSignedModule: Providing $iisSelfSignedModuleAssemblyName to run in a 32 bit process"
         $sourceFilePath = Join-Path -Path "$env:windir\SysWOW64\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
         $destinationFolderPath = "$env:windir\SysWOW64\inetsrv"
         Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
@@ -1047,11 +1231,11 @@ function Install-IISSelfSignedModule
 
     if (Test-IISSelfSignedModuleInstalled)
     {
-        Write-Verbose ("Install-IISSelfSignedModule: module $iisSelfSignedModuleName already installed")
+        Write-Verbose -Message "Install-IISSelfSignedModule: module $iisSelfSignedModuleName already installed"
     }
     else
     {
-        Write-Verbose ("Install-IISSelfSignedModule: Installing module $iisSelfSignedModuleName")
+        Write-Verbose -Message "Install-IISSelfSignedModule: Installing module $iisSelfSignedModuleName"
         $sourceFilePath = Join-Path -Path "$env:windir\System32\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
         $destinationFolderPath = "$env:windir\System32\inetsrv"
         $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $iisSelfSignedModuleAssemblyName
@@ -1061,6 +1245,20 @@ function Install-IISSelfSignedModule
     }
 }
 
+<#
+.SYNOPSIS
+
+Enable the IISSelfSignedModule module for a specific website (endpoint)
+
+.PARAMETER EndpointName
+
+The endpoint (website) for which the module should be enabled
+
+.PARAMETER Enable32BitAppOnWin64
+
+If set enable the module as a 32bit module
+
+#>
 function Enable-IISSelfSignedModule
 {
     [CmdletBinding()]
@@ -1071,7 +1269,7 @@ function Enable-IISSelfSignedModule
         [switch]$Enable32BitAppOnWin64
     )
 
-    Write-Verbose ("Enable-IISSelfSignedModule: EndpointName [$EndpointName]; Enable32BitAppOnWin64 [$Enable32BitAppOnWin64]")
+    Write-Verbose -Message "Enable-IISSelfSignedModule: EndpointName [$EndpointName]; Enable32BitAppOnWin64 [$Enable32BitAppOnWin64]"
 
     Install-IISSelfSignedModule -Enable32BitAppOnWin64:$Enable32BitAppOnWin64
     $preConditionBitnessArgumentFor32BitInstall=""
@@ -1081,6 +1279,16 @@ function Enable-IISSelfSignedModule
     & (Get-IISAppCmd) add module /name:$iisSelfSignedModuleName /app.name:"$EndpointName/" $preConditionBitnessArgumentFor32BitInstall
 }
 
+<#
+.SYNOPSIS
+
+Disable the IISSelfSignedModule module for a specific website (endpoint)
+
+.PARAMETER EndpointName
+
+The endpoint (website) for which the module should be disabled
+
+#>
 function Disable-IISSelfSignedModule
 {
     [CmdletBinding()]
@@ -1089,33 +1297,48 @@ function Disable-IISSelfSignedModule
         [ValidateNotNullOrEmpty()]
         [string]$EndpointName
     )
-    Write-Verbose ("Disable-IISSelfSignedModule: EndpointName [$EndpointName]")
+    Write-Verbose -Message "Disable-IISSelfSignedModule: EndpointName [$EndpointName]"
 
     & (Get-IISAppCmd) delete module /name:$iisSelfSignedModuleName  /app.name:"$EndpointName/"
 }
 
+<#
+.SYNOPSIS
+
+Tests if the IISSelfSignedModule module is enabled for a website (endpoint)
+
+.PARAMETER EndpointName
+
+The endpoint (website) for which the status should be checked
+
+.OUTPUTS
+
+System.Boolean. true if the module is enabled
+
+#>
 function Test-IISSelfSignedModuleEnabled
 {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory)]
         [ValidateNotNullOrEmpty()]
         [string]$EndpointName
     )
 
-    Write-Verbose ("Test-IISSelfSignedModuleEnabled: EndpointName [$EndpointName]")
+    Write-Verbose -Message "Test-IISSelfSignedModuleEnabled: EndpointName [$EndpointName]"
 
     $webSite = Get-Website -Name $EndpointName
 
     if ($webSite)
     {
         $webConfigFullPath = Join-Path -Path $website.physicalPath -ChildPath "web.config"
-        Write-Verbose ("Test-IISSelfSignedModuleEnabled: web.confg path [$webConfigFullPath]")
+        Write-Verbose -Message "Test-IISSelfSignedModuleEnabled: web.confg path [$webConfigFullPath]"
         Test-WebConfigModulesSetting -WebConfigFullPath $webConfigFullPath -ModuleName $iisSelfSignedModuleName -ExpectedInstallationStatus $true
     }
     else
     {
-        Write-Error ("Website [$EndpointName] not found")
+        Write-Error -Message "Website [$EndpointName] not found"
     }
 }
 
@@ -1123,27 +1346,28 @@ function Test-IISSelfSignedModuleEnabled
 
 #region Certificate Utils
 
+<#
+    .SYNOPSIS
+    Returns a certificate thumbprint from a certificate with a matching subject.
+
+    .DESCRIPTION
+    Retreives a list of certificates from the a certificate store.
+    From this list all certificates will be checked to see if they match the supplied Subject and Template.
+    If one certificate is found the thumbrpint is returned. Otherwise an error is thrown.
+
+    .PARAMETER Subject
+    The subject of the certificate to find the thumbprint of.
+
+    .PARAMETER TemplateName
+    The template used to create the certificate to find the subject of.
+
+    .PARAMETER Store
+    The certificate store to retrieve certificates from.
+#>
 function Find-CertificateThumbprintWithSubjectAndTemplateName
 {
-    <#
-        .SYNOPSIS
-        Returns a certificate thumbprint from a certificate with a matching subject.
-
-        .DESCRIPTION
-        Retreives a list of certificates from the a certificate store.
-        From this list all certificates will be checked to see if they match the supplied Subject and Template.
-        If one certificate is found the thumbrpint is returned. Otherwise an error is thrown.
-
-        .PARAMETER Subject
-        The subject of the certificate to find the thumbprint of.
-
-        .PARAMETER TemplateName
-        The template used to create the certificate to find the subject of.
-
-        .PARAMETER Store
-        The certificate store to retrieve certificates from.
-    #>
-
+    [CmdletBinding()]
+    [OutputType([System.String])]
     param
     (
         [Parameter(Mandatory = $true)]
