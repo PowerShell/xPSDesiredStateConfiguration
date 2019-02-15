@@ -762,6 +762,27 @@ function Test-TargetResource
                     $desiredConfigurationMatch = $false
                 }
             }
+            else
+            {
+                Write-Verbose -Message "AcceptSelfSignedCertificates is disabled. Checking if module Selfsigned IIS module is NOT configured for web site at [$webConfigFullPath]."
+                if (Test-IISSelfSignedModuleInstalled)
+                {
+                    if (-not (Test-IISSelfSignedModuleEnabled -EndpointName $EndpointName))
+                    {
+                        Write-Verbose -Message 'Module not enabled in web site. Current configuration does match the desired state.'
+                    }
+                    else
+                    {
+                        Write-Verbose -Message 'Module present in web site. Current configuration does not match the desired state.'
+                        $desiredConfigurationMatch = $false
+                        break
+                    }
+                }
+                else
+                {
+                    Write-Verbose -Message 'Selfsigned module not installed in IIS. Current configuration does match the desired state.'
+                }
+            }
         }
 
         Write-Verbose -Message 'Check UseSecurityBestPractices'
@@ -988,7 +1009,10 @@ function Test-WebConfigModulesSetting
             }
         }
     }
-    Write-Verbose -Message "Test-WebConfigModulesSetting: web.config file not found at [$WebConfigFullPath]"
+    else
+    {
+        Write-Warning -Message "Test-WebConfigModulesSetting: web.config file not found at [$WebConfigFullPath]"
+    }
     return $ExpectedInstallationStatus -eq $false
 }
 
@@ -1187,6 +1211,56 @@ function Get-IISAppCmd {
 <#
 .SYNOPSIS
 
+Tests if two files differ
+
+.PARAMETER SourceFilePath
+
+Path to the source file
+
+.PARAMETER DestinationFilePath
+
+Path to the destination file
+
+.OUTPUTS
+
+System.Boolean. true if the two files differ
+
+#>
+function Test-FilesDiffer
+{
+    [CmdletBinding()]
+    [OutputType([System.Boolean])]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateScript({ Test-Path -PathType Leaf -LiteralPath $_ })]
+        [string]$SourceFilePath,
+        [string]$DestinationFilePath
+    )
+
+    Write-Verbose -Message "Testing for file difference between $SourceFilePath and $DestinationFilePath"
+
+    if (Test-Path -LiteralPath $DestinationFilePath)
+    {
+        if (Test-Path -LiteralPath $DestinationFilePath -PathType Container)
+        {
+            throw "$DestinationFilePath is a container (Directory) not a leaf (File)"
+        }
+        Write-Verbose -Message "Destination file already exists at $DestinationFilePath"
+
+        $md5Dest = Get-FileHash -LiteralPath $destinationFilePath -Algorithm MD5
+        $md5Src = Get-FileHash -LiteralPath $sourceFilePath -Algorithm MD5
+        return $md5Src.Hash -ne $md5Dest.Hash
+    }
+    else
+    {
+        Write-Verbose -Message "Destination file does not exist at $DestinationFilePath"
+        return $true
+    }
+}
+
+<#
+.SYNOPSIS
+
 Tests if the IISSelfSignedModule module is installed
 
 .OUTPUTS
@@ -1239,8 +1313,16 @@ function Install-IISSelfSignedModule
         $sourceFilePath = Join-Path -Path "$env:windir\System32\WindowsPowerShell\v1.0\Modules\PSDesiredStateConfiguration\PullServer" -ChildPath $iisSelfSignedModuleAssemblyName
         $destinationFolderPath = "$env:windir\System32\inetsrv"
         $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $iisSelfSignedModuleAssemblyName
-        Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
-
+        if (Test-FilesDiffer -SourceFilePath $sourceFilePath -DestinationFilePath $destinationFilePath)
+        {
+            # Might fail if the DLL has already been loaded by the IIS from a former PullServer Deployment
+            Copy-Item -Path $sourceFilePath -Destination $destinationFolderPath -Force
+        }
+        else
+        {
+            Write-Verbose -Message "Install-IISSelfSignedModule: module $iisSelfSignedModuleName already installed at $destinationFilePath with the correct version"
+        }
+        Write-Verbose -Message "Install-IISSelfSignedModule: globally activating module $iisSelfSignedModuleName"
         & (Get-IISAppCmd) install module /name:$iisSelfSignedModuleName /image:$destinationFilePath /add:false /lock:false
     }
 }
