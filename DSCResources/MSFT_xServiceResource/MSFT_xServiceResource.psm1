@@ -189,7 +189,7 @@ function Get-TargetResource
         Here are the paths through which Set-TargetResource calls Invoke-CimMethod:
 
         Set-TargetResource --> Set-ServicePath --> Invoke-CimMethod
-                           --> Set-ServiceProperty --> Set-ServiceDependencies --> Invoke-CimMethod
+                           --> Set-ServiceProperty --> Set-ServiceDependency --> Invoke-CimMethod
                                                    --> Set-ServiceAccountProperty --> Invoke-CimMethod
                                                    --> Set-ServiceStartupType --> Invoke-CimMethod
 #>
@@ -203,50 +203,63 @@ function Set-TargetResource
         [String]
         $Name,
 
+        [Parameter()]
         [ValidateSet('Present', 'Absent')]
         [String]
         $Ensure = 'Present',
 
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
         [String]
         $Path,
 
+        [Parameter()]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
         [String]
         $StartupType,
 
+        [Parameter()]
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         [String]
         $BuiltInAccount,
 
+        [Parameter()]
         [String]
         $GroupManagedServiceAccount,
 
+        [Parameter()]
         [ValidateSet('Running', 'Stopped', 'Ignore')]
         [String]
         $State = 'Running',
 
+        [Parameter()]
         [Boolean]
         $DesktopInteract = $false,
 
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
         [String]
         $DisplayName,
 
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
         [String]
         $Description,
 
+        [Parameter()]
         [String[]]
         [AllowEmptyCollection()]
         $Dependencies,
 
+        [Parameter()]
         [UInt32]
         $StartupTimeout = 30000,
 
+        [Parameter()]
         [UInt32]
         $TerminateTimeout = 30000,
 
+        [Parameter()]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
@@ -426,50 +439,63 @@ function Test-TargetResource
         [String]
         $Name,
 
+        [Parameter()]
         [ValidateSet('Present', 'Absent')]
         [String]
         $Ensure = 'Present',
 
+        [Parameter()]
         [ValidateNotNullOrEmpty()]
         [String]
         $Path,
 
+        [Parameter()]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
         [String]
         $StartupType,
 
+        [Parameter()]
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         [String]
         $BuiltInAccount,
 
+        [Parameter()]
         [String]
         $GroupManagedServiceAccount,
 
+        [Parameter()]
         [Boolean]
         $DesktopInteract = $false,
 
+        [Parameter()]
         [ValidateSet('Running', 'Stopped', 'Ignore')]
         [String]
         $State = 'Running',
 
+        [Parameter()]
         [ValidateNotNull()]
         [String]
         $DisplayName,
 
+        [Parameter()]
         [String]
         [AllowEmptyString()]
         $Description,
 
+        [Parameter()]
         [String[]]
         [AllowEmptyCollection()]
         $Dependencies,
 
+        [Parameter()]
         [UInt32]
         $StartupTimeout = 30000,
 
+        [Parameter()]
         [UInt32]
         $TerminateTimeout = 30000,
 
+        [Parameter()]
         [ValidateNotNull()]
         [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
@@ -864,7 +890,7 @@ function Set-ServicePath
         SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
         This function calls Invoke-CimMethod directly.
 #>
-function Set-ServiceDependencies
+function Set-ServiceDependency
 {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param
@@ -1547,7 +1573,7 @@ function Set-ServiceStartupType
         SupportsShouldProcess is enabled because Invoke-CimMethod calls ShouldProcess.
         Here are the paths through which Set-ServiceProperty calls Invoke-CimMethod:
 
-        Set-ServiceProperty --> Set-ServiceDependencies --> Invoke-CimMethod
+        Set-ServiceProperty --> Set-ServiceDependency --> Invoke-CimMethod
                             --> Set-ServieceAccountProperty --> Invoke-CimMethod
                             --> Set-ServiceStartupType --> Invoke-CimMethod
 #>
@@ -1624,7 +1650,7 @@ function Set-ServiceProperty
     # Update service dependencies if needed
     if ($PSBoundParameters.ContainsKey('Dependencies'))
     {
-        Set-ServiceDependencies -ServiceName $ServiceName -Dependencies $Dependencies
+        Set-ServiceDependency -ServiceName $ServiceName -Dependencies $Dependencies
     }
 
     # Update service account properties if needed

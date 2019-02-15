@@ -1980,7 +1980,7 @@ try
             }
         }
 
-        Describe 'xService\Set-ServiceDependencies' {
+        Describe 'xService\Set-ServiceDependency' {
             $testServiceCimInstance = New-CimInstance -ClassName 'Win32_Service' -ClientOnly
 
             try {
@@ -2004,7 +2004,7 @@ try
                     }
 
                     It 'Should not throw' {
-                        { Set-ServiceDependencies @setServiceDependenciesParameters } | Should Not Throw
+                        { Set-ServiceDependency @setServiceDependenciesParameters } | Should Not Throw
                     }
 
                     It 'Should retrieve the service' {
@@ -2027,7 +2027,7 @@ try
                     }
 
                     It 'Should not throw' {
-                        { Set-ServiceDependencies @setServiceDependenciesParameters } | Should Not Throw
+                        { Set-ServiceDependency @setServiceDependenciesParameters } | Should Not Throw
                     }
 
                     It 'Should retrieve the service' {
@@ -2050,7 +2050,7 @@ try
                     }
 
                     It 'Should not throw' {
-                        { Set-ServiceDependencies @setServiceDependenciesParameters } | Should Not Throw
+                        { Set-ServiceDependency @setServiceDependenciesParameters } | Should Not Throw
                     }
 
                     It 'Should retrieve the service' {
@@ -2079,7 +2079,7 @@ try
                     }
 
                     It 'Should not throw' {
-                        { Set-ServiceDependencies @setServiceDependenciesParameters } | Should Not Throw
+                        { Set-ServiceDependency @setServiceDependenciesParameters } | Should Not Throw
                     }
 
                     It 'Should retrieve the service' {
@@ -2102,7 +2102,7 @@ try
                     }
 
                     It 'Should not throw' {
-                        { Set-ServiceDependencies @setServiceDependenciesParameters } | Should Not Throw
+                        { Set-ServiceDependency @setServiceDependenciesParameters } | Should Not Throw
                     }
 
                     It 'Should retrieve the service' {
@@ -2133,7 +2133,7 @@ try
                     It 'Should throw error for failed service path change' {
                         $errorMessage = $script:localizedData.InvokeCimMethodFailed -f 'Change', $setServiceDependenciesParameters.ServiceName, 'ServiceDependencies', $invokeCimMethodFailResult.ReturnValue
 
-                        { Set-ServiceDependencies @setServiceDependenciesParameters } | Should Throw $errorMessage
+                        { Set-ServiceDependency @setServiceDependenciesParameters } | Should Throw $errorMessage
                     }
                 }
             }
@@ -2546,7 +2546,7 @@ try
 
             Mock -CommandName 'Get-ServiceCimInstance' -MockWith { return $testServiceCimInstance }
             Mock -CommandName 'Set-Service' -MockWith { }
-            Mock -CommandName 'Set-ServiceDependencies' -MockWith { }
+            Mock -CommandName 'Set-ServiceDependency' -MockWith { }
             Mock -CommandName 'Set-ServiceAccountProperty' -MockWith { }
             Mock -CommandName 'Set-ServiceStartupType' -MockWith { }
 
@@ -2568,7 +2568,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
@@ -2599,7 +2599,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
@@ -2630,7 +2630,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
@@ -2662,7 +2662,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
@@ -2693,7 +2693,7 @@ try
                 }
 
                 It 'Should set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $null -eq (Compare-Object -ReferenceObject $setServicePropertyParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and $null -eq (Compare-Object -ReferenceObject $setServicePropertyParameters.Dependencies -DifferenceObject $Dependencies) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {
@@ -2724,7 +2724,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service account properties' {
@@ -2755,7 +2755,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service account properties' {
@@ -2786,7 +2786,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service account properties' {
@@ -2818,7 +2818,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should set service account properties' {
@@ -2849,7 +2849,7 @@ try
                 }
 
                 It 'Should not set service dependencies' {
-                    Assert-MockCalled -CommandName 'Set-ServiceDependencies' -Times 0 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceDependency' -Times 0 -Scope 'Context'
                 }
 
                 It 'Should not set service account properties' {

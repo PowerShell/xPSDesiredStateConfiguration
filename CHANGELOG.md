@@ -116,6 +116,8 @@
   correct general style violations.
   ([issue #490](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/490))
 - Remove unnecessary whitespace from line endings.
+- Fixes script analyzer issues in MSFT_xServiceResource.psm1.
+  [issue #491](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/491)
 
 ## 8.4.0.0
 
