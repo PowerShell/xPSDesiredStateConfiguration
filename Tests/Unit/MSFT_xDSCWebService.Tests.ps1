@@ -826,7 +826,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -DatabasePath $DatabasePath  | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when dbProvider is set to ESENT and ConnectionString does match the value in web.config' {
@@ -848,7 +848,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -DatabasePath $DatabasePath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when dbProvider is set to System.Data.OleDb and ConnectionString does match the value in web.config' {
@@ -872,7 +872,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -ModulePath $modulePath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when ModulePath is not set the same as in web.config' {
@@ -894,7 +894,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -ConfigurationPath $configurationPath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when ConfigurationPath is not set the same as in web.config' {
@@ -918,7 +918,7 @@ try
                     Test-TargetResource @testParameters -Ensure Present -RegistrationKeyPath $registrationKeyPath | Should -Be $true
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled -Scope It
                 }
 
                 It 'Should return $false when RegistrationKeyPath is not set the same as in web.config' {
@@ -994,7 +994,7 @@ try
                     Test-TargetResource @altTestParameters -Ensure Present | Should -Be $false
 
                     Assert-VerifiableMock
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Test-IISSelfSignedModuleInstalled
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-IISSelfSignedModuleInstalled
                 }
 
             }
