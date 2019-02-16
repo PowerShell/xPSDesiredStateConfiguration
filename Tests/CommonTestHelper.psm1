@@ -741,7 +741,7 @@ function Enter-DscResourceTestEnvironment
 
         $Global:UpdatedDscResourceTestsModule = $true
     }
-    elseif (-not ($Global:UpdatedDscResourceTestsModule))
+    elseif (($Global:UpdatedDscResourceTestsModule -eq $false))
     {
         $gitInstalled = $null -ne (Get-Command -Name 'git' -ErrorAction 'SilentlyContinue')
 
