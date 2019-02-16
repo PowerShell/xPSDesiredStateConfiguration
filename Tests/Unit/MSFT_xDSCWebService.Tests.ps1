@@ -179,14 +179,6 @@ try
             Mock -CommandName Get-WebConfigModulesSetting `
                 -ParameterFilter {$webConfigFullPath.StartsWith($websiteDataHTTP.physicalPath) -and $ModuleName -eq 'IISSelfSignedCertModule(32bit)'} `
                 -MockWith {return 'IISSelfSignedCertModule(32bit)'}
-            <#
-            Mock -CommandName Test-WebConfigModulesSetting `
-                -ParameterFilter {$ModuleName -eq 'IISSelfSignedCertModule(32bit)'}  `
-                -MockWith { param ($ExpectedInstallationStatus)
-                    Write-Verbose -Message 'Test-WebConfigAppSetting - IISSelfSignedCertModule';
-                    $acceptSelfSignedCertificates -eq $ExpectedInstallationStatus
-                }
-            #>
             #endregion
 
             Context -Name 'DSC Web Service is installed without certificate' -Fixture {
