@@ -51,8 +51,6 @@ Configuration xFileUpload
         $certificateThumbprint
     )
 
-    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
-
     $cacheLocation = "$env:ProgramData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xFileUpload"
 
     if ($Credential)

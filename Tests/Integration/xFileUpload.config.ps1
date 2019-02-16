@@ -20,8 +20,6 @@ Configuration $ConfigurationName
         $SourcePath
     )
 
-    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
-
     xFileUpload UploadFileOrFolder
     {
         DestinationPath = $DestinationPath
