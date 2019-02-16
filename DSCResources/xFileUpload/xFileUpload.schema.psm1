@@ -196,7 +196,7 @@ Configuration xFileUpload
                 }
                 else
                 {
-                    $item = Get-Item $using:DestinationPath
+                    $item = Get-Item -Path $using:DestinationPath
 
                     switch ($item.GetType().Name)
                     {
