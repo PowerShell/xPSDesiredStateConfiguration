@@ -332,7 +332,7 @@ function Start-Server
             # Set up the listener
             if ($Https)
             {
-                $HttpListener.Prefixes.Add([System.Uri]'https://localhost:1243')
+                $HttpListener.Prefixes.Add([System.Uri] 'https://localhost:1243')
 
                 try
                 {
@@ -349,7 +349,7 @@ function Start-Server
             }
             else
             {
-                $HttpListener.Prefixes.Add([System.Uri]'http://localhost:1242')
+                $HttpListener.Prefixes.Add([System.Uri] 'http://localhost:1242')
             }
 
             Write-Log -LogFile $LogPath -Message 'Finished listener setup - about to start listener'
@@ -1201,11 +1201,11 @@ function New-MockFileServer
 
         if ($Https)
         {
-            $httpListener.Prefixes.Add([System.Uri]'https://localhost:1243')
+            $httpListener.Prefixes.Add([System.Uri] 'https://localhost:1243')
         }
         else
         {
-            $httpListener.Prefixes.Add([System.Uri]'http://localhost:1242')
+            $httpListener.Prefixes.Add([System.Uri] 'http://localhost:1242')
         }
 
         $httpListener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Negotiate

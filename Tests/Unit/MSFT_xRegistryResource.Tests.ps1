@@ -3172,7 +3172,7 @@ try
 
             Context 'Specified byte array has one element' {
                 $convertByteArrayToHexStringParameters = @{
-                    ByteArray = @( [System.Byte]'1' )
+                    ByteArray = @( [System.Byte] '1' )
                 }
 
                 It 'Should not throw' {

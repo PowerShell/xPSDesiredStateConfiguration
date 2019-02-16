@@ -702,7 +702,7 @@ function Remove-PSWSEndpoint
     $filePath = $site.PhysicalPath
     # Get the port number for the Firewall rule
     $bindings = (Get-WebBinding -Name $siteName).bindingInformation
-    $port = [System.Text.RegularExpressions.Regex]::match($bindings,':(\d+):').Groups[1].Value
+    $port = [System.Text.RegularExpressions.Regex]::Match($bindings,':(\d+):').Groups[1].Value
 
     # Remove the actual site.
     Remove-Website -Name $siteName
