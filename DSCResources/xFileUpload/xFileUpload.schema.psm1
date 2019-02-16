@@ -251,8 +251,8 @@ Configuration xFileUpload
                     $uploadedItem = Get-Item -Path $expectedDestinationPath
                     $lastWriteTime = $uploadedItem.LastWriteTimeUtc
                     $inputObject = @{}
-                    $inputObject["LastWriteTimeUtc"] = $lastWriteTime
-                    $key = [string]::Join("", @($using:DestinationPath, $using:SourcePath, $expectedDestinationPath)).GetHashCode().ToString()
+                    $inputObject['LastWriteTimeUtc'] = $lastWriteTime
+                    $key = [string]::Join('', @($using:DestinationPath, $using:SourcePath, $expectedDestinationPath)).GetHashCode().ToString()
                     $path = Join-Path $using:cacheLocation $key
 
                     if (-not (Test-Path -Path $using:cacheLocation))
@@ -305,7 +305,7 @@ Configuration xFileUpload
             }
             else
             {
-                Write-Debug -Message "No credentials specified"
+                Write-Debug -Message 'No credentials specified.'
             }
 
             # Validate DestinationPath is UNC path
@@ -389,7 +389,7 @@ Configuration xFileUpload
                 if (-not (Test-Path -Path $using:DestinationPath))
                 {
                     # DestinationPath has to exist
-                    $errorMessage = "Invalid parameter values: DestinationPath doesn't exist or is not accessible. DestinationPath has to be existing directory."
+                    $errorMessage = 'Invalid parameter values: DestinationPath does not exist or is not accessible. DestinationPath has to be existing directory.'
                     Invoke-Command `
                         -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
                         -ArgumentList 'DestinationPathDoesNotExistFailure', $errorMessage, 'InvalidData'
@@ -403,7 +403,7 @@ Configuration xFileUpload
                         'FileInfo'
                         {
                             # DestinationPath cannot be file
-                            $errorMessage = "Invalid parameter values: DestinationPath is file, but has to be existing directory."
+                            $errorMessage = 'Invalid parameter values: DestinationPath is file, but has to be existing directory.'
                             Invoke-Command `
                                 -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
                                 -ArgumentList 'DestinationPathCannotBeFileFailure', $errorMessage, 'InvalidData'
@@ -440,7 +440,7 @@ Configuration xFileUpload
                         # Get cache
                         Write-Debug -Message "Getting cache for $expectedDestinationPath"
                         $cacheContent = $null
-                        $key = [string]::Join("", @($using:DestinationPath, $using:SourcePath, $expectedDestinationPath)).GetHashCode().ToString()
+                        $key = [string]::Join('', @($using:DestinationPath, $using:SourcePath, $expectedDestinationPath)).GetHashCode().ToString()
                         $path = Join-Path -Path $using:cacheLocation -ChildPath $key
                         Write-Debug -Message "Looking for cache under $path"
 
