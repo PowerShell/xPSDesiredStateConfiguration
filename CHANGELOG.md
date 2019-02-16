@@ -134,6 +134,11 @@
 - Adds spaces between comment hashtags and comments.
 - Fixes script analyzer issues in MSFT_xServiceResource.psm1.
   [issue #491](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/491)
+- xFileUpload:
+  - Fixes script analyzer issues in xFileUpload.schema.psm1.
+    [issue #497](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/497)
+  - Update to meet style guidelines.
+  - Added Integration tests.
 
 ## 8.4.0.0
 

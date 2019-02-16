@@ -1,140 +1,184 @@
+<#
+    .SYNOPSIS
+        Configuration uploads file or folder to an SMB share.
+
+    .DESCRIPTION
+
+    .PARAMETER DestinationPath
+        The destination SMB share path to upload the file or folder to.
+
+    .PARAMETER SourcePath
+        The source path of the file or folder to upload.
+
+    .PARAMETER Credential
+        Credentials to access the destination SMB share path where file
+        or folder should be uploaded.
+
+    .PARAMETER certificateThumbprint
+        Thumbprint of the certificate which should be used for encryption/decryption.
+
+    .EXAMPLE
+        $securePassword = ConvertTo-SecureString -String 'password' -AsPlainText -Force
+        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList 'domain\user', $securePassword
+        xFileUpload `
+            -DestinationPath '\\machine\share\destinationfolder' `
+            -SourcePath 'C:\folder\file.txt' `
+            -Credential $credential
+#>
 Configuration xFileUpload
 {
-    <#
-    .SYNOPSIS
-        Configuration uploads file or folder to the smb share
-    .DESCRIPTION
-    .EXAMPLE
-        xFileUpload -destinationPath "\\machine\share" -sourcePath "C:\folder\file" -username "domain\user" -password "password"
-    .PARAMETER destinationPath
-        Upload destination (has to point to a share or it's existing subfolder) e.g. \\machinename\sharename\destinationfolder
-    .PARAMETER sourcePath
-        Upload source e.g. C:\folder\file.txt
-    .PARAMETER credential
-        Credentials to access share where file/folder should be uploaded
-    .PARAMETER certificateThumbprint
-        Thumbprint of the certificate which should be used for encryption/decryption
-    .NOTES
-    #>
-
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "")]
 
-    param (
-        [parameter(Mandatory = $true)]
+    param
+    (
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $destinationPath,
-        [parameter(Mandatory = $true)]
+        $DestinationPath,
+
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [String]
-        $sourcePath,
+        $SourcePath,
+
+        [Parameter()]
+        [System.Management.Automation.Credential()]
         [PSCredential]
-        $credential,
+        $Credential,
+
+        [Parameter()]
         [String]
         $certificateThumbprint
     )
 
+    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
+
     $cacheLocation = "$env:ProgramData\Microsoft\Windows\PowerShell\Configuration\BuiltinProvCache\MSFT_xFileUpload"
 
-    if ($credential)
+    if ($Credential)
     {
-        $username = $credential.UserName
+        $username = $Credential.UserName
 
         # Encrypt password
-        $password = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($getEncryptedPassword)) -ArgumentList $credential, $certificateThumbprint
-
+        $password = Invoke-Command `
+            -ScriptBlock ([ScriptBlock]::Create($getEncryptedPassword)) `
+            -ArgumentList $Credential, $CertificateThumbprint
     }
 
     Script FileUpload
     {
         # Get script is not implemented cause reusing Script resource's schema does not make sense
-        GetScript = {
-            $returnValue = @{
-            }
-
-            $returnValue
+        GetScript  = {
+            return @{}
         };
 
-        SetScript = {
+        SetScript  = {
             # Generating credential object if password and username are specified
-            $credential = $null
+            $Credential = $null
+
             if (($using:password) -and ($using:username))
             {
                 # Validate that certificate thumbprint is specified
-                if(-not $using:certificateThumbprint)
+                if (-not $using:CertificateThumbprint)
                 {
-                    $errorMessage = "Certificate thumbprint has to be specified if credentials are present."
-                    Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "CertificateThumbprintIsRequired", $errorMessage, "InvalidData"
+                    $errorMessage = 'Certificate thumbprint has to be specified if credentials are present.'
+                    Invoke-Command `
+                        -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                        -ArgumentList 'CertificateThumbprintIsRequired', $errorMessage, 'InvalidData'
                 }
 
-                Write-Debug "Username and password specified."
+                Write-Debug -Message 'Username and password specified.'
 
                 # Decrypt password
-                $decryptedPassword = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:getDecryptedPassword)) -ArgumentList $using:password, $using:certificateThumbprint
+                $decryptedPassword = Invoke-Command `
+                    -ScriptBlock ([ScriptBlock]::Create($using:getDecryptedPassword)) `
+                    -ArgumentList $using:password, $using:CertificateThumbprint
 
                 # Generate credential
-                $securePassword = ConvertTo-SecureString $decryptedPassword -AsPlainText -Force
-                $credential = New-Object System.Management.Automation.PSCredential ($using:username, $securePassword)
+                $securePassword = ConvertTo-SecureString -String $decryptedPassword -AsPlainText -Force
+                $Credential = New-Object `
+                    -TypeName System.Management.Automation.PSCredential `
+                    -ArgumentList ($using:username, $securePassword)
             }
 
             # Validate DestinationPath is UNC path
-            if (!($using:destinationPath -as [System.Uri]).isUnc)
+            if (-not ($using:DestinationPath -as [System.Uri]).isUnc)
             {
-                $errorMessage = "Destination path $using:destinationPath is not a valid UNC path."
-                Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathIsNotUNCFailure", $errorMessage, "InvalidData"
+                $errorMessage = "Destination path $using:DestinationPath is not a valid UNC path."
+                Invoke-Command `
+                    -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                    -ArgumentList 'DestinationPathIsNotUNCFailure', $errorMessage, 'InvalidData'
             }
 
             # Verify source is localpath
-            if (!(($using:sourcePath -as [System.Uri]).Scheme -match "file"))
+            if (-not (($using:SourcePath -as [System.Uri]).Scheme -match 'file'))
             {
-                $errorMessage = "Source path $using:sourcePath has to be local path."
-                Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "SourcePathIsNotLocalFailure", $errorMessage, "InvalidData"
+                $errorMessage = "Source path $using:SourcePath has to be local path."
+                Invoke-Command `
+                    -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                    -ArgumentList 'SourcePathIsNotLocalFailure', $errorMessage, 'InvalidData'
             }
 
             # Check whether source path is existing file or directory
             $sourcePathType = $null
-            if (!(Test-Path $using:sourcePath))
+
+            if (-not (Test-Path -Path $using:SourcePath))
             {
-                $errorMessage = "Source path $using:sourcePath does not exist."
-                Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "SourcePathDoesNotExistFailure", $errorMessage, "InvalidData"
+                $errorMessage = "Source path $using:SourcePath does not exist."
+                Invoke-Command `
+                    -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                    -ArgumentList 'SourcePathDoesNotExistFailure', $errorMessage, 'InvalidData'
             }
             else
             {
-                $item = Get-Item $using:sourcePath
+                $item = Get-Item -Path $using:SourcePath
+
                 switch ($item.GetType().Name)
                 {
-                    "FileInfo" {
-                        $sourcePathType = "File"
+                    'FileInfo'
+                    {
+                        $sourcePathType = 'File'
                     }
 
-                    "DirectoryInfo" {
-                        $sourcePathType = "Directory"
+                    'DirectoryInfo'
+                    {
+                        $sourcePathType = 'Directory'
                     }
                 }
             }
-            Write-Debug "SourcePath $using:sourcePath is of type: $sourcePathType"
+
+            Write-Debug -Message "SourcePath $using:SourcePath is of type: $sourcePathType"
 
             $psDrive = $null
 
-            # Mount the drive only if credentials are specified and it's currently not accessible
-            if ($credential)
+            # Mount the drive only if Credentials are specified and it's currently not accessible
+            if ($Credential)
             {
-                if (Test-Path $using:destinationPath -ErrorAction Ignore)
+                if (Test-Path -Path $using:DestinationPath -ErrorAction Ignore)
                 {
-                    Write-Debug "Destination path $using:destinationPath is already accessible. No mount needed."
+                    Write-Debug -Message "Destination path $using:DestinationPath is already accessible. No mount needed."
                 }
                 else
                 {
-                    $psDriveArgs = @{ Name = ([guid]::NewGuid()); PSProvider = "FileSystem"; Root = $using:destinationPath; Scope = "Private"; Credential = $credential }
+                    $psDriveArgs = @{
+                        Name       = ([guid]::NewGuid())
+                        PSProvider = 'FileSystem'
+                        Root       = $using:DestinationPath
+                        Scope      = 'Private'
+                        Credential = $Credential
+                    }
+
                     try
                     {
-                        Write-Debug "Create psdrive with destination path $using:destinationPath..."
+                        Write-Debug -Message "Create psdrive with destination path $using:DestinationPath..."
                         $psDrive = New-PSDrive @psDriveArgs -ErrorAction Stop
                     }
                     catch
                     {
-                        $errorMessage = "Cannot access destination path $using:destinationPath with given Credential"
-                        Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathNotAccessibleFailure", $errorMessage, "InvalidData"
+                        $errorMessage = "Cannot access destination path $using:DestinationPath with given Credential"
+                        Invoke-Command `
+                            -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                            -ArgumentList 'DestinationPathNotAccessibleFailure', $errorMessage, 'InvalidData'
                     }
                 }
             }
@@ -143,158 +187,196 @@ Configuration xFileUpload
             {
                 # Get expected destination path
                 $expectedDestinationPath = $null
-                if (!(Test-Path $using:destinationPath))
+
+                if (-not (Test-Path -Path $using:DestinationPath))
                 {
                     # DestinationPath has to exist
-                    $errorMessage = "Invalid parameter values: DestinationPath doesn't exist, but has to be existing directory."
-                    Throw-TerminatingError -errorMessage $errorMessage -errorCategory "InvalidData" -errorId "DestinationPathDoesNotExistFailure"
+                    $errorMessage = 'Invalid parameter values: DestinationPath does not exist, but has to be existing directory.'
+                    Throw-TerminatingError -ErrorMessage $errorMessage -ErrorCategory 'InvalidData' -ErrorId 'DestinationPathDoesNotExistFailure'
                 }
                 else
                 {
-                    $item = Get-Item $using:destinationPath
+                    $item = Get-Item $using:DestinationPath
+
                     switch ($item.GetType().Name)
                     {
-                        "FileInfo" {
+                        'FileInfo'
+                        {
                             # DestinationPath cannot be file
-                            $errorMessage = "Invalid parameter values: DestinationPath is file, but has to be existing directory."
-                            Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathCannotBeFileFailure", $errorMessage, "InvalidData"
+                            $errorMessage = 'Invalid parameter values: DestinationPath is file, but has to be existing directory.'
+                            Invoke-Command `
+                                -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                                -ArgumentList 'DestinationPathCannotBeFileFailure', $errorMessage, 'InvalidData'
                         }
 
-                        "DirectoryInfo" {
-                            $expectedDestinationPath = Join-Path $using:destinationPath (Split-Path $using:sourcePath -Leaf)
+                        'DirectoryInfo'
+                        {
+                            $expectedDestinationPath = Join-Path `
+                                -Path $using:DestinationPath `
+                                -ChildPath (Split-Path -Path $using:SourcePath -Leaf)
                         }
                     }
-                    Write-Debug "ExpectedDestinationPath is $expectedDestinationPath"
+
+                    Write-Debug -Message "ExpectedDestinationPath is $expectedDestinationPath"
                 }
 
                 # Copy destination path
                 try
                 {
-                    Write-Debug "Copying $using:sourcePath to $using:destinationPath"
-                    Copy-Item -path $using:sourcePath -Destination $using:destinationPath -Recurse -Force -ErrorAction Stop
+                    Write-Debug -Message "Copying $using:SourcePath to $using:DestinationPath"
+                    Copy-Item -Path $using:SourcePath -Destination $using:DestinationPath -Recurse -Force -ErrorAction Stop
                 }
                 catch
                 {
-                    $errorMessage = "Couldn't copy source path $using:sourcePath to $using:destinationPath : $($_.Exception)"
-                    Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "CopyDirectoryOverFileFailure", $errorMessage, "InvalidData"
+                    $errorMessage = "Could not copy source path $using:SourcePath to $using:DestinationPath : $($_.Exception)"
+                    Invoke-Command `
+                        -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                        -ArgumentList 'CopyDirectoryOverFileFailure', $errorMessage, 'InvalidData'
                 }
 
                 # Verify whether expectedDestinationPath was created
-                if (!(Test-Path $expectedDestinationPath))
+                if (-not (Test-Path -Path $expectedDestinationPath))
                 {
-                    $errorMessage = "Destination path $using:destinationPath could not be created"
-                    Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathNotCreatedFailure", $errorMessage, "InvalidData"
+                    $errorMessage = "Destination path $using:DestinationPath could not be created"
+                    Invoke-Command `
+                        -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                        -ArgumentList 'DestinationPathNotCreatedFailure', $errorMessage, 'InvalidData'
                 }
                 # If expectedDestinationPath exists
                 else
                 {
-                    Write-Verbose "$sourcePathType $expectedDestinationPath has been successfully created"
+                    Write-Verbose -Message "$sourcePathType $expectedDestinationPath has been successfully created"
 
                     # Update cache
-                    $uploadedItem = Get-Item $expectedDestinationPath
+                    $uploadedItem = Get-Item -Path $expectedDestinationPath
                     $lastWriteTime = $uploadedItem.LastWriteTimeUtc
                     $inputObject = @{}
                     $inputObject["LastWriteTimeUtc"] = $lastWriteTime
-                    $key = [string]::Join("", @($using:destinationPath, $using:sourcePath, $expectedDestinationPath)).GetHashCode().ToString()
+                    $key = [string]::Join("", @($using:DestinationPath, $using:SourcePath, $expectedDestinationPath)).GetHashCode().ToString()
                     $path = Join-Path $using:cacheLocation $key
-                    if(-not (Test-Path $using:cacheLocation))
+
+                    if (-not (Test-Path -Path $using:cacheLocation))
                     {
-                        mkdir $using:cacheLocation | Out-Null
+                        New-Item -Path $using:cacheLocation -ItemType Directory | Out-Null
                     }
 
-                    Write-Debug "Updating cache for DestinationPath = $using:destinationPath and SourcePath = $using:sourcePath. CacheKey = $key"
+                    Write-Debug -Message "Updating cache for DestinationPath = $using:DestinationPath and SourcePath = $using:SourcePath. CacheKey = $key"
                     Export-CliXml -Path $path -InputObject $inputObject -Force
                 }
             }
             finally
             {
                 # Remove PSDrive
-                if($psDrive)
+                if ($psDrive)
                 {
-                    Write-Debug "Removing PSDrive on root $($psDrive.Root)"
-                    Remove-PSDrive $psDrive -Force
+                    Write-Debug -Message "Removing PSDrive on root $($psDrive.Root)"
+                    Remove-PSDrive -Name $psDrive -Force
                 }
             }
         };
 
         TestScript = {
             # Generating credential object if password and username are specified
-            $credential = $null
+            $Credential = $null
+
             if (($using:password) -and ($using:username))
             {
                 # Validate that certificate thumbprint is specified
-                if(-not $using:certificateThumbprint)
+                if (-not $using:CertificateThumbprint)
                 {
-                    $errorMessage = "Certificate thumbprint has to be specified if credentials are present."
-                    Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "CertificateThumbprintIsRequired", $errorMessage, "InvalidData"
+                    $errorMessage = 'Certificate thumbprint has to be specified if credentials are present.'
+                    Invoke-Command `
+                        -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                        -ArgumentList 'CertificateThumbprintIsRequired', $errorMessage, 'InvalidData'
                 }
 
-                Write-Debug "Username and password specified. Generating credential"
+                Write-Debug -Message 'Username and password specified. Generating credential'
 
                 # Decrypt password
-                $decryptedPassword = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:getDecryptedPassword)) -ArgumentList $using:password, $using:certificateThumbprint
+                $decryptedPassword = Invoke-Command `
+                    -ScriptBlock ([ScriptBlock]::Create($using:getDecryptedPassword)) `
+                    -ArgumentList $using:password, $using:CertificateThumbprint
 
                 # Generate credential
-                $securePassword = ConvertTo-SecureString $decryptedPassword -AsPlainText -Force
-                $credential = New-Object System.Management.Automation.PSCredential ($using:username, $securePassword)
+                $securePassword = ConvertTo-SecureString -String $decryptedPassword -AsPlainText -Force
+                $Credential = New-Object `
+                    -TypeName System.Management.Automation.PSCredential `
+                    -ArgumentList ($using:username, $securePassword)
             }
             else
             {
-                Write-Debug "No credentials specified"
+                Write-Debug -Message "No credentials specified"
             }
 
             # Validate DestinationPath is UNC path
-            if (!($using:destinationPath -as [System.Uri]).isUnc)
+            if (-not ($using:DestinationPath -as [System.Uri]).isUnc)
             {
-                $errorMessage = "Destination path $using:destinationPath is not a valid UNC path."
-                Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathIsNotUNCFailure", $errorMessage, "InvalidData"
+                $errorMessage = "Destination path $using:DestinationPath is not a valid UNC path."
+                Invoke-Command `
+                    -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                    -ArgumentList 'DestinationPathIsNotUNCFailure', $errorMessage, 'InvalidData'
 
             }
 
             # Check whether source path is existing file or directory (needed for expectedDestinationPath)
             $sourcePathType = $null
-            if (!(Test-Path $using:sourcePath))
+            if (-not (Test-Path -Path $using:SourcePath))
             {
-                $errorMessage = "Source path $using:sourcePath does not exist."
-                Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "SourcePathDoesNotExistFailure", $errorMessage, "InvalidData"
+                $errorMessage = "Source path $using:SourcePath does not exist."
+                Invoke-Command `
+                    -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                    -ArgumentList 'SourcePathDoesNotExistFailure', $errorMessage, 'InvalidData'
             }
             else
             {
-                $item = Get-Item $using:sourcePath
+                $item = Get-Item -Path $using:SourcePath
+
                 switch ($item.GetType().Name)
                 {
-                    "FileInfo" {
-                        $sourcePathType = "File"
+                    'FileInfo'
+                    {
+                        $sourcePathType = 'File'
                     }
 
-                    "DirectoryInfo" {
-                        $sourcePathType = "Directory"
+                    'DirectoryInfo'
+                    {
+                        $sourcePathType = 'Directory'
                     }
                 }
             }
-            Write-Debug "SourcePath $using:sourcePath is of type: $sourcePathType"
+
+            Write-Debug -Message "SourcePath $using:SourcePath is of type: $sourcePathType"
 
             $psDrive = $null
 
             # Mount the drive only if credentials are specified and it's currently not accessible
-            if ($credential)
+            if ($Credential)
             {
-                if (Test-Path $using:destinationPath -ErrorAction Ignore)
+                if (Test-Path -Path $using:DestinationPath -ErrorAction Ignore)
                 {
-                    Write-Debug "Destination path $using:destinationPath is already accessible. No mount needed."
+                    Write-Debug -Message "Destination path $using:DestinationPath is already accessible. No mount needed."
                 }
                 else
                 {
-                    $psDriveArgs = @{ Name = ([guid]::NewGuid()); PSProvider = "FileSystem"; Root = $using:destinationPath; Scope = "Private"; Credential = $credential }
+                    $psDriveArgs = @{
+                        Name       = ([guid]::NewGuid())
+                        PSProvider = 'FileSystem'
+                        Root       = $using:DestinationPath
+                        Scope      = 'Private'
+                        Credential = $Credential
+
+                    }
                     try
                     {
-                        Write-Debug "Create psdrive with destination path $using:destinationPath..."
+                        Write-Debug -Message "Create psdrive with destination path $using:DestinationPath..."
                         $psDrive = New-PSDrive @psDriveArgs -ErrorAction Stop
                     }
                     catch
                     {
-                        $errorMessage = "Cannot access destination path $using:destinationPath with given Credential"
-                        Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathNotAccessibleFailure", $errorMessage, "InvalidData"
+                        $errorMessage = "Cannot access destination path $using:DestinationPath with given Credential"
+                        Invoke-Command `
+                            -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                            -ArgumentList 'DestinationPathNotAccessibleFailure', $errorMessage, 'InvalidData'
                     }
                 }
             }
@@ -303,119 +385,140 @@ Configuration xFileUpload
             {
                 # Get expected destination path
                 $expectedDestinationPath = $null
-                if (!(Test-Path $using:destinationPath))
+
+                if (-not (Test-Path -Path $using:DestinationPath))
                 {
                     # DestinationPath has to exist
                     $errorMessage = "Invalid parameter values: DestinationPath doesn't exist or is not accessible. DestinationPath has to be existing directory."
-                    Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathDoesNotExistFailure", $errorMessage, "InvalidData"
+                    Invoke-Command `
+                        -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                        -ArgumentList 'DestinationPathDoesNotExistFailure', $errorMessage, 'InvalidData'
                 }
                 else
                 {
-                    $item = Get-Item $using:destinationPath
+                    $item = Get-Item -Path $using:DestinationPath
+
                     switch ($item.GetType().Name)
                     {
-                        "FileInfo" {
+                        'FileInfo'
+                        {
                             # DestinationPath cannot be file
                             $errorMessage = "Invalid parameter values: DestinationPath is file, but has to be existing directory."
-                            Invoke-Command -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) -ArgumentList "DestinationPathCannotBeFileFailure", $errorMessage, "InvalidData"
+                            Invoke-Command `
+                                -ScriptBlock ([ScriptBlock]::Create($using:throwTerminatingError)) `
+                                -ArgumentList 'DestinationPathCannotBeFileFailure', $errorMessage, 'InvalidData'
                         }
 
-                        "DirectoryInfo" {
-                            $expectedDestinationPath = Join-Path $using:destinationPath (Split-Path $using:sourcePath -Leaf)
+                        'DirectoryInfo'
+                        {
+                            $expectedDestinationPath = Join-Path `
+                                -Path $using:DestinationPath `
+                                -ChildPath (Split-Path -Path $using:SourcePath -Leaf)
                         }
                     }
-                    Write-Debug "ExpectedDestinationPath is $expectedDestinationPath"
+
+                    Write-Debug -Message "ExpectedDestinationPath is $expectedDestinationPath"
                 }
 
                 # Check whether ExpectedDestinationPath exists and has expected type
                 $itemExists = $false
-                if (!(Test-Path $expectedDestinationPath))
+
+                if (-not (Test-Path $expectedDestinationPath))
                 {
-                    Write-Debug "Expected destination path doesn't exist or is not accessible"
+                    Write-Debug -Message 'Expected destination path does not exist or is not accessible.'
                 }
                 # If expectedDestinationPath exists
                 else
                 {
-                    $expectedItem = Get-Item $expectedDestinationPath
+                    $expectedItem = Get-Item -Path $expectedDestinationPath
                     $expectedItemType = $expectedItem.GetType().Name
 
                     # If expectedDestinationPath has same type as sourcePathType, we need to verify cache to determine whether no upload is needed
-                    if ((($expectedItemType -eq "FileInfo") -and ($sourcePathType -eq "File")) -or (($expectedItemType -eq "DirectoryInfo") -and ($sourcePathType -eq "Directory")))
+                    if ((($expectedItemType -eq 'FileInfo') -and ($sourcePathType -eq 'File')) -or `
+                        (($expectedItemType -eq 'DirectoryInfo') -and ($sourcePathType -eq 'Directory')))
                     {
                         # Get cache
-                        Write-Debug "Getting cache for $expectedDestinationPath"
+                        Write-Debug -Message "Getting cache for $expectedDestinationPath"
                         $cacheContent = $null
-                        $key = [string]::Join("", @($using:destinationPath, $using:sourcePath, $expectedDestinationPath)).GetHashCode().ToString()
-                        $path = Join-Path $using:cacheLocation $key
-                        Write-Debug "Looking for cache under $path"
-                        if (!(Test-Path $path))
+                        $key = [string]::Join("", @($using:DestinationPath, $using:SourcePath, $expectedDestinationPath)).GetHashCode().ToString()
+                        $path = Join-Path -Path $using:cacheLocation -ChildPath $key
+                        Write-Debug -Message "Looking for cache under $path"
+
+                        if (-not (Test-Path -Path $path))
                         {
-                            Write-Debug "No cache found for DestinationPath = $using:destinationPath and SourcePath = $using:sourcePath. CacheKey = $key"
+                            Write-Debug -Message "No cache found for DestinationPath = $using:DestinationPath and SourcePath = $using:SourcePath. CacheKey = $key"
                         }
                         else
                         {
-                            $cacheContent = Import-CliXml $path
-                            Write-Debug "Found cache for DestinationPath = $using:destinationPath and SourcePath = $using:sourcePath. CacheKey = $key"
+                            $cacheContent = Import-CliXml -Path $path
+                            Write-Debug -Message "Found cache for DestinationPath = $using:DestinationPath and SourcePath = $using:SourcePath. CacheKey = $key"
                         }
 
                         # Verify whether cache reflects current state or upload is needed
                         if ($cacheContent -ne $null -and ($cacheContent.LastWriteTimeUtc -eq $expectedItem.LastWriteTimeUtc))
                         {
                             # No upload needed
-                            Write-Debug "Cache reflects current state. No need for upload."
+                            Write-Debug -Message 'Cache reflects current state. No need for upload.'
                             $itemExists = $true
                         }
                         else
                         {
-                            Write-Debug "Cache is empty or it doesn't reflect current state. Upload will be performed."
+                            Write-Debug -Message 'Cache is empty or it does not reflect current state. Upload will be performed.'
                         }
                     }
                     else
                     {
-                        Write-Debug "Expected destination path: $expectedDestinationPath is of type $expectedItemType, although source path is $sourcePathType"
+                        Write-Debug -Message "Expected destination path: $expectedDestinationPath is of type $expectedItemType, although source path is $sourcePathType"
                     }
                 }
             }
             finally
             {
                 # Remove PSDrive
-                if($psDrive)
+                if ($psDrive)
                 {
-                    Write-Debug "Removing PSDrive on root $($psDrive.Root)"
-                    Remove-PSDrive $psDrive -Force
+                    Write-Debug -Message "Removing PSDrive on root $($psDrive.Root)"
+                    Remove-PSDrive -Name $psDrive -Force
                 }
             }
 
             return $itemExists
-
         };
     }
 }
 
 # Encrypts password using the defined public key
 $getEncryptedPassword = @'
-    param (
-            [Parameter(Mandatory = $true)]
-            [PSCredential] $credential,
-            [Parameter(Mandatory = $true)]
-            [String] $certificateThumbprint
-        )
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [PSCredential]
+        $Credential,
 
-    $value = $credential.GetNetworkCredential().Password
+        [Parameter(Mandatory = $true)]
+        [String]
+        $CertificateThumbprint
+    )
 
-    $cert = Invoke-Command -ScriptBlock ([ScriptBlock]::Create($getCertificate)) -ArgumentList $certificateThumbprint
+    $value = $Credential.GetNetworkCredential().Password
+
+    $cert = Invoke-Command `
+        -ScriptBlock ([ScriptBlock]::Create($getCertificate)) `
+        -ArgumentList $CertificateThumbprint
 
     $encryptedPassword = $null
 
-    if($cert)
+    if ($cert)
     {
         # Cast the public key correctly
         $rsaProvider = [System.Security.Cryptography.RSACryptoServiceProvider] $cert.PublicKey.Key
 
         if($rsaProvider -eq $null)
         {
-            $errorMessage = "Could not get public key from certificate with thumbprint: $certificateThumbprint . Please verify certificate is valid for encryption."
-            Invoke-Command -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) -ArgumentList "DecryptionCertificateNotFound", $errorMessage, "InvalidOperation"
+            $errorMessage = "Could not get public key from certificate with thumbprint: $CertificateThumbprint . Please verify certificate is valid for encryption."
+            Invoke-Command `
+                -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) `
+                -ArgumentList "DecryptionCertificateNotFound", $errorMessage, "InvalidOperation"
         }
 
         # Convert to a byte array
@@ -433,8 +536,10 @@ $getEncryptedPassword = @'
     }
     else
     {
-        $errorMessage = "Could not find certificate which matches thumbprint: $certificateThumbprint . Could not encrypt password"
-        Invoke-Command -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) -ArgumentList "EncryptionCertificateNot", $errorMessage, "InvalidOperation"
+        $errorMessage = "Could not find certificate which matches thumbprint: $CertificateThumbprint . Could not encrypt password"
+        Invoke-Command `
+            -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) `
+            -ArgumentList "EncryptionCertificateNot", $errorMessage, "InvalidOperation"
     }
 
     return $encryptedPassword
@@ -442,16 +547,18 @@ $getEncryptedPassword = @'
 
 # Retrieves certificate by thumbprint
 $getCertificate = @'
-    param(
+    param
+    (
         [Parameter(Mandatory = $true)]
-        [string] $certificateThumbprint
+        [string]
+        $CertificateThumbprint
     )
 
     $cert = $null
 
-    foreach($certIndex in Get-Childitem cert:\LocalMachine\My)
+    foreach ($certIndex in (Get-Childitem -Path Cert:\LocalMachine\My))
     {
-        if($certIndex.Thumbprint -match $certificateThumbprint)
+        if ($certIndex.Thumbprint -match $CertificateThumbprint)
         {
             $cert = $certIndex
             break
@@ -460,8 +567,10 @@ $getCertificate = @'
 
     if(-not $cert)
     {
-        $errorMessage = "Error Reading certificate store for {0}. Please verify thumbprint is correct and certificate belongs to cert:\LocalMachine\My store." -f ${certificateThumbprint};
-        Invoke-Command -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) -ArgumentList "InvalidPathSpecified", $errorMessage, "InvalidOperation"
+        $errorMessage = "Error Reading certificate store for {0}. Please verify thumbprint is correct and certificate belongs to cert:\LocalMachine\My store." -f ${CertificateThumbprint};
+        Invoke-Command `
+            -ScriptBlock ([ScriptBlock]::Create($throwTerminatingError)) `
+            -ArgumentList "InvalidPathSpecified", $errorMessage, "InvalidOperation"
     }
     else
     {
@@ -471,47 +580,54 @@ $getCertificate = @'
 
 # Throws terminating error specified errorCategory, errorId and errorMessage
 $throwTerminatingError = @'
-    param(
-        [parameter(Mandatory = $true)]
+    param
+    (
+        [Parameter(Mandatory = $true)]
         [System.String]
-        $errorId,
-        [parameter(Mandatory = $true)]
+        $ErrorId,
+
+        [Parameter(Mandatory = $true)]
         [System.String]
-        $errorMessage,
-        [parameter(Mandatory = $true)]
-        $errorCategory
+        $ErrorMessage,
+
+        [Parameter(Mandatory = $true)]
+        $ErrorCategory
     )
 
-    $exception = New-Object System.InvalidOperationException $errorMessage
-    $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, $errorId, $errorCategory, $null
+    $exception = New-Object -TypeName System.InvalidOperationException -ArgumentList $ErrorMessage
+    $errorRecord = New-Object -TypeName System.Management.Automation.ErrorRecord -ArgumentList ($exception, $ErrorId, $ErrorCategory, $null)
     throw $errorRecord
 '@
 
 # Decrypts password using the defined private key
 $getDecryptedPassword = @'
-    param (
-            [Parameter(Mandatory = $true)]
-            [String] $value,
-            [Parameter(Mandatory = $true)]
-            [String] $certificateThumbprint
-        )
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [String]
+        $Value,
+
+        [Parameter(Mandatory = $true)]
+        [String]
+        $CertificateThumbprint
+    )
 
     $cert = $null
 
-    foreach($certIndex in Get-Childitem cert:\LocalMachine\My)
+    foreach ($certIndex in (Get-Childitem -Path Cert:\LocalMachine\My))
     {
-        if($certIndex.Thumbprint -match $certificateThumbprint)
+        if ($certIndex.Thumbprint -match $CertificateThumbprint)
         {
             $cert = $certIndex
             break
         }
     }
 
-    if(-not $cert)
+    if (-not $cert)
     {
-        $errorMessage = "Error Reading certificate store for {0}. Please verify thumbprint is correct and certificate belongs to cert:\LocalMachine\My store." -f ${certificateThumbprint};
-        $exception = New-Object System.InvalidOperationException $errorMessage
-        $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, "InvalidPathSpecified", "InvalidOperation", $null
+        $errorMessage = "Error Reading certificate store for {0}. Please verify thumbprint is correct and certificate belongs to cert:\LocalMachine\My store." -f ${CertificateThumbprint};
+        $exception = New-Object -TypeName System.InvalidOperationException -ArgumentList $errorMessage
+        $errorRecord = New-Object -TypeName System.Management.Automation.ErrorRecord -ArgumentList ($exception, "InvalidPathSpecified", "InvalidOperation", $null)
         throw $errorRecord
     }
 
@@ -522,9 +638,9 @@ $getDecryptedPassword = @'
 
     if($rsaProvider -eq $null)
     {
-        $errorMessage = "Could not get private key from certificate with thumbprint: $certificateThumbprint . Please verify certificate is valid for decryption."
-        $exception = New-Object System.InvalidOperationException $errorMessage
-        $errorRecord = New-Object System.Management.Automation.ErrorRecord $exception, "DecryptionCertificateNotFound", "InvalidOperation", $null
+        $errorMessage = "Could not get private key from certificate with thumbprint: $CertificateThumbprint . Please verify certificate is valid for decryption."
+        $exception = New-Object -TypeName System.InvalidOperationException -ArgumentList $errorMessage
+        $errorRecord = New-Object -TypeName System.Management.Automation.ErrorRecord -ArgumentList ($exception, "DecryptionCertificateNotFound", "InvalidOperation", $null)
         throw $errorRecord
     }
 
