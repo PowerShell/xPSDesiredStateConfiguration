@@ -27,18 +27,18 @@ Set-StrictMode -Version 'Latest'
 #>
 function New-ResourceSetCommonParameterString
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyParameterName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $Parameters
     )
 
@@ -53,7 +53,7 @@ function New-ResourceSetCommonParameterString
 
             if ($null -ne $parameterValue)
             {
-                if ($parameterValue -is [String])
+                if ($parameterValue -is [System.String])
                 {
                     $null = $stringBuilder.AppendFormat('{0} = "{1}"', $parameterName, $parameterValue)
                 }
@@ -117,33 +117,33 @@ function New-ResourceSetCommonParameterString
 #>
 function New-ResourceSetConfigurationString
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ResourceName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ModuleName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyParameterName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String[]]
+        [System.String[]]
         $KeyParameterValues,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CommonParameterString
     )
 
@@ -205,28 +205,28 @@ function New-ResourceSetConfigurationString
 #>
 function New-ResourceSetConfigurationScriptBlock
 {
-    [OutputType([ScriptBlock])]
+    [OutputType([System.Management.Automation.ScriptBlock])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ResourceName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ModuleName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyParameterName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $Parameters
     )
 
@@ -242,7 +242,7 @@ function New-ResourceSetConfigurationScriptBlock
 
     $resourceString = New-ResourceSetConfigurationString @newResourceSetConfigurationStringParams
 
-    return [ScriptBlock]::Create($resourceString)
+    return [System.Management.Automation.ScriptBlock]::Create($resourceString)
 }
 
 Export-ModuleMember -Function @( 'New-ResourceSetConfigurationScriptBlock' )

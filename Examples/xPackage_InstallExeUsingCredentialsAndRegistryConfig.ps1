@@ -118,12 +118,12 @@ Configuration xPackage_InstallExeUsingCredentialsAndRegistryConfig
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         $Credential,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         $RunAsCredential,
 
         [Parameter(Mandatory = $true)]

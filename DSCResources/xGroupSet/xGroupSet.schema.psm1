@@ -35,17 +35,17 @@ Configuration xGroupSet
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String[]]
+        [System.String[]]
         $GroupName,
 
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure,
 
-        [String[]]
+        [System.String[]]
         $MembersToInclude,
 
-        [String[]]
+        [System.String[]]
         $MembersToExclude,
 
         [ValidateNotNullOrEmpty()]

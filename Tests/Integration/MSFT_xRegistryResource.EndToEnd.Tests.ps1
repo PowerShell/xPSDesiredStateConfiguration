@@ -154,8 +154,8 @@ try
             {
                 'String' { 'TestString2'; break }
                 'Binary' { '0xCAC1111'; break }
-                'DWord' { [Int32]::MaxValue.ToString(); break }
-                'QWord' { [Int64]::MaxValue.ToString(); break }
+                'DWord' { [System.Int32]::MaxValue.ToString(); break }
+                'QWord' { [System.Int64]::MaxValue.ToString(); break }
                 'MultiString' { @('MultiString1', 'MultiString2'); break }
                 'ExpandString' { '%WINDIR%'; break }
             }
@@ -163,10 +163,10 @@ try
             $expectedRegistryKeyValue = switch ($registryKeyValueType)
             {
                 'String' { 'TestString2'; break }
-                'Binary' { [Byte[]] @( 12, 172, 17, 17 ); break }
-                'DWord' { [Int32]::MaxValue; break }
-                'QWord' { [Int64]::MaxValue; break }
-                'MultiString' { [String[]] @('MultiString1', 'MultiString2'); break }
+                'Binary' { [System.Byte[]] @( 12, 172, 17, 17 ); break }
+                'DWord' { [System.Int32]::MaxValue; break }
+                'QWord' { [System.Int64]::MaxValue; break }
+                'MultiString' { [System.String[]] @('MultiString1', 'MultiString2'); break }
                 'ExpandString' { 'C:\windows'; break }
             }
 
@@ -220,7 +220,7 @@ try
                 ValueData = '0x00'
             }
 
-            $expectedRegistryKeyValue = [Byte[]] @(0)
+            $expectedRegistryKeyValue = [System.Byte[]] @(0)
 
             It 'Should compile and run configuration' {
                 {

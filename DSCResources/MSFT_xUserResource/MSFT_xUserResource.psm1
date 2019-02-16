@@ -455,7 +455,7 @@ function Set-TargetResourceOnFullSKU
                     if (-not $userExists)
                     {
                         # For a newly created user, set the DisplayName property to an empty string since by default DisplayName is set to user's name
-                        $user.DisplayName = [String]::Empty
+                        $user.DisplayName = [System.String]::Empty
                     }
                 }
 
@@ -939,7 +939,7 @@ function Set-TargetResourceOnNanoServer
             {
                 if ($null -eq $FullName)
                 {
-                    Set-LocalUser -Name $UserName -FullName ([String]::Empty)
+                    Set-LocalUser -Name $UserName -FullName ([System.String]::Empty)
                 }
                 else
                 {
@@ -952,7 +952,7 @@ function Set-TargetResourceOnNanoServer
             if (-not $userExists)
             {
                 # For a newly created user, set the DisplayName property to an empty string since by default DisplayName is set to user's name.
-                Set-LocalUser -Name $UserName -FullName ([String]::Empty)
+                Set-LocalUser -Name $UserName -FullName ([System.String]::Empty)
             }
         }
 
@@ -960,7 +960,7 @@ function Set-TargetResourceOnNanoServer
         {
             if ($null -eq $Description)
             {
-                Set-LocalUser -Name $UserName -Description ([String]::Empty)
+                Set-LocalUser -Name $UserName -Description ([System.String]::Empty)
             }
             else
             {
@@ -994,7 +994,7 @@ function Set-TargetResourceOnNanoServer
 
         if ($PSBoundParameters.ContainsKey('PasswordChangeRequired') -and ($PasswordChangeRequired))
         {
-            Set-LocalUser -Name $UserName -AccountExpires ([DateTime]::Now)
+            Set-LocalUser -Name $UserName -AccountExpires ([System.DateTime]::Now)
         }
 
         # NOTE: The parameter name and the property name have opposite meaning.
@@ -1222,7 +1222,7 @@ function Assert-UserNameValid
 
     for ($i = 0; $i -lt $UserName.Length; $i++)
     {
-        if (-not [Char]::IsWhiteSpace($UserName, $i) -and $UserName[$i] -ne '.')
+        if (-not [System.Char]::IsWhiteSpace($UserName, $i) -and $UserName[$i] -ne '.')
         {
             $wrongName = $false
             break
@@ -1234,14 +1234,14 @@ function Assert-UserNameValid
     if ($wrongName)
     {
         New-InvalidArgumentException `
-            -Message ($script:localizedData.InvalidUserName -f $UserName, [String]::Join(' ', $invalidChars)) `
+            -Message ($script:localizedData.InvalidUserName -f $UserName, [System.String]::Join(' ', $invalidChars)) `
             -ArgumentName 'UserName'
     }
 
     if ($UserName.IndexOfAny($invalidChars) -ne -1)
     {
         New-InvalidArgumentException `
-            -Message ($script:localizedData.InvalidUserName -f $UserName, [String]::Join(' ', $invalidChars)) `
+            -Message ($script:localizedData.InvalidUserName -f $UserName, [System.String]::Join(' ', $invalidChars)) `
             -ArgumentName 'UserName'
     }
 }
@@ -1305,7 +1305,7 @@ function Test-CredentialsValidOnNanoServer
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [SecureString]
+        [System.Security.SecureString]
         $Password
     )
 

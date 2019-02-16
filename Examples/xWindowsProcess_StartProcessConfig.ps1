@@ -44,12 +44,12 @@ Configuration xWindowsProcess_StartProcessConfig
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $FilePath,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Argument
     )
 

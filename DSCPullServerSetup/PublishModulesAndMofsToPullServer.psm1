@@ -221,7 +221,7 @@ function Publish-ModuleToPullServer
 {
     [CmdletBinding()]
     [Alias("pmp")]
-    [OutputType([void])]
+    [OutputType([System.Void])]
     Param
     (
         [Parameter(Mandatory = $true,
@@ -298,7 +298,7 @@ function Publish-MOFToPullServer
 {
     [CmdletBinding()]
     [Alias("pcp")]
-    [OutputType([void])]
+    [OutputType([System.Void])]
     Param
     (
         [Parameter(Mandatory = $true,

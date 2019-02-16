@@ -447,7 +447,7 @@ function Test-TargetResource
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $Credential,
 
@@ -780,11 +780,11 @@ function Get-ArgumentsFromCommandLineInput
 
     if ($CommandLineInput.StartsWith('"'))
     {
-        $endOfCommandChar = [Char]'"'
+        $endOfCommandChar = [System.Char]'"'
     }
     else
     {
-        $endOfCommandChar = [Char]' '
+        $endOfCommandChar = [System.Char]' '
     }
 
     $endofCommandIndex = $CommandLineInput.IndexOf($endOfCommandChar, 1)
@@ -1013,7 +1013,7 @@ function Start-ProcessAsLocalSystemUser
 
     [PSDesiredStateConfiguration.NativeMethods]::CreateProcessAsUser( "$Path $Arguments", $splitCredentialResult.Domain,
                                                                       $splitCredentialResult.UserName, $Credential.Password,
-                                                                      $false, [Ref] $null )
+                                                                      $false, [System.Management.Automation.PSReference] $null )
 }
 
 <#

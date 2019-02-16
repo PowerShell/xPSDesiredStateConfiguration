@@ -21,7 +21,7 @@
 Describe PullServerInstallationTests {
     BeforeAll{
         # UPDATE THE PULLSERVER URL, If it is different from the default value.
-        $DscHostFQDN = [System.Net.Dns]::GetHostEntry([string]$env:computername).HostName
+        $DscHostFQDN = [System.Net.Dns]::GetHostEntry([System.String]$env:computername).HostName
         $DscPullServerURL = "https://$($DscHostFQDN):8080/PSDSCPullserver.svc"
 
         # UPDATE THE LOCATION OF WEB.CONFIG, if it is differnet from the default path.

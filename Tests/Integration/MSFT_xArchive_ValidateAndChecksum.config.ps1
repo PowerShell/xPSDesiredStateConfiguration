@@ -1,7 +1,7 @@
 param
 (
     [Parameter(Mandatory = $true)]
-    [String]
+    [System.String]
     $ConfigurationName
 )
 
@@ -11,29 +11,29 @@ Configuration $ConfigurationName
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination,
 
         [Parameter()]
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Validate = $false,
 
         [Parameter()]
-        [String]
+        [System.String]
         $Checksum = 'SHA-256',
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Force = $false
     )
 

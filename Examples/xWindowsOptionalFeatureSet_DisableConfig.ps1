@@ -59,11 +59,11 @@ Configuration xWindowsOptionalFeatureSet_DisableConfig
     param
     (
         [Parameter(Mandatory = $true)]
-        [String[]]
+        [System.String[]]
         $Name,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $LogPath
     )
 

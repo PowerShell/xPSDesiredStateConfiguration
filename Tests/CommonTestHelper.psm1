@@ -65,24 +65,24 @@ Test-Path = test that the path {0} exists
 #>
 function Get-TestName
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $Command,
 
-        [Boolean]
+        [System.Boolean]
         $IsCalled = $true,
 
-        [String]
+        [System.String]
         $Custom = ''
     )
 
     $testName = ''
 
-    if (-not [String]::IsNullOrEmpty($Custom))
+    if (-not [System.String]::IsNullOrEmpty($Custom))
     {
         $testName = ($testStrings.$Command -f $Custom)
     }
@@ -115,7 +115,7 @@ function Invoke-ExpectedMocksAreCalledTest
     [CmdletBinding()]
     param
     (
-        [Hashtable[]]
+        [System.Collections.Hashtable[]]
         $MocksCalled
     )
 
@@ -176,23 +176,23 @@ function Invoke-GenericUnitTest {
     param
     (
         [Parameter(Mandatory = $true)]
-        [ScriptBlock]
+        [System.Management.Automation.ScriptBlock]
         $Function,
 
         [Parameter(Mandatory = $true)]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $FunctionParameters,
 
-        [Hashtable[]]
+        [System.Collections.Hashtable[]]
         $MocksCalled,
 
-        [Boolean]
+        [System.Boolean]
         $ShouldThrow = $false,
 
-        [String]
+        [System.String]
         $ErrorMessage = '',
 
-        [String]
+        [System.String]
         $ErrorTestName = ''
     )
 
@@ -239,14 +239,14 @@ function Invoke-GetTargetResourceUnitTest
     param
     (
         [Parameter(Mandatory = $true)]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $GetTargetResourceParameters,
 
-        [Hashtable[]]
+        [System.Collections.Hashtable[]]
         $MocksCalled,
 
         [Parameter(Mandatory = $true)]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $ExpectedReturnValue
     )
 
@@ -259,7 +259,7 @@ function Invoke-GetTargetResourceUnitTest
     $getTargetResourceResult = Get-TargetResource @GetTargetResourceParameters
 
     It 'Should return a Hashtable' {
-        $getTargetResourceResult -is [Hashtable] | Should Be $true
+        $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
     }
 
     It "Should return a Hashtable with $($ExpectedReturnValue.Keys.Count) properties" {
@@ -307,19 +307,19 @@ function Invoke-SetTargetResourceUnitTest {
     param
     (
         [Parameter(Mandatory = $true)]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $SetTargetResourceParameters,
 
-        [Hashtable[]]
+        [System.Collections.Hashtable[]]
         $MocksCalled,
 
-        [Boolean]
+        [System.Boolean]
         $ShouldThrow = $false,
 
-        [String]
+        [System.String]
         $ErrorMessage = '',
 
-        [String]
+        [System.String]
         $ErrorTestName = ''
     )
 
@@ -366,14 +366,14 @@ function Invoke-TestTargetResourceUnitTest
     param
     (
         [Parameter(Mandatory = $true)]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $TestTargetResourceParameters,
 
-        [Hashtable[]]
+        [System.Collections.Hashtable[]]
         $MocksCalled,
 
         [Parameter(Mandatory = $true)]
-        [Boolean]
+        [System.Boolean]
         $ExpectedReturnValue
     )
 
@@ -410,10 +410,10 @@ function Test-GetTargetResourceResult
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $GetTargetResourceResult,
 
-        [String[]]
+        [System.String[]]
         $GetTargetResourceResultProperties
     )
 
@@ -432,13 +432,13 @@ function Test-GetTargetResourceResult
 #>
 function Test-IsLocalMachine
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Scope
     )
 
@@ -501,23 +501,23 @@ function Test-IsLocalMachine
 #>
 function Wait-ScriptBlockReturnTrue
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [ScriptBlock]
+        [System.Management.Automation.ScriptBlock]
         $ScriptBlock,
 
-        [Int]
+        [System.Int32]
         $TimeoutSeconds = 5
     )
 
-    $startTime = [DateTime]::Now
+    $startTime = [System.DateTime]::Now
 
     $invokeScriptBlockResult = $false
-    while (-not $invokeScriptBlockResult -and (([DateTime]::Now - $startTime).TotalSeconds -lt $TimeoutSeconds))
+    while (-not $invokeScriptBlockResult -and (([System.DateTime]::Now - $startTime).TotalSeconds -lt $TimeoutSeconds))
     {
         $invokeScriptBlockResult = $ScriptBlock.Invoke()
         Start-Sleep -Seconds 1
@@ -535,12 +535,12 @@ function Wait-ScriptBlockReturnTrue
 #>
 function Test-IsFileLocked
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $Path
     )
 
@@ -578,15 +578,15 @@ function Test-IsFileLocked
 #>
 function Test-SetTargetResourceWithWhatIf
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $Parameters,
 
-        [String[]]
+        [System.String[]]
         $ExpectedOutput
     )
 
@@ -628,7 +628,7 @@ function Test-SetTargetResourceWithWhatIf
 
         if ($null -eq $ExpectedOutput -or $ExpectedOutput.Count -eq 0)
         {
-            [String]::IsNullOrEmpty($transcriptContent) | Should Be $true
+            [System.String]::IsNullOrEmpty($transcriptContent) | Should Be $true
         }
         else
         {
@@ -674,13 +674,13 @@ function Get-AppVeyorAdministratorCredential
 
         while ($password.Length -lt $passwordLength)
         {
-            $password = $password + [Char] $randomGenerator.Next(45, 126)
+            $password = $password + [System.Char] $randomGenerator.Next(45, 126)
         }
 
         # Change password
         $appVeyorAdministratorUsername = 'appveyor'
 
-        $appVeyorAdministratorUser = [ADSI] ("WinNT://$($env:computerName)/$appVeyorAdministratorUsername")
+        $appVeyorAdministratorUser = [System.DirectoryServices.DirectoryEntry] ("WinNT://$($env:computerName)/$appVeyorAdministratorUsername")
 
         $null = $appVeyorAdministratorUser.SetPassword($password)
         [Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon', 'DefaultPassword', $password)
@@ -708,23 +708,23 @@ function Get-AppVeyorAdministratorCredential
 #>
 function Enter-DscResourceTestEnvironment
 {
-    [OutputType([Hashtable])]
+    [OutputType([System.Collections.Hashtable])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DscResourceModuleName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DscResourceName,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('Unit', 'Integration')]
-        [String]
+        [System.String]
         $TestType
     )
 
@@ -776,7 +776,7 @@ function Exit-DscResourceTestEnvironment
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $TestEnvironment
     )
 

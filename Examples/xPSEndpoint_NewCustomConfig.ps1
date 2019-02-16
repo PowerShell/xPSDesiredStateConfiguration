@@ -71,7 +71,7 @@ configuration xPSEndpoint_NewCustomConfig
         $AccessMode = 'Remote',
 
         [Parameter(Mandatory = $true)]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         $RunAsCredential,
 
         [Parameter(Mandatory = $true)]

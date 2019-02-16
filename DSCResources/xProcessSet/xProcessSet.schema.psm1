@@ -50,11 +50,11 @@ Configuration xProcessSet
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String[]]
+        [System.String[]]
         $Path,
 
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure,
 
         [ValidateNotNullOrEmpty()]
@@ -63,19 +63,19 @@ Configuration xProcessSet
         $Credential,
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $StandardOutputPath,
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $StandardErrorPath,
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $StandardInputPath,
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $WorkingDirectory
     )
 

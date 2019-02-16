@@ -1,7 +1,7 @@
 param
 (
     [Parameter(Mandatory = $true)]
-    [String]
+    [System.String]
     $ConfigurationName
 )
 
@@ -11,21 +11,21 @@ Configuration $ConfigurationName
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $SourcePath,
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $LogPath = (Join-Path -Path (Get-Location) -ChildPath 'WindowsPackageCabTestLog.txt')
     )
 

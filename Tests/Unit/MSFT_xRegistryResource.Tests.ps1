@@ -75,7 +75,7 @@ try
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return 5 hashtable properties' {
@@ -143,7 +143,7 @@ try
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return 5 hashtable properties' {
@@ -221,7 +221,7 @@ try
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return 5 hashtable properties' {
@@ -317,7 +317,7 @@ try
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return 5 hashtable properties' {
@@ -410,7 +410,7 @@ try
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return 5 hashtable properties' {
@@ -1141,7 +1141,7 @@ try
                     Key = 'TestRegistryKey'
                     ValueName = ''
                     ValueType = 'Binary'
-                    ValueData = @( [Byte]::MinValue.ToString(), [Byte]::MaxValue.ToString() )
+                    ValueData = @( [System.Byte]::MinValue.ToString(), [System.Byte]::MaxValue.ToString() )
                     Ensure = 'Present'
                 }
 
@@ -1900,7 +1900,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return True' {
@@ -1941,7 +1941,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -1950,7 +1950,7 @@ try
             }
 
             Mock -CommandName 'Get-TargetResource' -MockWith {
-                if ([String]::IsNullOrEmpty($ValueName))
+                if ([System.String]::IsNullOrEmpty($ValueName))
                 {
                     return @{
                         Ensure = 'Present'
@@ -2002,7 +2002,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return True' {
@@ -2048,7 +2048,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -2095,7 +2095,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -2136,7 +2136,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return True' {
@@ -2182,7 +2182,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -2229,7 +2229,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -2276,7 +2276,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -2322,7 +2322,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return True' {
@@ -2377,7 +2377,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return True' {
@@ -2441,7 +2441,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return True' {
@@ -2496,7 +2496,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -2564,7 +2564,7 @@ try
                 $testTargetResourceResult = Test-TargetResource @testTargetResourceParameters
 
                 It 'Should return a boolean' {
-                    $testTargetResourceResult -is [Boolean] | Should Be $true
+                    $testTargetResourceResult -is [System.Boolean] | Should Be $true
                 }
 
                 It 'Should return False' {
@@ -3122,7 +3122,7 @@ try
 
             Context 'Specified registry key value name is an empty string' {
                 $getRegistryKeyValueDisplayNameParameters = @{
-                    RegistryKeyValue = [String]::Empty
+                    RegistryKeyValue = [System.String]::Empty
                 }
 
                 It 'Should not throw' {
@@ -3166,13 +3166,13 @@ try
                 $convertByteArrayToHexStringResult = Convert-ByteArrayToHexString @convertByteArrayToHexStringParameters
 
                 It 'Should return an empty string' {
-                    $convertByteArrayToHexStringResult | Should Be ([String]::Empty)
+                    $convertByteArrayToHexStringResult | Should Be ([System.String]::Empty)
                 }
             }
 
             Context 'Specified byte array has one element' {
                 $convertByteArrayToHexStringParameters = @{
-                    ByteArray = @( [Byte]'1' )
+                    ByteArray = @( [System.Byte]'1' )
                 }
 
                 It 'Should not throw' {
@@ -3188,7 +3188,7 @@ try
 
             Context 'Specified byte array has multiple elements' {
                 $convertByteArrayToHexStringParameters = @{
-                    ByteArray = @( 0, [Byte]::MaxValue )
+                    ByteArray = @( 0, [System.Byte]::MaxValue )
                 }
 
                 It 'Should not throw' {
@@ -3225,7 +3225,7 @@ try
                     $convertToReadableStringResult = ConvertTo-ReadableString @convertToReadableStringParameters
 
                     It 'Should return an empty string' {
-                        $convertToReadableStringResult | Should Be ([String]::Empty)
+                        $convertToReadableStringResult | Should Be ([System.String]::Empty)
                     }
                 }
 
@@ -3260,7 +3260,7 @@ try
                     $convertToReadableStringResult = ConvertTo-ReadableString @convertToReadableStringParameters
 
                     It 'Should return an empty string' {
-                        $convertToReadableStringResult | Should Be ([String]::Empty)
+                        $convertToReadableStringResult | Should Be ([System.String]::Empty)
                     }
                 }
 
@@ -3460,7 +3460,7 @@ try
                 $expectedRegistryKeyValue = switch ($registryKeyValueType)
                 {
                     'String' { 'String1' }
-                    'Binary' { [Byte[]] @( 12, 172, 17, 17 ) }
+                    'Binary' { [System.Byte[]] @( 12, 172, 17, 17 ) }
                     'DWord' { 169 }
                     'QWord' { 92 }
                     'MultiString' { @( 'String1', 'String2' ) }
@@ -3470,7 +3470,7 @@ try
                 $mismatchingActualRegistryKeyValue = switch ($registryKeyValueType)
                 {
                     'String' { 'String2' }
-                    'Binary' { [Byte[]] @( 11, 172, 17, 1 ) }
+                    'Binary' { [System.Byte[]] @( 11, 172, 17, 1 ) }
                     'DWord' { 12 }
                     'QWord' { 64 }
                     'MultiString' { @( 'String3', 'String2' ) }
@@ -3566,7 +3566,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of an odd length' {
                 $validBinaryString = '0xCAC1111'
-                $expectedByteArray = [Byte[]] @( 12, 172, 17, 17 )
+                $expectedByteArray = [System.Byte[]] @( 12, 172, 17, 17 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3585,7 +3585,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of an even length' {
                 $validBinaryString = '0x0CAC1111'
-                $expectedByteArray = [Byte[]] @( 12, 172, 17, 17 )
+                $expectedByteArray = [System.Byte[]] @( 12, 172, 17, 17 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3604,7 +3604,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of an even length not starting with 0x' {
                 $validBinaryString = '0CAC1111'
-                $expectedByteArray = [Byte[]] @( 12, 172, 17, 17 )
+                $expectedByteArray = [System.Byte[]] @( 12, 172, 17, 17 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3623,7 +3623,7 @@ try
 
             Context 'Specified registry key value is an array containing a valid single string of 0x00' {
                 $validBinaryString = '0x00'
-                $expectedByteArray = [Byte[]] @( 0 )
+                $expectedByteArray = [System.Byte[]] @( 0 )
 
                 $convertToBinaryParameters = @{
                     RegistryKeyValue = @( $validBinaryString )
@@ -3848,7 +3848,7 @@ try
                 $convertToMultiStringResult =  ConvertTo-MultiString @convertToMultiStringParameters
 
                 It 'Should return an array containing null' {
-                    Compare-Object -ReferenceObject ([String[]] @($null)) -DifferenceObject $convertToMultiStringResult | Should Be $null
+                    Compare-Object -ReferenceObject ([System.String[]] @($null)) -DifferenceObject $convertToMultiStringResult | Should Be $null
                 }
             }
 
@@ -4034,7 +4034,7 @@ try
                 $convertToStringResult = ConvertTo-String @convertToStringParameters
 
                 It 'Should return an empty string' {
-                    $convertToStringResult | Should Be ([String]::Empty)
+                    $convertToStringResult | Should Be ([System.String]::Empty)
                 }
             }
 
@@ -4050,7 +4050,7 @@ try
                 $convertToStringResult = ConvertTo-String @convertToStringParameters
 
                 It 'Should return an empty string' {
-                    $convertToStringResult | Should Be ([String]::Empty)
+                    $convertToStringResult | Should Be ([System.String]::Empty)
                 }
             }
 
@@ -4066,7 +4066,7 @@ try
                 $convertToStringResult = ConvertTo-String @convertToStringParameters
 
                 It 'Should return an empty string' {
-                    $convertToStringResult | Should Be ([String]::Empty)
+                    $convertToStringResult | Should Be ([System.String]::Empty)
                 }
             }
 

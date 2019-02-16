@@ -628,14 +628,14 @@ try
 
             It 'Should return an empty string when an empty string is passed in' {
                 $inputString = $null
-                $resultString = [String]::Empty
+                $resultString = [System.String]::Empty
                 $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
                 $argumentsReturned | Should Be $resultString
             }
 
             It 'Should return an empty string when there are no arguments' {
                 $inputString = 'test.txt'
-                $resultString = [String]::Empty
+                $resultString = [System.String]::Empty
                 $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
                 $argumentsReturned | Should Be $resultString
             }

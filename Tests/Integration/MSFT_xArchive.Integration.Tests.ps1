@@ -9,7 +9,7 @@ if (Test-SkipContinuousIntegrationTask -Type 'Integration')
     return
 }
 
-if ($PSVersionTable.PSVersion -lt [Version] '5.1')
+if ($PSVersionTable.PSVersion -lt [System.Version] '5.1')
 {
     Write-Warning -Message 'Cannot run PSDscResources integration tests on PowerShell versions lower than 5.1'
     return
@@ -474,8 +474,8 @@ Describe 'xArchive Integration Tests' {
             $creationTimeBeforeEdit = $fileBeforeEdit.CreationTime
 
             $null = Set-Content -Path $fileToEditPath -Value 'Different false text' -Force
-            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([DateTime]::MaxValue)
-            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([System.DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([System.DateTime]::MaxValue)
 
             $fileAfterEdit = Get-Item -Path $fileToEditPath
 
@@ -587,8 +587,8 @@ Describe 'xArchive Integration Tests' {
             $creationTimeBeforeEdit = $fileBeforeEdit.CreationTime
 
             $null = Set-Content -Path $fileToEditPath -Value 'Different false text' -Force
-            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([DateTime]::MaxValue)
-            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([System.DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([System.DateTime]::MaxValue)
 
             $fileAfterEdit = Get-Item -Path $fileToEditPath
 
@@ -668,8 +668,8 @@ Describe 'xArchive Integration Tests' {
             $creationTimeBeforeEdit = $fileBeforeEdit.CreationTime
 
             $null = Set-Content -Path $fileToEditPath -Value 'Different false text' -Force
-            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([DateTime]::MaxValue)
-            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'LastWriteTime' -Value ([System.DateTime]::MaxValue)
+            Set-ItemProperty -Path $fileToEditPath -Name 'CreationTime' -Value ([System.DateTime]::MaxValue)
 
             $fileAfterEdit = Get-Item -Path $fileToEditPath
 

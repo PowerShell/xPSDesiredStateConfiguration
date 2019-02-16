@@ -71,12 +71,12 @@ Configuration xPackage_InstallExeUsingCredentialsConfig
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         $Credential,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         $RunAsCredential
     )
 

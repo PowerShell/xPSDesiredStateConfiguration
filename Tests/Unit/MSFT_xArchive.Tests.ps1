@@ -36,7 +36,7 @@ Describe 'xArchive Unit Tests' {
 
         $script:testCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @( $testUsername, $secureTestPassword )
 
-        $script:testGuid = [Guid]::NewGuid()
+        $script:testGuid = [System.Guid]::NewGuid()
 
         Describe 'Get-TargetResource' {
             $testPSDrive = @{
@@ -145,7 +145,7 @@ Describe 'xArchive Unit Tests' {
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should -Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should -Be $true
                 }
 
                 It 'Should return a Hashtable with 3 properties' {
@@ -219,7 +219,7 @@ Describe 'xArchive Unit Tests' {
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should -Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should -Be $true
                 }
 
                 It 'Should return a Hashtable with 3 properties' {
@@ -300,7 +300,7 @@ Describe 'xArchive Unit Tests' {
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should -Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should -Be $true
                 }
 
                 It 'Should return a Hashtable with 3 properties' {
@@ -382,7 +382,7 @@ Describe 'xArchive Unit Tests' {
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should -Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should -Be $true
                 }
 
                 It 'Should return a Hashtable with 3 properties' {
@@ -463,7 +463,7 @@ Describe 'xArchive Unit Tests' {
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should -Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should -Be $true
                 }
 
                 It 'Should return a Hashtable with 3 properties' {
@@ -545,7 +545,7 @@ Describe 'xArchive Unit Tests' {
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should -Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should -Be $true
                 }
 
                 It 'Should return a Hashtable with 3 properties' {
@@ -639,7 +639,7 @@ Describe 'xArchive Unit Tests' {
                 $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
 
                 It 'Should return a Hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should -Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should -Be $true
                 }
 
                 It 'Should return a Hashtable with 3 properties' {

@@ -150,7 +150,7 @@ function New-UserOnFullSKU
     # Remove user if it already exists.
     Remove-User $userName $ComputerName
 
-    $adComputerEntry = [ADSI] "WinNT://$ComputerName"
+    $adComputerEntry = [System.DirectoryServices.DirectoryEntry] "WinNT://$ComputerName"
     $adUserEntry = $adComputerEntry.Create('User', $userName)
     $null = $adUserEntry.SetPassword($password)
 
@@ -286,7 +286,7 @@ function Remove-UserOnFullSKU
 
     Set-StrictMode -Version Latest
 
-    $adComputerEntry = [ADSI] "WinNT://$ComputerName"
+    $adComputerEntry = [System.DirectoryServices.DirectoryEntry] "WinNT://$ComputerName"
 
     if ($adComputerEntry.Children | Where-Object Path -like "WinNT://*$ComputerName/$UserName")
     {
@@ -395,7 +395,7 @@ function Test-UserOnFullSKU
 
     Set-StrictMode -Version Latest
 
-    $adComputerEntry = [ADSI] "WinNT://$ComputerName"
+    $adComputerEntry = [System.DirectoryServices.DirectoryEntry] "WinNT://$ComputerName"
     if ($adComputerEntry.Children | Where-Object Path -like "WinNT://*$ComputerName/$UserName")
     {
         return $true

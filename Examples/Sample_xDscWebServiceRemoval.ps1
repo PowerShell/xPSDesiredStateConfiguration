@@ -4,7 +4,7 @@ configuration Sample_xDscWebServiceRemoval
 {
     param
     (
-        [string[]]
+        [System.String[]]
         $NodeName = 'localhost'
     )
 

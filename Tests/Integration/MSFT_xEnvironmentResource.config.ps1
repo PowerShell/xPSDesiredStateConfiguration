@@ -1,7 +1,7 @@
 param
 (
     [Parameter(Mandatory = $true)]
-    [String]
+    [System.String]
     $ConfigurationName
 )
 
@@ -11,22 +11,22 @@ Configuration $ConfigurationName
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [ValidateNotNull()]
-        [String]
-        $Value = [String]::Empty,
+        [System.String]
+        $Value = [System.String]::Empty,
 
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
-        [Boolean]
+        [System.Boolean]
         $Path = $false,
 
         [ValidateSet('Process', 'Machine')]
-        [String[]]
+        [System.String[]]
         $Target = ('Process', 'Machine')
     )
 

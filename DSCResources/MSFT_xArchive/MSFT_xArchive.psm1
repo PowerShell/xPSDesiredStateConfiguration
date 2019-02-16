@@ -74,27 +74,27 @@ if (-not (Test-IsNanoServer))
 #>
 function Get-TargetResource
 {
-    [OutputType([Hashtable])]
+    [OutputType([System.Collections.Hashtable])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination,
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Validate = $false,
 
         [Parameter()]
         [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
-        [String]
+        [System.String]
         $Checksum = 'ModifiedDate',
 
         [Parameter()]
@@ -250,26 +250,26 @@ function Set-TargetResource
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination,
 
         [Parameter()]
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Validate = $false,
 
         [Parameter()]
         [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
-        [String]
+        [System.String]
         $Checksum = 'ModifiedDate',
 
         [Parameter()]
@@ -278,7 +278,7 @@ function Set-TargetResource
         $Credential,
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Force = $false
     )
 
@@ -415,32 +415,32 @@ function Set-TargetResource
 #>
 function Test-TargetResource
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination,
 
         [Parameter()]
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Validate = $false,
 
         [Parameter()]
         [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
-        [String]
+        [System.String]
         $Checksum = 'ModifiedDate',
 
         [Parameter()]
@@ -449,7 +449,7 @@ function Test-TargetResource
         $Credential,
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Force = $false
     )
 
@@ -484,11 +484,11 @@ function Test-TargetResource
 #>
 function New-Guid
 {
-    [OutputType([Guid])]
+    [OutputType([System.Guid])]
     [CmdletBinding()]
     param ()
 
-    return [Guid]::NewGuid()
+    return [System.Guid]::NewGuid()
 }
 
 <#
@@ -508,7 +508,7 @@ function Invoke-NewPSDrive
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $Parameters
     )
 
@@ -534,7 +534,7 @@ function Mount-PSDriveWithCredential
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [Parameter(Mandatory = $true)]
@@ -611,7 +611,7 @@ function Assert-PathExistsAsLeaf
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path
     )
 
@@ -639,7 +639,7 @@ function Assert-DestinationDoesNotExistAsFile
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination
     )
 
@@ -671,7 +671,7 @@ function Open-Archive
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path
     )
 
@@ -746,7 +746,7 @@ function Get-ArchiveEntries
 #>
 function Get-ArchiveEntryFullName
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
@@ -814,13 +814,13 @@ function Close-Stream
 #>
 function Test-ChecksumIsSha
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Checksum
     )
 
@@ -838,13 +838,13 @@ function Test-ChecksumIsSha
 #>
 function ConvertTo-PowerShellHashAlgorithmName
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DscHashAlgorithmName
     )
 
@@ -867,13 +867,13 @@ function ConvertTo-PowerShellHashAlgorithmName
 #>
 function Test-FileHashMatchesArchiveEntryHash
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $FilePath,
 
         [Parameter(Mandatory = $true)]
@@ -883,7 +883,7 @@ function Test-FileHashMatchesArchiveEntryHash
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $HashAlgorithmName
     )
 
@@ -1108,7 +1108,7 @@ function Get-ArchiveEntryLastWriteTime
 #>
 function Test-FileMatchesArchiveEntryByChecksum
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
@@ -1124,7 +1124,7 @@ function Test-FileMatchesArchiveEntryByChecksum
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Checksum
     )
 
@@ -1180,13 +1180,13 @@ function Test-FileMatchesArchiveEntryByChecksum
 #>
 function Test-ArchiveEntryIsDirectory
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ArchiveEntryName
     )
 
@@ -1212,23 +1212,23 @@ function Test-ArchiveEntryIsDirectory
 #>
 function Test-ArchiveExistsAtDestination
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ArchiveSourcePath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination,
 
         [Parameter()]
         [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
-        [String]
+        [System.String]
         $Checksum
     )
 
@@ -1363,7 +1363,7 @@ function Copy-ArchiveEntryToDestination
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DestinationPath
     )
 
@@ -1442,21 +1442,21 @@ function Expand-ArchiveToDestination
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ArchiveSourcePath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination,
 
         [Parameter()]
         [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
-        [String]
+        [System.String]
         $Checksum,
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Force = $false
     )
 
@@ -1557,12 +1557,12 @@ function Remove-DirectoryFromDestination
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String[]]
+        [System.String[]]
         $Directory,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination
     )
 
@@ -1616,17 +1616,17 @@ function Remove-ArchiveFromDestination
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ArchiveSourcePath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Destination,
 
         [Parameter()]
         [ValidateSet('SHA-1', 'SHA-256', 'SHA-512', 'CreatedDate', 'ModifiedDate')]
-        [String]
+        [System.String]
         $Checksum
     )
 
@@ -1692,7 +1692,7 @@ function Remove-ArchiveFromDestination
                 {
                     $parentDirectory = Split-Path -Path $archiveEntryFullName -Parent
 
-                    while (-not [String]::IsNullOrEmpty($parentDirectory))
+                    while (-not [System.String]::IsNullOrEmpty($parentDirectory))
                     {
                         $directoriesToRemove += $parentDirectory
                         $parentDirectory = Split-Path -Path $parentDirectory -Parent

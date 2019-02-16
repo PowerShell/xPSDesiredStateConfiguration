@@ -1,7 +1,7 @@
 param
 (
     [Parameter(Mandatory = $true)]
-    [String]
+    [System.String]
     $ConfigurationName
 )
 
@@ -11,58 +11,58 @@ Configuration $ConfigurationName
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [ValidateSet('Present', 'Absent')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DisplayName = "$Name DisplayName",
 
         [Parameter()]
-        [String]
+        [System.String]
         $Description = 'TestDescription',
 
         [Parameter()]
-        [String[]]
+        [System.String[]]
         [AllowEmptyCollection()]
         $Dependencies = @(),
 
         [Parameter()]
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        [String]
+        [System.String]
         $BuiltInAccount = 'LocalSystem',
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $DesktopInteract = $false,
 
         [Parameter()]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType = 'Automatic',
 
         [Parameter()]
         [ValidateSet('Running', 'Stopped', 'Ignore')]
-        [String]
+        [System.String]
         $State = 'Running',
 
         [Parameter()]
-        [UInt32]
+        [System.UInt32]
         $StartupTimeout = 30000,
 
         [Parameter()]
-        [UInt32]
+        [System.UInt32]
         $TerminateTimeout = 30000
     )
 

@@ -177,7 +177,7 @@ try
                         -Ensure 'Present' `
                         -Path $script:msiLocation `
                         -ProductId $script:packageId `
-                        -Name ([String]::Empty)
+                        -Name ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $false
 
@@ -185,7 +185,7 @@ try
                         -Ensure 'Present' `
                         -Path $script:msiLocation `
                         -Name $script:packageName `
-                        -ProductId ([String]::Empty)
+                        -ProductId ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $false
 
@@ -193,7 +193,7 @@ try
                         -Ensure 'Absent' `
                         -Path $script:msiLocation `
                         -ProductId $script:packageId `
-                        -Name ([String]::Empty)
+                        -Name ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $true
 
@@ -201,13 +201,13 @@ try
                         -Ensure 'Absent' `
                         -Path $script:msiLocation `
                         -Name $script:packageName `
-                        -ProductId ([String]::Empty)
+                        -ProductId ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $true
                 }
 
                 It 'Should return correct value when package is present without registry parameters' {
-                    Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $script:packageId -Name ([String]::Empty)
+                    Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $script:packageId -Name ([System.String]::Empty)
 
                     Clear-PackageCache
 
@@ -217,7 +217,7 @@ try
                             -Ensure 'Present' `
                             -Path $script:msiLocation `
                             -ProductId $script:packageId `
-                            -Name ([String]::Empty)
+                            -Name ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $true
 
@@ -225,7 +225,7 @@ try
                         -Ensure 'Present' `
                         -Path $script:msiLocation `
                         -Name $script:packageName `
-                        -ProductId ([String]::Empty)
+                        -ProductId ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $true
 
@@ -233,7 +233,7 @@ try
                         -Ensure 'Absent' `
                         -Path $script:msiLocation `
                         -ProductId $script:packageId `
-                        -Name ([String]::Empty)
+                        -Name ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $false
 
@@ -241,15 +241,15 @@ try
                         -Ensure 'Absent' `
                         -Path $script:msiLocation `
                         -Name $script:packageName `
-                        -ProductId ([String]::Empty)
+                        -ProductId ([System.String]::Empty)
 
                     $testTargetResourceResult | Should Be $false
                 }
 
                 $existingPackageParameters = @{
                     Path = $script:testExecutablePath
-                    Name = [String]::Empty
-                    ProductId = [String]::Empty
+                    Name = [System.String]::Empty
+                    ProductId = [System.String]::Empty
                     CreateCheckRegValue = $true
                     InstalledCheckRegHive = 'LocalMachine'
                     InstalledCheckRegKey = 'SOFTWARE\xPackageTestKey'
@@ -306,14 +306,14 @@ try
 
             Context 'Set-TargetResource' {
                 It 'Should correctly install and remove a .msi package without registry parameters' {
-                    Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $script:packageId -Name ([String]::Empty)
+                    Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $script:packageId -Name ([System.String]::Empty)
 
                     Test-PackageInstalledByName -Name $script:packageName | Should Be $true
 
-                    $getTargetResourceResult = Get-TargetResource -Path $script:msiLocation -ProductId $script:packageId -Name ([String]::Empty)
+                    $getTargetResourceResult = Get-TargetResource -Path $script:msiLocation -ProductId $script:packageId -Name ([System.String]::Empty)
 
                     $getTargetResourceResult.Version | Should Be '1.2.3.4'
-                    $getTargetResourceResult.InstalledOn | Should Be ('{0:d}' -f [DateTime]::Now.Date)
+                    $getTargetResourceResult.InstalledOn | Should Be ('{0:d}' -f [System.DateTime]::Now.Date)
                     $getTargetResourceResult.Installed | Should Be $true
                     $getTargetResourceResult.ProductId | Should Be $script:packageId
                     $getTargetResourceResult.Path | Should Be $script:msiLocation
@@ -323,7 +323,7 @@ try
 
                     [Math]::Round($getTargetResourceResult.Size, 2) | Should Be 0.03
 
-                    Set-TargetResource -Ensure 'Absent' -Path $script:msiLocation -ProductId $script:packageId -Name ([String]::Empty)
+                    Set-TargetResource -Ensure 'Absent' -Path $script:msiLocation -ProductId $script:packageId -Name ([System.String]::Empty)
 
                     Test-PackageInstalledByName -Name $script:packageName | Should Be $false
                 }
@@ -331,7 +331,7 @@ try
                 It 'Should correctly install and remove a .msi package with registry parameters' {
                     $packageParameters = @{
                         Path = $script:msiLocation
-                        Name = [String]::Empty
+                        Name = [System.String]::Empty
                         ProductId = $script:packageId
                         CreateCheckRegValue = $true
                         InstalledCheckRegHive = 'LocalMachine'
@@ -372,8 +372,8 @@ try
                 It 'Should correctly install and remove a .exe package with registry parameters' {
                     $packageParameters = @{
                         Path = $script:testExecutablePath
-                        Name = [String]::Empty
-                        ProductId = [String]::Empty
+                        Name = [System.String]::Empty
+                        ProductId = [System.String]::Empty
                         CreateCheckRegValue = $true
                         InstalledCheckRegHive = 'LocalMachine'
                         InstalledCheckRegKey = 'SOFTWARE\xPackageTestKey'
@@ -413,13 +413,13 @@ try
                 It 'Should throw with incorrect product id' {
                     $wrongPackageId = '{deadbeef-80c6-41e6-a1b9-8bdb8a050272}'
 
-                    { Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $wrongPackageId -Name ([String]::Empty) } | Should Throw
+                    { Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId $wrongPackageId -Name ([System.String]::Empty) } | Should Throw
                 }
 
                 It 'Should throw with incorrect name' {
                     $wrongPackageName = 'WrongPackageName'
 
-                    { Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId ([String]::Empty) -Name $wrongPackageName } | Should Throw
+                    { Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -ProductId ([System.String]::Empty) -Name $wrongPackageName } | Should Throw
                 }
 
                 It 'Should correctly install and remove a package from a HTTP URL' {
@@ -476,7 +476,7 @@ try
                         Remove-Item -Path $logPath -Force
                     }
 
-                    Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -Name $script:packageName -LogPath $logPath -ProductId ([string]::Empty)
+                    Set-TargetResource -Ensure 'Present' -Path $script:msiLocation -Name $script:packageName -LogPath $logPath -ProductId ([System.String]::Empty)
 
                     Test-Path -Path $logPath | Should Be $true
                     Get-Content -Path $logPath | Should Not Be $null
@@ -489,7 +489,7 @@ try
 
                     $packageParameters = @{
                         Path = $script:msiLocation
-                        Name = [String]::Empty
+                        Name = [System.String]::Empty
                         ProductId = $script:packageId
                         Arguments = $script:msiArguments
                     }
@@ -500,14 +500,14 @@ try
                 }
 
                 It 'Should not check for product installation when rebooted is required (#52)' {
-                    Mock Invoke-Process { return [PSCustomObject] @{ ExitCode = 3010 } }
+                    Mock Invoke-Process { return [System.Management.Automation.PSObject] @{ ExitCode = 3010 } }
                     Mock Test-TargetResource { return $false }
                     Mock Get-ProductEntry { return $null }
                     Mock -CommandName Set-DSCMachineRebootRequired
 
                     $packageParameters = @{
                         Path = $script:msiLocation
-                        Name = [String]::Empty
+                        Name = [System.String]::Empty
                         ProductId = $script:packageId
                     }
 
@@ -524,7 +524,7 @@ try
                     $packageCredential = [System.Management.Automation.PSCredential]::Empty
                     $packageParameters = @{
                         Path = $script:msiLocation
-                        Name = [String]::Empty
+                        Name = [System.String]::Empty
                         ProductId = $script:packageId
                         RunAsCredential = $packageCredential
                     }

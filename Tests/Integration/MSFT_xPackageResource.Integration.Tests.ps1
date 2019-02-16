@@ -92,7 +92,7 @@ try
                     }
                 }
 "@
-                .([scriptblock]::Create($configurationScriptText))
+                .([System.Management.Automation.ScriptBlock]::Create($configurationScriptText))
 
                 & $configurationName -OutputPath $configurationPath
 

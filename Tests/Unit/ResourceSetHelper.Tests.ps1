@@ -116,11 +116,11 @@ InModuleScope 'ResourceSetHelper' {
         $newResourceSetConfigurationScriptBlock = New-ResourceSetConfigurationScriptBlock @newResourceSetConfigurationParams
 
         It 'Should return a ScriptBlock' {
-            $newResourceSetConfigurationScriptBlock -is [ScriptBlock] | Should -Be $true
+            $newResourceSetConfigurationScriptBlock -is [System.Management.Automation.ScriptBlock] | Should -Be $true
         }
 
         It 'Should return ScriptBlock of string returned from New-ResourceSetConfigurationString' {
-            $newResourceSetConfigurationScriptBlock | Should -Match ([ScriptBlock]::Create($configurationString))
+            $newResourceSetConfigurationScriptBlock | Should -Match ([System.Management.Automation.ScriptBlock]::Create($configurationString))
         }
 
         It 'Should call New-ResourceSetConfigurationString with the correct ModuleName' {

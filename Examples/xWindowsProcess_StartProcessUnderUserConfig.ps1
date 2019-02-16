@@ -52,12 +52,12 @@ Configuration xWindowsProcess_StartProcessUnderUserConfig
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $FilePath,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Argument,
 
         [Parameter(Mandatory = $true)]

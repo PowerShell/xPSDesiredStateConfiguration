@@ -44,12 +44,12 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testWrongProductId = 'wrongId'
         $script:testPath = 'file://test.msi'
         $script:destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath 'C:\'
-        $script:testUriHttp = [Uri] 'http://test.msi'
-        $script:testUriHttps = [Uri] 'https://test.msi'
-        $script:testUriFile = [Uri] 'file://test.msi'
-        $script:testUriNonUnc = [Uri] 'file:///C:/test.msi'
-        $script:testUriQuery = [Uri] 'http://C:/directory/test/test.msi?sv=2017-01-31&spr=https'
-        $script:testUriOnlyFile = [Uri] 'test.msi'
+        $script:testUriHttp = [System.Uri] 'http://test.msi'
+        $script:testUriHttps = [System.Uri] 'https://test.msi'
+        $script:testUriFile = [System.Uri] 'file://test.msi'
+        $script:testUriNonUnc = [System.Uri] 'file:///C:/test.msi'
+        $script:testUriQuery = [System.Uri] 'http://C:/directory/test/test.msi?sv=2017-01-31&spr=https'
+        $script:testUriOnlyFile = [System.Uri] 'test.msi'
 
         $script:mockStream = New-MockObject -Type 'System.IO.FileStream'
         $script:mockWebRequest = New-MockObject -Type 'System.Net.HttpWebRequest'
@@ -497,21 +497,21 @@ Describe 'xMsiPackage Unit Tests' {
             Context 'Path has a valid URI scheme' {
                 It 'Should return the expected URI when scheme is a file' {
                     $filePath = (Join-Path -Path $PSScriptRoot -ChildPath 'testMsi.msi')
-                    $expectedReturnValue = [Uri] $filePath
+                    $expectedReturnValue = [System.Uri] $filePath
 
                     Convert-PathToUri -Path $filePath | Should Be $expectedReturnValue
                 }
 
                 It 'Should return the expected URI when scheme is http' {
                     $filePath = 'http://localhost:1242/testMsi.msi'
-                    $expectedReturnValue = [Uri] $filePath
+                    $expectedReturnValue = [System.Uri] $filePath
 
                     Convert-PathToUri -Path $filePath | Should Be $expectedReturnValue
                 }
 
                 It 'Should return the expected URI when scheme is https' {
                     $filePath = 'https://localhost:1243/testMsi.msi'
-                    $expectedReturnValue = [Uri] $filePath
+                    $expectedReturnValue = [System.Uri] $filePath
 
                     Convert-PathToUri -Path $filePath | Should Be $expectedReturnValue
                 }

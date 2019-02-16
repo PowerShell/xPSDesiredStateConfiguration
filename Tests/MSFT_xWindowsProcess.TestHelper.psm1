@@ -14,7 +14,7 @@ function Stop-ProcessByName
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $ProcessName
     )
 

@@ -22,7 +22,7 @@ try
             $script:testPackageName = ''
             $script:testSourcePath = Join-Path -Path $PSScriptRoot -ChildPath ''
 
-            $script:cabPackageNotProvided = $script:testPackageName -eq [String]::Empty
+            $script:cabPackageNotProvided = $script:testPackageName -eq [System.String]::Empty
 
             try
             {

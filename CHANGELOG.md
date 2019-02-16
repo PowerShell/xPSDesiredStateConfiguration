@@ -149,6 +149,7 @@
 - Changes to xPackage
   - Fix an misnamed variable that causes an error during error message output.
     [issue #449](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/449))
+- Replaces Type Accelerators with fully qualified type names.
 
 ## 8.4.0.0
 

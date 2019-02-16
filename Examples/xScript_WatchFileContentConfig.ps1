@@ -46,12 +46,12 @@ Configuration xScript_WatchFileContentConfig {
     (
         [Parameter(Mandatory = $true, HelpMessage='The path at which to create the file.')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $FilePath,
 
         [Parameter(Mandatory = $true, HelpMessage='The content to set in the file.')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $FileContent
     )
 

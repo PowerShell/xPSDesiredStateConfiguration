@@ -155,7 +155,7 @@ function Get-LocalizedData
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ResourceName
     )
 

@@ -310,7 +310,7 @@ function Convert-CustomPropertyArrayToStringArray
     param
     (
         [Parameter()]
-        [PSCustomObject[]]
+        [System.Management.Automation.PSObject[]]
         $CustomProperties
     )
 

@@ -65,7 +65,7 @@ Configuration xFileUpload_UploadToSMBShareConfig
         $SourcePath,
 
         [Parameter()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         $Credential,
 
         [Parameter()]

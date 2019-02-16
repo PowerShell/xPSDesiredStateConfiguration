@@ -1,7 +1,7 @@
 param
 (
     [Parameter(Mandatory = $true)]
-    [String]
+    [System.String]
     $ConfigurationName
 )
 
@@ -11,25 +11,25 @@ Configuration $ConfigurationName
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Key,
 
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         [AllowEmptyString()]
         $ValueName,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('String', 'Binary', 'DWord', 'QWord', 'MultiString', 'ExpandString')]
-        [String]
+        [System.String]
         $ValueType,
 
         [Parameter(Mandatory = $true)]
-        [String[]]
+        [System.String[]]
         [AllowEmptyCollection()]
         $ValueData
     )

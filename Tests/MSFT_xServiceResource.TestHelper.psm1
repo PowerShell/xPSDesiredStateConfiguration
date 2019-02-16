@@ -29,32 +29,32 @@ function New-ServiceExecutable
     param (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceCodePath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceDisplayName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceDescription,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceDependsOn = "''",
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $OutputPath
     )
 
@@ -89,7 +89,7 @@ function Remove-ServiceWithTimeout
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullorEmpty()]
-        [String]
+        [System.String]
         $Name
     )
 
@@ -98,9 +98,9 @@ function Remove-ServiceWithTimeout
     & 'sc.exe' 'delete' $Name
 
     $serviceDeleted = $false
-    $start = [DateTime]::Now
+    $start = [System.DateTime]::Now
 
-    while (-not $serviceDeleted -and ([DateTime]::Now - $start).TotalMilliseconds -lt 5000)
+    while (-not $serviceDeleted -and ([System.DateTime]::Now - $start).TotalMilliseconds -lt 5000)
     {
         $service = Get-Service -Name $Name -ErrorAction 'SilentlyContinue'
 
@@ -124,12 +124,12 @@ function Remove-ServiceWithTimeout
 #>
 function Test-ServiceExists
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $Name
     )
 

@@ -35,13 +35,13 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xServiceResource'
 #>
 function Get-TargetResource
 {
-    [OutputType([Hashtable])]
+    [OutputType([System.Collections.Hashtable])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name
     )
 
@@ -200,63 +200,63 @@ function Set-TargetResource
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [Parameter()]
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [Parameter()]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType,
 
         [Parameter()]
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        [String]
+        [System.String]
         $BuiltInAccount,
 
         [Parameter()]
-        [String]
+        [System.String]
         $GroupManagedServiceAccount,
 
         [Parameter()]
         [ValidateSet('Running', 'Stopped', 'Ignore')]
-        [String]
+        [System.String]
         $State = 'Running',
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $DesktopInteract = $false,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DisplayName,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Description,
 
         [Parameter()]
-        [String[]]
+        [System.String[]]
         [AllowEmptyCollection()]
         $Dependencies,
 
         [Parameter()]
-        [UInt32]
+        [System.UInt32]
         $StartupTimeout = 30000,
 
         [Parameter()]
-        [UInt32]
+        [System.UInt32]
         $TerminateTimeout = 30000,
 
         [Parameter()]
@@ -430,69 +430,69 @@ function Set-TargetResource
 #>
 function Test-TargetResource
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [Parameter()]
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path,
 
         [Parameter()]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType,
 
         [Parameter()]
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        [String]
+        [System.String]
         $BuiltInAccount,
 
         [Parameter()]
-        [String]
+        [System.String]
         $GroupManagedServiceAccount,
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $DesktopInteract = $false,
 
         [Parameter()]
         [ValidateSet('Running', 'Stopped', 'Ignore')]
-        [String]
+        [System.String]
         $State = 'Running',
 
         [Parameter()]
         [ValidateNotNull()]
-        [String]
+        [System.String]
         $DisplayName,
 
         [Parameter()]
-        [String]
+        [System.String]
         [AllowEmptyString()]
         $Description,
 
         [Parameter()]
-        [String[]]
+        [System.String[]]
         [AllowEmptyCollection()]
         $Dependencies,
 
         [Parameter()]
-        [UInt32]
+        [System.UInt32]
         $StartupTimeout = 30000,
 
         [Parameter()]
-        [UInt32]
+        [System.UInt32]
         $TerminateTimeout = 30000,
 
         [Parameter()]
@@ -648,7 +648,7 @@ function Test-TargetResource
 #>
 function Get-ServiceCimInstance
 {
-    [OutputType([CimInstance])]
+    [OutputType([Microsoft.Management.Infrastructure.CimInstance])]
     [CmdletBinding()]
     param
     (
@@ -670,13 +670,13 @@ function Get-ServiceCimInstance
 #>
 function ConvertTo-StartupTypeString
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateSet('Auto', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartMode
     )
 
@@ -709,17 +709,17 @@ function Assert-NoStartupTypeStateConflict
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('Running', 'Stopped', 'Ignore')]
-        [String]
+        [System.String]
         $State
     )
 
@@ -755,22 +755,22 @@ function Assert-NoStartupTypeStateConflict
 #>
 function Test-PathsMatch
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ExpectedPath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ActualPath
     )
 
-    return (0 -eq [String]::Compare($ExpectedPath, $ActualPath, [System.Globalization.CultureInfo]::CurrentUICulture))
+    return (0 -eq [System.String]::Compare($ExpectedPath, $ActualPath, [System.Globalization.CultureInfo]::CurrentUICulture))
 }
 
 <#
@@ -783,13 +783,13 @@ function Test-PathsMatch
 #>
 function ConvertTo-StartName
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Username
     )
 
@@ -828,18 +828,18 @@ function ConvertTo-StartName
 #>
 function Set-ServicePath
 {
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     [CmdletBinding(SupportsShouldProcess = $true)]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path
     )
 
@@ -897,11 +897,11 @@ function Set-ServiceDependency
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
-        [String[]]
+        [System.String[]]
         [AllowEmptyCollection()]
         $Dependencies
     )
@@ -965,7 +965,7 @@ function Grant-LogOnAsServiceRight
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Username
     )
 
@@ -1390,16 +1390,16 @@ function Set-ServiceAccountProperty
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter()]
-        [String]
+        [System.String]
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
         $BuiltInAccount,
 
         [Parameter()]
-        [String]
+        [System.String]
         $GroupManagedServiceAccount,
 
         [Parameter()]
@@ -1408,7 +1408,7 @@ function Set-ServiceAccountProperty
         $Credential,
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $DesktopInteract
     )
 
@@ -1492,12 +1492,12 @@ function Set-ServiceStartupType
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType
     )
 
@@ -1584,39 +1584,39 @@ function Set-ServiceProperty
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter()]
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType,
 
         [Parameter()]
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        [String]
+        [System.String]
         $BuiltInAccount,
 
         [Parameter()]
-        [String]
+        [System.String]
         $GroupManagedServiceAccount,
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $DesktopInteract,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DisplayName,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Description,
 
         [Parameter()]
-        [String[]]
+        [System.String[]]
         [AllowEmptyCollection()]
         $Dependencies,
 
@@ -1702,7 +1702,7 @@ function Remove-Service
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name
     )
 
@@ -1726,20 +1726,20 @@ function Remove-ServiceWithTimeout
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [Parameter(Mandatory = $true)]
-        [UInt32]
+        [System.UInt32]
         $TerminateTimeout
     )
 
     Remove-Service -Name $Name
 
     $serviceDeleted = $false
-    $start = [DateTime]::Now
+    $start = [System.DateTime]::Now
 
-    while (-not $serviceDeleted -and ([DateTime]::Now - $start).TotalMilliseconds -lt $TerminateTimeout)
+    while (-not $serviceDeleted -and ([System.DateTime]::Now - $start).TotalMilliseconds -lt $TerminateTimeout)
     {
         $service = Get-Service -Name $Name -ErrorAction 'SilentlyContinue'
 
@@ -1787,7 +1787,7 @@ function Wait-ServiceStateWithTimeout
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
@@ -1795,7 +1795,7 @@ function Wait-ServiceStateWithTimeout
         $State,
 
         [Parameter(Mandatory = $true)]
-        [TimeSpan]
+        [System.TimeSpan]
         $WaitTimeSpan
     )
 
@@ -1821,11 +1821,11 @@ function Start-ServiceWithTimeout
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
-        [UInt32]
+        [System.UInt32]
         $StartupTimeout
     )
 
@@ -1852,11 +1852,11 @@ function Stop-ServiceWithTimeout
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ServiceName,
 
         [Parameter(Mandatory = $true)]
-        [UInt32]
+        [System.UInt32]
         $TerminateTimeout
     )
 

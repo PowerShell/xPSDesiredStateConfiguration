@@ -32,24 +32,24 @@ function ConvertTo-FileStructure
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ParentPath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $FileStructure
     )
 
     foreach ($itemName in $FileStructure.Keys)
     {
-        if ($FileStructure[$itemName] -is [Hashtable])
+        if ($FileStructure[$itemName] -is [System.Collections.Hashtable])
         {
             $newDirectoryPath = Join-Path -Path $ParentPath -ChildPath $itemName
             $null = New-Item -Path $newDirectoryPath -ItemType 'Directory'
             ConvertTo-FileStructure -ParentPath $newDirectoryPath -FileStructure $FileStructure[$itemName]
         }
-        elseif ($FileStructure[$itemName] -is [String])
+        elseif ($FileStructure[$itemName] -is [System.String])
         {
             $newFilePath = Join-Path -Path $ParentPath -ChildPath $itemName
             $null = New-Item -Path $newFilePath -ItemType 'File'
@@ -94,23 +94,23 @@ function ConvertTo-FileStructure
 #>
 function New-ZipFileFromHashtable
 {
-    [OutputType([String])]
+    [OutputType([System.String])]
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ParentPath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
-        [Hashtable]
+        [System.Collections.Hashtable]
         $ZipFileStructure
     )
 
@@ -151,20 +151,20 @@ function Test-FileStructuresMatch
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $SourcePath,
+        [System.String] $SourcePath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String] $DestinationPath,
+        [System.String] $DestinationPath,
 
         [Parameter()]
-        [Switch] $CheckLastWriteTime,
+        [System.Management.Automation.SwitchParameter] $CheckLastWriteTime,
 
         [Parameter()]
-        [Switch] $CheckCreationTime,
+        [System.Management.Automation.SwitchParameter] $CheckCreationTime,
 
         [Parameter()]
-        [Switch] $CheckContents
+        [System.Management.Automation.SwitchParameter] $CheckContents
     )
 
     $sourcePathLength = $SourcePath.Length

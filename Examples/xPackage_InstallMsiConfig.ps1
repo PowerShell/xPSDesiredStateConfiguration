@@ -42,12 +42,12 @@ Configuration xPackage_InstallMsiConfig
     (
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $PackageName,
 
         [parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Path
     )
 

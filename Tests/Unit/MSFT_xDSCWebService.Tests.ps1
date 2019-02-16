@@ -12,7 +12,7 @@ if (Test-SkipContinuousIntegrationTask -Type 'Unit')
 
 #region HEADER
 # Integration Test Template Version: 1.1.0
-[String] $script:moduleRoot = Split-Path -Parent -Path (Split-Path -Parent -Path $PSScriptRoot)
+[System.String] $script:moduleRoot = Split-Path -Parent -Path (Split-Path -Parent -Path $PSScriptRoot)
 if ( (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests'))) -or `
      (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests\TestHelper.psm1'))) )
 {
@@ -51,8 +51,8 @@ try
             oleDbConnectionstr  = 'Data Source=TestDrive:\inetpub\PesterTestSite\Devices.mdb'
         }
 
-        $websiteDataHTTP  = [PSCustomObject] @{
-            bindings     = [PSCustomObject] @{
+        $websiteDataHTTP  = [System.Management.Automation.PSObject] @{
+            bindings     = [System.Management.Automation.PSObject] @{
                 collection = @(
                     @{
                         protocol           = 'http'
@@ -65,8 +65,8 @@ try
             state        = 'Started'
         }
 
-        $websiteDataHTTPS = [PSCustomObject] @{
-            bindings     = [PSCustomObject] @{
+        $websiteDataHTTPS = [System.Management.Automation.PSObject] @{
+            bindings     = [System.Management.Automation.PSObject] @{
                 collection = @(
                     @{
                         protocol           = 'https'
@@ -80,45 +80,45 @@ try
         }
 
         $certificateData  = @(
-            [PSCustomObject] @{
+            [System.Management.Automation.PSObject] @{
                 Thumbprint = 'AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT'
                 Subject    = 'PesterTestCertificate'
-                Extensions = [Array] @(
-                    [PSCustomObject] @{
-                        Oid = [PSCustomObject] @{
+                Extensions = [System.Array] @(
+                    [System.Management.Automation.PSObject] @{
+                        Oid = [System.Management.Automation.PSObject] @{
                             FriendlyName = 'Certificate Template Name'
                             Value        = '1.3.6.1.4.1.311.20.2'
                         }
                     }
-                    [PSCustomObject] @{}
+                    [System.Management.Automation.PSObject] @{}
                 )
                 NotAfter   = Get-Date
             }
-            [PSCustomObject] @{
+            [System.Management.Automation.PSObject] @{
                 Thumbprint = 'AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT'
                 Subject    = 'PesterTestDuplicateCertificate'
-                Extensions = [Array] @(
-                    [PSCustomObject] @{
-                        Oid = [PSCustomObject] @{
+                Extensions = [System.Array] @(
+                    [System.Management.Automation.PSObject] @{
+                        Oid = [System.Management.Automation.PSObject] @{
                             FriendlyName = 'Certificate Template Name'
                             Value        = '1.3.6.1.4.1.311.20.2'
                         }
                     }
-                    [PSCustomObject] @{}
+                    [System.Management.Automation.PSObject] @{}
                 )
                 NotAfter   = Get-Date
             }
-            [PSCustomObject] @{
+            [System.Management.Automation.PSObject] @{
                 Thumbprint = 'AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTT'
                 Subject    = 'PesterTestDuplicateCertificate'
-                Extensions = [Array] @(
-                    [PSCustomObject] @{
-                        Oid = [PSCustomObject] @{
+                Extensions = [System.Array] @(
+                    [System.Management.Automation.PSObject] @{
+                        Oid = [System.Management.Automation.PSObject] @{
                             FriendlyName = 'Certificate Template Name'
                             Value        = '1.3.6.1.4.1.311.20.2'
                         }
                     }
-                    [PSCustomObject] @{}
+                    [System.Management.Automation.PSObject] @{}
                 )
                 NotAfter   = Get-Date
             }
@@ -257,11 +257,11 @@ try
                     param
                     (
                         [Parameter(Mandatory = $true)]
-                        [String]
+                        [System.String]
                         $Variable,
 
                         [Parameter(Mandatory = $true)]
-                        [PSObject]
+                        [System.Management.Automation.PSObject]
                         $Data
                     )
 
@@ -306,11 +306,11 @@ try
                     param
                     (
                         [Parameter(Mandatory = $true)]
-                        [String]
+                        [System.String]
                         $Variable,
 
                         [Parameter(Mandatory = $true)]
-                        [PSObject]
+                        [System.Management.Automation.PSObject]
                         $Data
                     )
 
@@ -356,11 +356,11 @@ try
                     param
                     (
                         [Parameter(Mandatory = $true)]
-                        [String]
+                        [System.String]
                         $Variable,
 
                         [Parameter(Mandatory = $true)]
-                        [PSObject]
+                        [System.Management.Automation.PSObject]
                         $Data
                     )
 
@@ -410,11 +410,11 @@ try
                     param
                     (
                         [Parameter(Mandatory = $true)]
-                        [String]
+                        [System.String]
                         $Variable,
 
                         [Parameter(Mandatory = $true)]
-                        [PSObject]
+                        [System.Management.Automation.PSObject]
                         $Data
                     )
 
@@ -463,7 +463,7 @@ try
                 '& $script:appCmd add module /name:$iisSelfSignedModuleName  /app.name:"PSDSCPullServer/" $preConditionBitnessArgumentFor32BitInstall'
             )
 
-            Mock -CommandName Get-Command -ParameterFilter {$Name -eq '.\appcmd.exe'} -MockWith {[ScriptBlock]::Create($testArguments)}
+            Mock -CommandName Get-Command -ParameterFilter {$Name -eq '.\appcmd.exe'} -MockWith {[System.Management.Automation.ScriptBlock]::Create($testArguments)}
             Mock -CommandName Get-OSVersion -MockWith {@{Major = 6; Minor = 3}}
             Mock -CommandName Get-Website
             #endregion
@@ -531,11 +531,11 @@ try
                     param
                     (
                         [Parameter(Mandatory = $true)]
-                        [String]
+                        [System.String]
                         $Name,
 
                         [Parameter(Mandatory = $true)]
-                        [String]
+                        [System.String]
                         $Value
                     )
 
@@ -992,11 +992,11 @@ try
                 param
                 (
                     [Parameter(Mandatory = $true)]
-                    [String]
+                    [System.String]
                     $Key,
 
                     [Parameter(Mandatory = $true)]
-                    [String]
+                    [System.String]
                     $Value
                 )
                 Test-WebConfigAppSetting -WebConfigFullPath $webConfigPath -AppSettingName $Key -ExpectedAppSettingValue $Value | Should -Be $true
@@ -1005,11 +1005,11 @@ try
                 param
                 (
                     [Parameter(Mandatory = $true)]
-                    [String]
+                    [System.String]
                     $Key,
 
                     [Parameter(Mandatory = $true)]
-                    [String]
+                    [System.String]
                     $Value
                 )
                 Test-WebConfigAppSetting -WebConfigFullPath $webConfigPath -AppSettingName $Key -ExpectedAppSettingValue 'InvalidValue' | Should -Be $false
@@ -1042,11 +1042,11 @@ try
                 param
                 (
                     [Parameter(Mandatory = $true)]
-                    [String]
+                    [System.String]
                     $Key,
 
                     [Parameter(Mandatory = $true)]
-                    [String]
+                    [System.String]
                     $Value
                 )
                 Get-WebConfigAppSetting -WebConfigFullPath $webConfigPath -AppSettingName $Key | Should -Be $Value
@@ -1106,9 +1106,9 @@ try
             function Get-Website {}
             function Get-WebBinding {}
 
-            $appHostConfigSection = [PSCustomObject] @{OverrideMode = ''}
-            $appHostConfig        = [PSCustomObject] @{}
-            $webAdminSrvMgr       = [PSCustomObject] @{}
+            $appHostConfigSection = [System.Management.Automation.PSObject] @{OverrideMode = ''}
+            $appHostConfig        = [System.Management.Automation.PSObject] @{}
+            $webAdminSrvMgr       = [System.Management.Automation.PSObject] @{}
 
             Add-Member -InputObject $appHostConfig  -MemberType ScriptMethod -Name GetSection -Value {$appHostConfigSection}
             Add-Member -InputObject $webAdminSrvMgr -MemberType ScriptMethod -Name GetApplicationHostConfiguration -Value {$appHostConfig}

@@ -50,23 +50,23 @@ Configuration xServiceSet
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String[]]
+        [System.String[]]
         $Name,
 
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure,
 
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType,
 
         [ValidateSet('LocalSystem', 'LocalService', 'NetworkService')]
-        [String]
+        [System.String]
         $BuiltInAccount,
 
         [ValidateSet('Running', 'Stopped', 'Ignore')]
-        [String]
+        [System.String]
         $State,
 
         [ValidateNotNull()]

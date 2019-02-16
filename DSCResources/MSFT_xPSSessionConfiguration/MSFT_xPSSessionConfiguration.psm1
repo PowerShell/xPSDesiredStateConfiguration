@@ -84,7 +84,7 @@ function Get-TargetResource
 
     @{
         Name                   = $Name
-        RunAsCredential        = [CimInstance] $convertToCimCredential
+        RunAsCredential        = [Microsoft.Management.Infrastructure.CimInstance] $convertToCimCredential
         SecurityDescriptorSDDL = $endpoint.Permission
         StartupScript          = $endpoint.StartupScript
         AccessMode             = $accessMode
@@ -146,7 +146,7 @@ function Set-TargetResource
         $StartupScript,
 
         [Parameter()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $RunAsCredential,
 
@@ -402,7 +402,7 @@ function Test-TargetResource
         $StartupScript,
 
         [Parameter()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
         $RunAsCredential,
 
@@ -482,7 +482,7 @@ function Test-TargetResource
 
     # Check if the RunAsCredential is not empty
     if ($PSBoundParameters.ContainsKey('RunAsCredential') -and
-        ($RunAsCredential -eq [PSCredential]::Empty))
+        ($RunAsCredential -eq [System.Management.Automation.PSCredential]::Empty))
     {
         $invokeThrowErrorHelperParams = @{
             ErrorId       = 'EmptyCredential'
@@ -644,7 +644,7 @@ function Get-ValidatedResourcePropertyTable
         $StartupScript,
 
         [Parameter()]
-        [PSCredential]
+        [System.Management.Automation.PSCredential]
         $RunAsCredential,
 
         [Parameter()]
@@ -657,7 +657,7 @@ function Get-ValidatedResourcePropertyTable
         $AccessMode,
 
         [Parameter()]
-        [Switch]
+        [System.Management.Automation.SwitchParameter]
         $Apply
     )
 

@@ -88,7 +88,7 @@ try {
                 }
 
                 It 'Should use script execution helper to run script' {
-                    $expectedScriptBlock = [ScriptBlock]::Create($getTargetResourceParameters.GetScript)
+                    $expectedScriptBlock = [System.Management.Automation.ScriptBlock]::Create($getTargetResourceParameters.GetScript)
 
                     $null = Get-TargetResource @getTargetResourceParameters
 
@@ -102,7 +102,7 @@ try {
 
                 It 'Should return a hashtable' {
                     $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the output from the specified get script' {
@@ -124,7 +124,7 @@ try {
                 }
 
                 It 'Should use script execution helper to run script with the specified Credential' {
-                    $expectedScriptBlock = [ScriptBlock]::Create($getTargetResourceParameters.GetScript)
+                    $expectedScriptBlock = [System.Management.Automation.ScriptBlock]::Create($getTargetResourceParameters.GetScript)
 
                     $null = Get-TargetResource @getTargetResourceParameters
 
@@ -140,7 +140,7 @@ try {
 
                 It 'Should return a hashtable' {
                     $getTargetResourceResult = Get-TargetResource @getTargetResourceParameters
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the output from the specified get script' {
@@ -165,7 +165,7 @@ try {
                 }
 
                 It 'Should use script execution helper to run script' {
-                    $expectedScriptBlock = [ScriptBlock]::Create($setTargetResourceParameters.SetScript)
+                    $expectedScriptBlock = [System.Management.Automation.ScriptBlock]::Create($setTargetResourceParameters.SetScript)
 
                     Set-TargetResource @setTargetResourceParameters
 
@@ -191,7 +191,7 @@ try {
                 }
 
                 It 'Should use script execution helper to run script with specified Credential' {
-                    $expectedScriptBlock = [ScriptBlock]::Create($setTargetResourceParameters.SetScript)
+                    $expectedScriptBlock = [System.Management.Automation.ScriptBlock]::Create($setTargetResourceParameters.SetScript)
 
                     Set-TargetResource @setTargetResourceParameters
 
@@ -274,7 +274,7 @@ try {
                 }
 
                 It 'Should use script execution helper to run script' {
-                    $expectedScriptBlock = [ScriptBlock]::Create($testTargetResourceParameters.TestScript)
+                    $expectedScriptBlock = [System.Management.Automation.ScriptBlock]::Create($testTargetResourceParameters.TestScript)
 
                     $null = Test-TargetResource @testTargetResourceParameters
 
@@ -305,7 +305,7 @@ try {
                 }
 
                 It 'Should use script execution helper to run script with specified Credential' {
-                    $expectedScriptBlock = [ScriptBlock]::Create($testTargetResourceParameters.TestScript)
+                    $expectedScriptBlock = [System.Management.Automation.ScriptBlock]::Create($testTargetResourceParameters.TestScript)
 
                     $null = Test-TargetResource @testTargetResourceParameters
 
@@ -340,7 +340,7 @@ try {
                 }
 
                 It 'Should use script execution helper to run script' {
-                    $expectedScriptBlock = [ScriptBlock]::Create($testTargetResourceParameters.TestScript)
+                    $expectedScriptBlock = [System.Management.Automation.ScriptBlock]::Create($testTargetResourceParameters.TestScript)
 
                     $null = Test-TargetResource @testTargetResourceParameters
 

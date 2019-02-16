@@ -24,12 +24,12 @@ $script:localizedData = Get-LocalizedData -ResourceName 'MSFT_xWindowsFeature'
 function Get-TargetResource
 {
     [CmdletBinding()]
-    [OutputType([Hashtable])]
+    [OutputType([System.Collections.Hashtable])]
     param
     (
        [Parameter(Mandatory = $true)]
        [ValidateNotNullOrEmpty()]
-       [String]
+       [System.String]
        $Name,
 
        [Parameter()]
@@ -159,16 +159,16 @@ function Set-TargetResource
     (
        [Parameter(Mandatory = $true)]
        [ValidateNotNullOrEmpty()]
-       [String]
+       [System.String]
        $Name,
 
        [Parameter()]
        [ValidateSet('Present', 'Absent')]
-       [String]
+       [System.String]
        $Ensure = 'Present',
 
        [Parameter()]
-       [Boolean]
+       [System.Boolean]
        $IncludeAllSubFeature = $false,
 
        [Parameter()]
@@ -179,7 +179,7 @@ function Set-TargetResource
 
        [Parameter()]
        [ValidateNotNullOrEmpty()]
-       [String]
+       [System.String]
        $LogPath
     )
 
@@ -333,16 +333,16 @@ function Test-TargetResource
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [Parameter()]
         [ValidateSet('Present', 'Absent')]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $IncludeAllSubFeature = $false,
 
         [Parameter()]
@@ -353,7 +353,7 @@ function Test-TargetResource
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $LogPath
 
     )
@@ -468,11 +468,11 @@ function Assert-SingleInstanceOfFeature
     param
     (
         [Parameter()]
-        [PSObject]
+        [System.Management.Automation.PSObject]
         $Feature,
 
         [Parameter()]
-        [String]
+        [System.String]
         $Name
     )
 

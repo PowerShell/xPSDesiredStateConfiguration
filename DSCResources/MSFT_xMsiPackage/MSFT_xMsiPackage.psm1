@@ -1110,7 +1110,7 @@ function Assert-FileSignatureValid
 #>
 function Start-MsiProcess
 {
-    [OutputType([Int32])]
+    [OutputType([System.Int32])]
     [CmdletBinding()]
     param
     (
@@ -1236,7 +1236,7 @@ function Invoke-PInvoke
         $RunAsCredential.GetNetworkCredential().Domain, `
         $RunAsCredential.GetNetworkCredential().UserName, `
         $RunAsCredential.GetNetworkCredential().Password, `
-        [ref] $exitCode
+        [System.Management.Automation.PSReference] $exitCode
     )
 
     return $exitCode

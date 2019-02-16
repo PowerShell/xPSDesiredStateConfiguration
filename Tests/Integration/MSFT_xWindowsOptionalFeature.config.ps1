@@ -1,7 +1,7 @@
 param
 (
     [Parameter(Mandatory = $true)]
-    [String]
+    [System.String]
     $ConfigurationName
 )
 
@@ -11,22 +11,22 @@ Configuration $ConfigurationName
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Name,
 
         [ValidateSet('Present', 'Absent')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $LogPath = (Join-Path -Path (Get-Location) -ChildPath 'WOFTestLog.txt'),
 
-        [Boolean]
+        [System.Boolean]
         $RemoveFilesOnDisable = $false,
 
-        [Boolean]
+        [System.Boolean]
         $NoWindowsUpdateCheck = $true
     )
 

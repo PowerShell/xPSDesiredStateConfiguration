@@ -150,7 +150,7 @@ try
                     $getTargetResourceResult = Get-TargetResource -Path $script:msiLocation -ProductId $script:packageId
 
                     $getTargetResourceResult.Version | Should Be '1.2.3.4'
-                    $getTargetResourceResult.InstalledOn | Should Be ('{0:d}' -f [DateTime]::Now.Date)
+                    $getTargetResourceResult.InstalledOn | Should Be ('{0:d}' -f [System.DateTime]::Now.Date)
                     $getTargetResourceResult.ProductId | Should Be $script:packageId
 
                     [Math]::Round($getTargetResourceResult.Size, 2) | Should Be 0.03

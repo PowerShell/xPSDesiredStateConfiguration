@@ -62,7 +62,7 @@ try
                 }
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the environment variable name' {
@@ -86,7 +86,7 @@ try
                 }
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the environment variable name' {
@@ -110,7 +110,7 @@ try
                 }
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the environment variable name' {
@@ -134,7 +134,7 @@ try
                 }
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the environment variable name' {
@@ -158,7 +158,7 @@ try
                 }
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the environment variable name' {
@@ -182,7 +182,7 @@ try
                 }
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 It 'Should return the environment variable name' {

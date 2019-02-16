@@ -23,48 +23,48 @@ Import-LocalizedData @ImportLocalizedDataParams
 function Get-TargetResource
 {
     [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
-    [OutputType([Hashtable])]
+    [OutputType([System.Collections.Hashtable])]
     param
     (
         # Prefix of the WCF SVC File
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $EndpointName,
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateSubject,
 
         # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateTemplateName = 'WebServer',
 
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Boolean]
+        [System.Boolean]
         $UseSecurityBestPractices,
 
         # Exceptions of security best practices
         [Parameter()]
         [ValidateSet("SecureTLSProtocols")]
-        [String[]]
+        [System.String[]]
         $DisableSecurityBestPractices,
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Enable32BitAppOnWin64 = $false
     )
 
@@ -161,7 +161,7 @@ function Get-TargetResource
     }
     else
     {
-        $certificate = ([Array] (Get-ChildItem -Path 'Cert:\LocalMachine\My\')) | Where-Object -FilterScript {
+        $certificate = ([System.Array] (Get-ChildItem -Path 'Cert:\LocalMachine\My\')) | Where-Object -FilterScript {
             $_.Thumbprint -eq $webBinding.CertificateHash
         }
 
@@ -193,98 +193,98 @@ function Set-TargetResource
         # Prefix of the WCF SVC File
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $EndpointName,
 
         # Port number of the DSC Pull Server IIS Endpoint
         [Parameter()]
-        [Uint32]
+        [System.UInt32]
         $Port = 8080,
 
         # Physical path for the IIS Endpoint on the machine (usually under inetpub)
         [Parameter()]
-        [String]
+        [System.String]
         $PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateSubject,
 
         # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateTemplateName = 'WebServer',
 
         [Parameter()]
         [ValidateSet("Present", "Absent")]
-        [String]
+        [System.String]
         $Ensure = "Present",
 
         [Parameter()]
         [ValidateSet("Started", "Stopped")]
-        [String]
+        [System.String]
         $State = "Started",
 
         # Location on the disk where the database is stored
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DatabasePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService",
 
         # Location on the disk where the Modules are stored
         [Parameter()]
-        [String]
+        [System.String]
         $ModulePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules",
 
         # Location on the disk where the Configuration is stored
         [Parameter()]
-        [String]
+        [System.String]
         $ConfigurationPath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration",
 
         # Location on the disk where the RegistrationKeys file is stored
         [Parameter()]
-        [String]
+        [System.String]
         $RegistrationKeyPath = "$env:PROGRAMFILES\WindowsPowerShell\DscService",
 
         # Add the IISSelfSignedCertModule native module to prevent self-signed certs being rejected.
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $AcceptSelfSignedCertificates = $true,
 
         # Required Field when user want to enable DSC to use SQL server as backend DB
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $SqlProvider = $false,
 
         # User is required to provide the SQL Connection String with the ServerProvider , ServerName , UserID , and Passwords fields  to enable DSC to use SQL server as backend DB
         [Parameter()]
-        [String]
+        [System.String]
         $SqlConnectionString,
 
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Boolean]
+        [System.Boolean]
         $UseSecurityBestPractices,
 
         # Exceptions of security best practices
         [Parameter()]
         [ValidateSet("SecureTLSProtocols")]
-        [String[]]
+        [System.String[]]
         $DisableSecurityBestPractices,
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Enable32BitAppOnWin64 = $false
     )
 
@@ -487,104 +487,104 @@ function Set-TargetResource
 function Test-TargetResource
 {
     [CmdletBinding(DefaultParameterSetName = 'CertificateThumbPrint')]
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     param
     (
         # Prefix of the WCF SVC File
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $EndpointName,
 
         # Port number of the DSC Pull Server IIS Endpoint
         [Parameter()]
-        [Uint32]
+        [System.UInt32]
         $Port = 8080,
 
         # Physical path for the IIS Endpoint on the machine (usually under inetpub)
         [Parameter()]
-        [String]
+        [System.String]
         $PhysicalPath = "$env:SystemDrive\inetpub\$EndpointName",
 
         # Thumbprint of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateThumbPrint')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateThumbPrint,
 
         # Subject of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateSubject,
 
         # Certificate Template Name of the Certificate in CERT:\LocalMachine\MY\ for Pull Server
         [Parameter(ParameterSetName = 'CertificateSubject')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $CertificateTemplateName = 'WebServer',
 
         [Parameter()]
         [ValidateSet("Present", "Absent")]
-        [String]
+        [System.String]
         $Ensure = "Present",
 
         [Parameter()]
         [ValidateSet("Started", "Stopped")]
-        [String]
+        [System.String]
         $State = "Started",
 
         # Location on the disk where the database is stored
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $DatabasePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService",
 
         # Location on the disk where the Modules are stored
         [Parameter()]
-        [String]
+        [System.String]
         $ModulePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules",
 
         # Location on the disk where the Configuration is stored
         [Parameter()]
-        [String]
+        [System.String]
         $ConfigurationPath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration",
 
         # Location on the disk where the RegistrationKeys file is stored
         [Parameter()]
-        [String]
+        [System.String]
         $RegistrationKeyPath,
 
         # Are self-signed certs being accepted for client auth.
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $AcceptSelfSignedCertificates,
 
         # Required Field when user want to enable DSC to use SQL server as backend DB
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $SqlProvider = $false,
 
         # User is required to provide the SQL Connection String with the ServerProvider , ServerName , UserID , and Passwords fields  to enable DSC to use SQL server as backend DB
         [Parameter()]
-        [String]
+        [System.String]
         $SqlConnectionString,
 
         # Pull Server is created with the most secure practices
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [Boolean]
+        [System.Boolean]
         $UseSecurityBestPractices,
 
         # Exceptions of security best practices
         [Parameter()]
         [ValidateSet("SecureTLSProtocols")]
-        [String[]]
+        [System.String[]]
         $DisableSecurityBestPractices,
 
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
-        [Boolean]
+        [System.Boolean]
         $Enable32BitAppOnWin64 = $false
     )
 
@@ -715,7 +715,7 @@ function Test-TargetResource
                     $expectedConnectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$DatabasePath\Devices.mdb;"
                 }
                 default {
-                    $expectedConnectionString = [String]::Empty
+                    $expectedConnectionString = [System.String]::Empty
                 }
             }
             if($SqlProvider)
@@ -723,7 +723,7 @@ function Test-TargetResource
                 $expectedConnectionString = $SqlConnectionString
             }
 
-            if (([String]::IsNullOrEmpty($expectedConnectionString)))
+            if (([System.String]::IsNullOrEmpty($expectedConnectionString)))
             {
                 $desiredConfigurationMatch = $false
                 Write-Verbose -Message "The DB provider does not have a valid value: 'ESENT' or 'System.Data.OleDb'"
@@ -800,11 +800,11 @@ function Test-WebsitePath
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $EndpointName,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $PhysicalPath
     )
 
@@ -824,15 +824,15 @@ function Test-WebConfigAppSetting
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $WebConfigFullPath,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $AppSettingName,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $ExpectedAppSettingValue
     )
 
@@ -840,7 +840,7 @@ function Test-WebConfigAppSetting
 
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [System.Xml.XmlDocument] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root.appSettings.add)
@@ -867,18 +867,18 @@ function Get-WebConfigAppSetting
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $WebConfigFullPath,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $AppSettingName
     )
 
     $appSettingValue = ""
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [System.Xml.XmlDocument] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root.appSettings.add)
@@ -900,15 +900,15 @@ function Test-WebConfigModulesSetting
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $WebConfigFullPath,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $ModuleName,
 
         [Parameter(Mandatory = $true)]
-        [Boolean]
+        [System.Boolean]
         $ExpectedInstallationStatus
     )
 
@@ -916,7 +916,7 @@ function Test-WebConfigModulesSetting
 
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [System.Xml.XmlDocument] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root."system.webServer".modules.add)
@@ -937,18 +937,18 @@ function Get-WebConfigModulesSetting
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $WebConfigFullPath,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $ModuleName
     )
 
     $moduleValue = ""
     if (Test-Path -Path $WebConfigFullPath)
     {
-        $webConfigXml = [Xml] (Get-Content -Path $WebConfigFullPath)
+        $webConfigXml = [System.Xml.XmlDocument] (Get-Content -Path $WebConfigFullPath)
         $root = $webConfigXml.get_DocumentElement()
 
         foreach ($item in $root."system.webServer".modules.add)
@@ -981,13 +981,13 @@ function Update-LocationTagInApplicationHostConfigForAuthentication
     (
         # Name of the WebSite
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $WebSite,
 
         # Authentication Type
         [Parameter(Mandatory = $true)]
         [ValidateSet('anonymous', 'basic', 'windows')]
-        [String]
+        [System.String]
         $Authentication
     )
 
@@ -1044,15 +1044,15 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
     param
     (
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $Subject,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $TemplateName,
 
         [Parameter()]
-        [String]
+        [System.String]
         $Store = 'Cert:\LocalMachine\My'
     )
 
@@ -1064,7 +1064,7 @@ function Find-CertificateThumbprintWithSubjectAndTemplateName
     foreach ($oidFriendlyName in 'Certificate Template Name', 'Certificate Template Information')
     {
         # Only get certificates created from a template otherwise filtering by subject and template name will cause errors
-        [Array] $certificatesFromTemplates = (Get-ChildItem -Path $Store).Where{
+        [System.Array] $certificatesFromTemplates = (Get-ChildItem -Path $Store).Where{
             $_.Extensions.Oid.FriendlyName -contains $oidFriendlyName
         }
 

@@ -57,11 +57,11 @@ Configuration xWindowsOptionalFeatureSet_EnableConfig
     param
     (
         [Parameter(Mandatory = $true)]
-        [String[]]
+        [System.String[]]
         $Name,
 
         [Parameter(Mandatory = $true)]
-        [String]
+        [System.String]
         $LogPath
     )
 

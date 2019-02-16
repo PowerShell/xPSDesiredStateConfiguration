@@ -19,12 +19,12 @@ try
 
                 $script:testFeatureName = 'TestFeature'
 
-                $script:fakeEnabledFeature = [PSCustomObject] @{
+                $script:fakeEnabledFeature = [System.Management.Automation.PSObject] @{
                     Name = $testFeatureName
                     State = 'Enabled'
                 }
 
-                $script:fakeDisabledFeature = [PSCustomObject] @{
+                $script:fakeDisabledFeature = [System.Management.Automation.PSObject] @{
                     Name = $testFeatureName
                     State = 'Disabled'
                 }
@@ -41,23 +41,23 @@ try
             #>
             Context 'Assert-ResourcePrerequisitesValid' {
                 $fakeWin32OSObjects = @{
-                    '7' = [PSCustomObject] @{
+                    '7' = [System.Management.Automation.PSObject] @{
                         ProductType = 1
                         BuildNumber = 7601
                     }
-                    'Server2008R2' = [PSCustomObject] @{
+                    'Server2008R2' = [System.Management.Automation.PSObject] @{
                         ProductType = 2
                         BuildNumber = 7601
                     }
-                    'Server2012' = [PSCustomObject] @{
+                    'Server2012' = [System.Management.Automation.PSObject] @{
                         ProductType = 2
                         BuildNumber = 9200
                     }
-                    '8.1' = [PSCustomObject] @{
+                    '8.1' = [System.Management.Automation.PSObject] @{
                         ProductType = 1
                         BuildNumber = 9600
                     }
-                    'Server2012R2' = [PSCustomObject] @{
+                    'Server2012R2' = [System.Management.Automation.PSObject] @{
                         ProductType = 2
                         BuildNumber = 9600
                     }
@@ -285,18 +285,18 @@ try
             }
 
             Context 'Convert-CustomPropertyArrayToStringArray' {
-                [PSCustomObject[]] $psCustomObjects = @(
-                    [PSCustomObject] @{
+                [System.Management.Automation.PSObject[]] $psCustomObjects = @(
+                    [System.Management.Automation.PSObject] @{
                         Name = 'Object 1'
                         Value = 'Value 1'
                         Path = 'Path 1'
                     },
-                    [PSCustomObject] @{
+                    [System.Management.Automation.PSObject] @{
                         Name = 'Object 2'
                         Value = 'Value 2'
                         Path = 'Path 2'
                     },
-                    [PSCustomObject] @{
+                    [System.Management.Automation.PSObject] @{
                         Name = 'Object 3'
                         Value = 'Value 3'
                         Path = 'Path 3'

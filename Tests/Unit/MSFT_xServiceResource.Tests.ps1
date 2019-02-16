@@ -129,7 +129,7 @@ try
                 $getTargetResourceResult = Get-TargetResource @GetTargetResourceParameters
 
                 It 'Should return a hashtable' {
-                    $getTargetResourceResult -is [Hashtable] | Should Be $true
+                    $getTargetResourceResult -is [System.Collections.Hashtable] | Should Be $true
                 }
 
                 if ($ExpectedValues.ContainsKey('Name'))
@@ -447,7 +447,7 @@ try
                     DisplayName     = $testService.DisplayName
                     Description     = $testServiceCimInstance.Description
                     DesktopInteract = $testServiceCimInstance.DesktopInteract
-                    Dependencies    = [System.Object[]] ($testService.ServicesDependedOn | Where-Object -FilterScript {![String]::IsNullOrEmpty($_.Name)}).Name
+                    Dependencies    = [System.Object[]] ($testService.ServicesDependedOn | Where-Object -FilterScript {![System.String]::IsNullOrEmpty($_.Name)}).Name
                 }
 
                 Test-GetTargetResourceResult -GetTargetResourceParameters $getTargetResourceParameters -ExpectedValues $expectedValues
@@ -2344,7 +2344,7 @@ try
                     }
 
                     It 'Should change service' {
-                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartName -eq $setServiceAccountPropertyParameters.BuiltInAccount -and $Arguments.StartPassword -eq [String]::Empty } -Times 1 -Scope 'Context'
+                        Assert-MockCalled -CommandName 'Invoke-CimMethod' -ParameterFilter { $InputObject -eq $testServiceCimInstance -and $MethodName -eq 'Change' -and $Arguments.StartName -eq $setServiceAccountPropertyParameters.BuiltInAccount -and $Arguments.StartPassword -eq [System.String]::Empty } -Times 1 -Scope 'Context'
                     }
                 }
 
@@ -2741,7 +2741,7 @@ try
                 }
 
                 It 'Should set service account properties' {
-                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and [PSCredential]::Equals($setServicePropertyParameters.Credential, $Credential) } -Times 1 -Scope 'Context'
+                    Assert-MockCalled -CommandName 'Set-ServiceAccountProperty' -ParameterFilter { $ServiceName -eq $setServicePropertyParameters.ServiceName -and [System.Management.Automation.PSCredential]::Equals($setServicePropertyParameters.Credential, $Credential) } -Times 1 -Scope 'Context'
                 }
 
                 It 'Should not set service startup type' {
@@ -2922,7 +2922,7 @@ try
                 StartupTimeout = 500
             }
 
-            $expectedTimeSpan = [TimeSpan]::FromMilliseconds($startServiceWithTimeoutParameters.StartupTimeout)
+            $expectedTimeSpan = [System.TimeSpan]::FromMilliseconds($startServiceWithTimeoutParameters.StartupTimeout)
 
             It 'Should not throw' {
                 { Start-ServiceWithTimeout @startServiceWithTimeoutParameters } | Should Not Throw
@@ -2933,7 +2933,7 @@ try
             }
 
             It 'Should wait for service to start' {
-                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $startServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Running -and [TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'Describe'
+                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $startServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Running -and [System.TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'Describe'
             }
         }
 
@@ -2946,7 +2946,7 @@ try
                 TerminateTimeout = 500
             }
 
-            $expectedTimeSpan = [TimeSpan]::FromMilliseconds($stopServiceWithTimeoutParameters.TerminateTimeout)
+            $expectedTimeSpan = [System.TimeSpan]::FromMilliseconds($stopServiceWithTimeoutParameters.TerminateTimeout)
 
             It 'Should not throw' {
                 { Stop-ServiceWithTimeout @stopServiceWithTimeoutParameters } | Should Not Throw
@@ -2957,7 +2957,7 @@ try
             }
 
             It 'Should wait for service to stop' {
-                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $stopServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped -and [TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'Describe'
+                Assert-MockCalled -CommandName 'Wait-ServiceStateWithTimeout' -ParameterFilter { $ServiceName -eq $stopServiceWithTimeoutParameters.ServiceName -and $State -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped -and [System.TimeSpan]::Equals($expectedTimeSpan, $WaitTimeSpan) } -Times 1 -Scope 'Describe'
             }
         }
     }

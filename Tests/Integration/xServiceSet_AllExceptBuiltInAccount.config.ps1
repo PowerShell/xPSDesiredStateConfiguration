@@ -1,7 +1,7 @@
 param
 (
     [Parameter(Mandatory = $true)]
-    [String]
+    [System.String]
     $ConfigurationName
 )
 
@@ -11,12 +11,12 @@ Configuration $ConfigurationName
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String[]]
+        [System.String[]]
         $Name,
 
         [ValidateSet('Present', 'Absent')]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Ensure = 'Present',
 
         [Parameter(Mandatory = $true)]
@@ -26,11 +26,11 @@ Configuration $ConfigurationName
         $Credential,
 
         [ValidateSet('Running', 'Stopped', 'Ignore')]
-        [String]
+        [System.String]
         $State = 'Running',
 
         [ValidateSet('Automatic', 'Manual', 'Disabled')]
-        [String]
+        [System.String]
         $StartupType = 'Automatic'
     )
 

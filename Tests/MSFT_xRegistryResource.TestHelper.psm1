@@ -9,12 +9,12 @@
 function Test-RegistryKeyExists
 {
     [CmdletBinding()]
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath
     )
 
@@ -41,24 +41,24 @@ function Test-RegistryKeyExists
 function Test-RegistryValueExists
 {
     [CmdletBinding()]
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     param (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
         [AllowEmptyString()]
-        [String]
+        [System.String]
         $ValueName,
 
-        [String]
+        [System.String]
         $ValueData,
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ValueType
     )
 
@@ -123,7 +123,7 @@ function New-TestRegistryKey
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath
     )
 
@@ -163,20 +163,20 @@ function New-RegistryValue
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
         [AllowEmptyString()]
-        [String]
+        [System.String]
         $ValueName,
 
         [Object]
         $ValueData,
 
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $ValueType
     )
 
@@ -199,7 +199,7 @@ function New-RegistryValue
             $convertedValueData += [Convert]::ToInt32($ValueData.Substring($index, 2), 16)
         }
 
-        $ValueData = [Byte[]] $convertedValueData
+        $ValueData = [System.Byte[]] $convertedValueData
 
         Write-Verbose -Message "New-RegistryValue - Binary data: $ValueData"
     }
@@ -222,7 +222,7 @@ function Remove-TestRegistryKey
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath
     )
 
@@ -247,13 +247,13 @@ function Remove-TestRegistryValue
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath,
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNull()]
         [AllowEmptyString()]
-        [String]
+        [System.String]
         $ValueName
     )
 
@@ -274,7 +274,7 @@ function Mount-RegistryDrive
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath
     )
 
@@ -331,7 +331,7 @@ function Dismount-RegistryDrive
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath
     )
 
@@ -351,12 +351,12 @@ function Dismount-RegistryDrive
 function Test-RegistryDriveMounted
 {
     [CmdletBinding()]
-    [OutputType([Boolean])]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $KeyPath
     )
 

@@ -57,12 +57,12 @@ Configuration xWindowsProcess_StopProcessUnderUserConfig
     (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $FilePath,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
-        [String]
+        [System.String]
         $Argument,
 
         [Parameter(Mandatory = $true)]
