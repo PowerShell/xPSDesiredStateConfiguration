@@ -708,6 +708,7 @@ function Get-AppVeyorAdministratorCredential
 #>
 function Enter-DscResourceTestEnvironment
 {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidGlobalVars', '')]
     [OutputType([Hashtable])]
     [CmdletBinding()]
     param
@@ -728,15 +729,37 @@ function Enter-DscResourceTestEnvironment
         $TestType
     )
 
-    $script:moduleRoot = Split-Path -Parent $PSScriptRoot
+    $moduleRootPath = Split-Path -Path $PSScriptRoot -Parent
+    $dscResourceTestsPath = Join-Path -Path $moduleRootPath -ChildPath 'DSCResource.Tests'
+    $testHelperFilePath = Join-Path -Path $dscResourceTestsPath -ChildPath 'TestHelper.psm1'
 
-    if ( (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests'))) -or `
-         (-not (Test-Path -Path (Join-Path -Path $script:moduleRoot -ChildPath 'DSCResource.Tests\TestHelper.psm1'))) )
+    if (-not (Test-Path -Path $dscResourceTestsPath))
     {
-        & git @('clone', 'https://github.com/PowerShell/DscResource.Tests.git', (Join-Path -Path $script:moduleRoot -ChildPath 'DscResource.Tests'))
+        Push-Location $moduleRootPath
+        git clone 'https://github.com/PowerShell/DscResource.Tests' --quiet
+        Pop-Location
+
+        $Global:UpdatedDscResourceTestsModule = $true
+    }
+    elseif (-not ($Global:UpdatedDscResourceTestsModule))
+    {
+        $gitInstalled = $null -ne (Get-Command -Name 'git' -ErrorAction 'SilentlyContinue')
+
+        if ($gitInstalled)
+        {
+            Push-Location $dscResourceTestsPath
+            git pull origin dev --quiet
+            Pop-Location
+        }
+        else
+        {
+            Write-Verbose -Message 'Git not installed. Leaving current DSCResource.Tests as is.'
+        }
+
+        $Global:UpdatedDscResourceTestsModule = $true
     }
 
-    Import-Module -Name (Join-Path -Path $script:moduleRoot -ChildPath (Join-Path -Path 'DSCResource.Tests' -ChildPath 'TestHelper.psm1')) -Force
+    Import-Module -Name $testHelperFilePath
 
     return Initialize-TestEnvironment `
         -DSCModuleName $DscResourceModuleName `
