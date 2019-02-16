@@ -1149,7 +1149,7 @@ function ConvertTo-DWord
             $currentCultureInfo = [System.Globalization.CultureInfo]::CurrentCulture
             $referenceValue = $null
 
-            if ([System.Int32]::TryParse($singleRegistryKeyValue, 'HexNumber', $currentCultureInfo, [System.Management.Automation.PSReference] $referenceValue))
+            if ([System.Int32]::TryParse($singleRegistryKeyValue, 'HexNumber', $currentCultureInfo, [ref] $referenceValue))
             {
                 $dwordRegistryKeyValue = $referenceValue
             }
@@ -1242,7 +1242,7 @@ function ConvertTo-QWord
             $currentCultureInfo = [System.Globalization.CultureInfo]::CurrentCulture
             $referenceValue = $null
 
-            if ([System.Int64]::TryParse($singleRegistryKeyValue, 'HexNumber', $currentCultureInfo, [System.Management.Automation.PSReference] $referenceValue))
+            if ([System.Int64]::TryParse($singleRegistryKeyValue, 'HexNumber', $currentCultureInfo, [ref] $referenceValue))
             {
                 $qwordRegistryKeyValue = $referenceValue
             }

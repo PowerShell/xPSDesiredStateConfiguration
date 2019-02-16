@@ -1236,7 +1236,7 @@ function Invoke-PInvoke
         $RunAsCredential.GetNetworkCredential().Domain, `
         $RunAsCredential.GetNetworkCredential().UserName, `
         $RunAsCredential.GetNetworkCredential().Password, `
-        [System.Management.Automation.PSReference] $exitCode
+        [ref] $exitCode
     )
 
     return $exitCode
