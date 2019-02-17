@@ -176,9 +176,6 @@ try
             Mock -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'RegistrationKeyPath'} -MockWith {return $serviceData.RegistrationKeyPath}
             Mock -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'dbprovider'}          -MockWith {return $serviceData.dbprovider}
             Mock -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'dbconnectionstr'}     -MockWith {return $serviceData.dbconnectionstr}
-            Mock -CommandName Get-WebConfigModulesSetting `
-                -ParameterFilter {$webConfigFullPath.StartsWith($websiteDataHTTP.physicalPath) -and $ModuleName -eq 'IISSelfSignedCertModule(32bit)'} `
-                -MockWith {return 'IISSelfSignedCertModule(32bit)'}
             #endregion
 
             Context -Name 'DSC Web Service is installed without certificate' -Fixture {
@@ -286,7 +283,6 @@ try
                     Assert-MockCalled -Exactly -Times 2 -CommandName Get-WebSite
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-ChildItem
                     Assert-MockCalled -Exactly -Times 5 -CommandName Get-WebConfigAppSetting
-                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-WebConfigModulesSetting
                 }
             }
 
@@ -461,6 +457,12 @@ try
             function Get-WebBinding {}
 
             #region Mocks
+            $allowedArgs = @(
+                'list config -section:system.webServer/globalModules'
+                'install module /name:$iisSelfSignedModuleName /image:$destinationFilePath /add:false /lock:false'
+                'add module /name:$iisSelfSignedModuleName /app.name:"$EndpointName/" $preConditionBitnessArgumentFor32BitInstall'
+                'delete module /name:$iisSelfSignedModuleName  /app.name:"$EndpointName/"'
+            )
             $testArguments = 'if ($allowedArgs -notcontains $MyInvocation.Line.Trim()) {throw ''Mock test failed.''}'
 
             Mock -CommandName Get-IISAppCmd -MockWith {[ScriptBlock]::Create($testArguments)}
@@ -473,7 +475,7 @@ try
                     Set-TargetResource @testParameters -Ensure Absent
 
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Website
-                    ##FIXME: Assert-MockCalled -Exactly -Times 1 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-IISAppCmd
                 }
             }
 
@@ -487,7 +489,7 @@ try
                     Set-TargetResource @testParameters -Ensure Absent
 
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Website
-                    ##FIXME: Assert-MockCalled -Exactly -Times 1 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-IISAppCmd
                     Assert-MockCalled -Exactly -Times 1 -CommandName Remove-PSWSEndpoint
                 }
             }
@@ -516,7 +518,7 @@ try
                 It 'Should call expected mocks' {
                     Set-TargetResource @testParameters @setTargetPaths -Ensure Present
 
-                    ##FIXME: Assert-MockCalled -Exactly -Times 1 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-IISAppCmd
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly -Times 1 -CommandName Test-Path
@@ -567,7 +569,7 @@ try
                 It 'Should call expected mocks' {
                     Set-TargetResource @testParameters @setTargetPaths -Ensure Present
 
-                    ##FIXME: Assert-MockCalled -Exactly -Times 1 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-IISAppCmd
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly -Times 1 -CommandName Test-Path
@@ -599,7 +601,7 @@ try
                 It 'Should call expected mocks' {
                     Set-TargetResource @testParameters @setTargetPaths -Ensure Present
 
-                    ##FIXME: Assert-MockCalled -Exactly -Times 1 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-IISAppCmd
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly -Times 1 -CommandName Test-Path
@@ -626,7 +628,7 @@ try
                 It 'Should call expected mocks' {
                     Set-TargetResource @testParameters @setTargetPaths -Ensure Present -Enable32BitAppOnWin64 $true
 
-                    ##FIXME: Assert-MockCalled -Exactly -Times 1 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-IISAppCmd
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly -Times 1 -CommandName Test-Path
@@ -654,7 +656,7 @@ try
                 It 'Should call expected mocks' {
                     Set-TargetResource @testParameters @setTargetPaths -Ensure Present -AcceptSelfSignedCertificates $false
 
-                    ##FIXME: Assert-MockCalled -Exactly -Times 1 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-IISAppCmd
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Culture
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly -Times 1 -CommandName Test-Path

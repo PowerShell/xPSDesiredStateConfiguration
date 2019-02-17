@@ -79,58 +79,62 @@ function Get-TargetResource
 
     if ($webSite)
     {
-            $Ensure = 'Present'
-            $acceptSelfSignedCertificates = $false
+        $Ensure = 'Present'
+        $acceptSelfSignedCertificates = $false
 
-            # Get Full Path for Web.config file
-            $webConfigFullPath = Join-Path -Path $website.physicalPath -ChildPath "web.config"
+        # Get Full Path for Web.config file
+        $webConfigFullPath = Join-Path -Path $website.physicalPath -ChildPath "web.config"
 
-            # Get module and configuration path
-            $modulePath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "ModulePath"
-            $configurationPath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "ConfigurationPath"
-            $registrationKeyPath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "RegistrationKeyPath"
+        # Get module and configuration path
+        $modulePath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "ModulePath"
+        $configurationPath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "ConfigurationPath"
+        $registrationKeyPath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "RegistrationKeyPath"
 
-            # Get database path
-            switch ((Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbprovider"))
-            {
-                "ESENT" {
-                    $databasePath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbconnectionstr" | Split-Path -Parent
-                }
-
-                "System.Data.OleDb" {
-                    $connectionString = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbconnectionstr"
-                    if ($connectionString -match 'Data Source=(.*)\\Devices\.mdb')
-                    {
-                        $databasePath = $Matches[0]
-                    }
-                    else
-                    {
-                        $databasePath = $connectionString
-                    }
-                }
+        # Get database path
+        switch ((Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbprovider"))
+        {
+            "ESENT" {
+                $databasePath = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbconnectionstr" | Split-Path -Parent
             }
 
-            $urlPrefix = $website.bindings.Collection[0].protocol + "://"
-
-            $fqdn = $env:COMPUTERNAME
-            if ($env:USERDNSDOMAIN)
-            {
-                $fqdn = $env:COMPUTERNAME + "." + $env:USERDNSDOMAIN
-            }
-
-            $iisPort = $website.bindings.Collection[0].bindingInformation.Split(":")[1]
-
-            $svcFileName = (Get-ChildItem -Path $website.physicalPath -Filter "*.svc").Name
-
-            $serverUrl = $urlPrefix + $fqdn + ":" + $iisPort + "/" + $svcFileName
-
-            $webBinding = Get-WebBinding -Name $EndpointName
-
-            if((Test-IISSelfSignedModuleEnabled -EndpointName $EndpointName))
-            {
-                $acceptSelfSignedCertificates = $true
+            "System.Data.OleDb" {
+                $connectionString = Get-WebConfigAppSetting -WebConfigFullPath $webConfigFullPath -AppSettingName "dbconnectionstr"
+                if ($connectionString -match 'Data Source=(.*)\\Devices\.mdb')
+                {
+                    $databasePath = $Matches[0]
+                }
+                else
+                {
+                    $databasePath = $connectionString
+                }
             }
         }
+
+        $urlPrefix = $website.bindings.Collection[0].protocol + "://"
+
+        $ipProperties = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties()
+        if ($ipProperties.DomainName)
+        {
+            $fqdn = '{0}.{1}' -f $ipProperties.HostName, $ipProperties.DomainName
+        }
+        else
+        {
+            $fqdn = $ipProperties.HostName
+        }
+
+        $iisPort = $website.bindings.Collection[0].bindingInformation.Split(":")[1]
+
+        $svcFileName = (Get-ChildItem -Path $website.physicalPath -Filter "*.svc").Name
+
+        $serverUrl = $urlPrefix + $fqdn + ":" + $iisPort + "/" + $svcFileName
+
+        $webBinding = Get-WebBinding -Name $EndpointName
+
+        if((Test-IISSelfSignedModuleEnabled -EndpointName $EndpointName))
+        {
+            $acceptSelfSignedCertificates = $true
+        }
+    }
     else
     {
         $Ensure = 'Absent'
@@ -303,8 +307,6 @@ function Set-TargetResource
     if ($UseSecurityBestPractices -and ($CertificateThumbPrint -eq "AllowUnencryptedTraffic"))
     {
         throw $LocalizedData.ThrowUseSecurityBestPractice
-        # No need to proceed any more
-        return
     }
 
     # Initialize with default values
