@@ -173,7 +173,7 @@
   - Added function help for all functions.
   - Moved `New-InvalidDataException` to CommonResourceHelper.psm1.
     [issue #544](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/544)
-- Added full stops to the end of all functions help in CommonResourceHelper.psm1
+- Added full stops to the end of all functions help in CommonResourceHelper.psm1.
 
 ## 8.4.0.0
 
