@@ -79,6 +79,8 @@ function Get-TargetResource
 
     if ($webSite)
     {
+        Write-Verbose -Message "PullServer is deployed at $EndpointName"
+
         $Ensure = 'Present'
         $acceptSelfSignedCertificates = $false
 
@@ -137,6 +139,7 @@ function Get-TargetResource
     }
     else
     {
+        Write-Verbose -Message "No website found with name $EndpointName"
         $Ensure = 'Absent'
     }
 
@@ -159,6 +162,7 @@ function Get-TargetResource
 
     if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic')
     {
+        Write-Verbose -Message "Current PullServer configuration allows unencrypted traffic"
         $output.Add('CertificateThumbPrint', $certificateThumbPrint)
     }
     else
