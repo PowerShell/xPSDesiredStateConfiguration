@@ -11,7 +11,16 @@ $script:cacheLocation = "$env:ProgramData\Microsoft\Windows\PowerShell\Configura
 
 <#
     .SYNOPSIS
-        The Get-TargetResource function is used to fetch the status of file specified in DestinationPath on the target machine.
+        The Get-TargetResource function is used to fetch the status of file
+        specified in DestinationPath on the target machine.
+
+    .PARAMETER DestinationPath
+        Path under which downloaded or copied file should be accessible after
+        operation.
+
+    .PARAMETER Uri
+        Uri of a file which should be copied or downloaded. This parameter
+        supports HTTP and HTTPS values.
 #>
 function Get-TargetResource
 {
@@ -77,8 +86,43 @@ function Get-TargetResource
 
 <#
     .SYNOPSIS
-        The Set-TargetResource function is used to download file found under Uri location to DestinationPath
-        Additional parameters can be specified to configure web request
+        The Set-TargetResource function is used to download file found under
+        Uri location to DestinationPath. Additional parameters can be specified
+        to configure web request.
+
+    .PARAMETER DestinationPath
+        Path under which downloaded or copied file should be accessible after
+        operation.
+
+    .PARAMETER Uri
+        Uri of a file which should be copied or downloaded. This parameter
+        supports HTTP and HTTPS values.
+
+    .PARAMETER UserAgent
+        User agent for the web request.
+
+    .PARAMETER Headers
+        Headers of the web request.
+
+    .PARAMETER Credential
+        Specifies a user account that has permission to send the request.
+
+    .PARAMETER MatchSource
+        A boolean value to indicate whether the remote file should be re-downloaded
+        if the file in the DestinationPath was modified locally. The default value
+        is true.
+
+    .PARAMETER TimeoutSec
+        Specifies how long the request can be pending before it times out.
+
+    .PARAMETER Proxy
+        Uses a proxy server for the request, rather than connecting directly
+        to the Internet resource. Should be the URI of a network proxy server
+        (e.g 'http://10.20.30.1').
+
+    .PARAMETER ProxyCredential
+        Specifies a user account that has permission to use the proxy server that
+        is specified by the Proxy parameter.
 #>
 function Set-TargetResource
 {
@@ -104,8 +148,8 @@ function Set-TargetResource
         $Headers,
 
         [Parameter()]
-        [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
+        [System.Management.Automation.PSCredential]
         $Credential,
 
         [Parameter()]
@@ -121,6 +165,7 @@ function Set-TargetResource
         $Proxy,
 
         [Parameter()]
+        [System.Management.Automation.Credential()]
         [System.Management.Automation.PSCredential]
         $ProxyCredential
     )
@@ -245,7 +290,42 @@ function Set-TargetResource
 
 <#
     .SYNOPSIS
-        The Test-TargetResource function is used to validate if the DestinationPath exists on the machine.
+        The Test-TargetResource function is used to validate if the DestinationPath
+        exists on the machine.
+
+    .PARAMETER DestinationPath
+        Path under which downloaded or copied file should be accessible after
+        operation.
+
+    .PARAMETER Uri
+        Uri of a file which should be copied or downloaded. This parameter
+        supports HTTP and HTTPS values.
+
+    .PARAMETER UserAgent
+        User agent for the web request.
+
+    .PARAMETER Headers
+        Headers of the web request.
+
+    .PARAMETER Credential
+        Specifies a user account that has permission to send the request.
+
+    .PARAMETER MatchSource
+        A boolean value to indicate whether the remote file should be re-downloaded
+        if the file in the DestinationPath was modified locally. The default value
+        is true.
+
+    .PARAMETER TimeoutSec
+        Specifies how long the request can be pending before it times out.
+
+    .PARAMETER Proxy
+        Uses a proxy server for the request, rather than connecting directly
+        to the Internet resource. Should be the URI of a network proxy server
+        (e.g 'http://10.20.30.1').
+
+    .PARAMETER ProxyCredential
+        Specifies a user account that has permission to use the proxy server that
+        is specified by the Proxy parameter.
 #>
 function Test-TargetResource
 {
@@ -272,8 +352,8 @@ function Test-TargetResource
         $Headers,
 
         [Parameter()]
-        [System.Management.Automation.PSCredential]
         [System.Management.Automation.Credential()]
+        [System.Management.Automation.PSCredential]
         $Credential,
 
         [Parameter()]
@@ -289,6 +369,7 @@ function Test-TargetResource
         $Proxy,
 
         [Parameter()]
+        [System.Management.Automation.Credential()]
         [System.Management.Automation.PSCredential]
         $ProxyCredential
     )
@@ -378,44 +459,22 @@ function Test-TargetResource
 
 <#
     .SYNOPSIS
-        Throws terminating error of category InvalidData with specified errorId and errorMessage
-#>
-function New-InvalidDataException
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $ErrorId,
-
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $ErrorMessage
-    )
-
-    $errorCategory = [System.Management.Automation.ErrorCategory]::InvalidData
-    $exception = New-Object `
-        -TypeName System.InvalidOperationException `
-        -ArgumentList $ErrorMessage
-    $errorRecord = New-Object `
-        -TypeName System.Management.Automation.ErrorRecord `
-        -ArgumentList $exception, $ErrorId, $errorCategory, $null
-
-    throw $errorRecord
-}
-
-<#
-    .SYNOPSIS
-        Checks whether given URI represents specific scheme
+        Checks whether given URI represents specific scheme.
 
     .DESCRIPTION
         Most common schemes: file, http, https, ftp
         We can also specify logical expressions like: [http|https]
+
+    .PARAMETER Uri
+        The path of the item to test the scheme of.
+
+    .PARAMETER Scheme
+        The type of scheme to test the item is.
 #>
 function Test-UriScheme
 {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter(Mandatory = $true)]
@@ -436,8 +495,11 @@ function Test-UriScheme
     .SYNOPSIS
         Gets type of the item which path points to.
 
+    .PARAMETER Path
+        The path of the item to return the item type of.
+
     .OUTPUTS
-        File, Directory, Other or NotExists
+        File, Directory, Other or NotExists.
 #>
 function Get-PathItemType
 {
@@ -453,7 +515,7 @@ function Get-PathItemType
     $type = $null
 
     # Check whether path exists
-    if (Test-Path $path)
+    if (Test-Path -Path $path)
     {
         # Check type of the path
         $pathItem = Get-Item -Path $Path
@@ -483,6 +545,9 @@ function Get-PathItemType
 <#
     .SYNOPSIS
         Converts CimInstance array of type KeyValuePair to hashtable
+
+    .PARAMETER Array
+        The array of KeyValuePairs to convert to a hashtable.
 #>
 function Convert-KeyValuePairArrayToHashtable
 {
@@ -509,7 +574,13 @@ function Convert-KeyValuePairArrayToHashtable
 
 <#
     .SYNOPSIS
-        Gets cache for specific DestinationPath and Uri
+        Gets cache for specific DestinationPath and Uri.
+
+    .PARAMETER DestinationPath
+        The path to the cache.
+
+    .PARAMETER Uri
+        The URI of the file to get the cache content for.
 #>
 function Get-Cache
 {
@@ -550,7 +621,16 @@ function Get-Cache
 
 <#
     .SYNOPSIS
-        Creates or updates cache for specific DestinationPath and Uri
+        Creates or updates cache for specific DestinationPath and Uri.
+
+    .PARAMETER DestinationPath
+        The path to the cache.
+
+    .PARAMETER Uri
+        The URI of the file to update the cache for.
+
+    .PARAMETER Uri
+        The content of the file to update in the cache.
 #>
 function Update-Cache
 {
@@ -587,11 +667,18 @@ function Update-Cache
 
 <#
     .SYNOPSIS
-        Returns cache key for given parameters
+        Returns cache key for given parameters.
+
+    .PARAMETER DestinationPath
+        The path to the cache.
+
+    .PARAMETER Uri
+        The URI of the file to get the cache key for.
 #>
 function Get-CacheKey
 {
     [CmdletBinding()]
+    [OutputType([System.String])]
     param
     (
         [Parameter(Mandatory = $true)]

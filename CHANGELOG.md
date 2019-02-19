@@ -166,6 +166,14 @@
 - Added a CODE\_OF\_CONDUCT.md with the same content as in the README.md
   [issue #562](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/562)
 - Replaces Type Accelerators with fully qualified type names.
+- xRemoteFile
+  - Updated MatchSource description in README.md.
+    [issue #409](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/409)
+  - Improved layout of MOF file to move description left.
+  - Added function help for all functions.
+  - Moved `New-InvalidDataException` to CommonResourceHelper.psm1.
+    [issue #544](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/544)
+- Added full stops to the end of all functions help in CommonResourceHelper.psm1
 
 ## 8.4.0.0
 

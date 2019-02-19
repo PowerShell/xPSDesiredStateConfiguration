@@ -519,7 +519,8 @@ None
 * **Credential**: Specifies credential of a user which has permissions to send
   the request. Optional.
 * **MatchSource**: Determines whether the remote file should be re-downloaded
-  if file in the DestinationPath was modified locally. Optional.
+  if file in the DestinationPath was modified locally. The default value is
+  true. Optional.
 * **TimeoutSec**: Specifies how long the request can be pending before it times
   out. Optional.
 * **Proxy**: Uses a proxy server for the request, rather than connecting

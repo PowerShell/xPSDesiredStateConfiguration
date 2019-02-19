@@ -50,13 +50,13 @@ function Test-CommandExists
 
 <#
     .SYNOPSIS
-        Creates and throws an invalid argument exception
+        Creates and throws an invalid argument exception.
 
     .PARAMETER Message
-        The message explaining why this error is being thrown
+        The message explaining why this error is being thrown.
 
     .PARAMETER ArgumentName
-        The name of the invalid argument that is causing this error to be thrown
+        The name of the invalid argument that is causing this error to be thrown.
 #>
 function New-InvalidArgumentException
 {
@@ -75,9 +75,9 @@ function New-InvalidArgumentException
     )
 
     $argumentException = New-Object -TypeName 'ArgumentException' `
-                                    -ArgumentList @($Message, $ArgumentName)
+        -ArgumentList @($Message, $ArgumentName)
     $newObjectParams = @{
-        TypeName = 'System.Management.Automation.ErrorRecord'
+        TypeName     = 'System.Management.Automation.ErrorRecord'
         ArgumentList = @($argumentException, $ArgumentName, 'InvalidArgument', $null)
     }
     $errorRecord = New-Object @newObjectParams
@@ -87,13 +87,49 @@ function New-InvalidArgumentException
 
 <#
     .SYNOPSIS
-        Creates and throws an invalid operation exception
+        Creates and throws an invalid data exception.
+
+    .PARAMETER ErrorId
+        The error Id to assign to the exception.
+
+    .PARAMETER ErrorMessage
+        The error message to assign to the exception.
+#>
+function New-InvalidDataException
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ErrorId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ErrorMessage
+    )
+
+    $errorCategory = [System.Management.Automation.ErrorCategory]::InvalidData
+    $exception = New-Object `
+        -TypeName System.InvalidOperationException `
+        -ArgumentList $ErrorMessage
+    $errorRecord = New-Object `
+        -TypeName System.Management.Automation.ErrorRecord `
+        -ArgumentList $exception, $ErrorId, $errorCategory, $null
+
+    throw $errorRecord
+}
+
+<#
+    .SYNOPSIS
+        Creates and throws an invalid operation exception.
 
     .PARAMETER Message
-        The message explaining why this error is being thrown
+        The message explaining why this error is being thrown.
 
     .PARAMETER ErrorRecord
-        The error record containing the exception that is causing this terminating error
+        The error record containing the exception that is causing this terminating
+        error.
 #>
 function New-InvalidOperationException
 {
@@ -118,18 +154,18 @@ function New-InvalidOperationException
     elseif ($null -eq $ErrorRecord)
     {
         $invalidOperationException = New-Object -TypeName 'InvalidOperationException' `
-                                                -ArgumentList @($Message)
+            -ArgumentList @($Message)
     }
     else
     {
         $invalidOperationException = New-Object -TypeName 'InvalidOperationException' `
-                                                -ArgumentList @($Message, $ErrorRecord.Exception)
+            -ArgumentList @($Message, $ErrorRecord.Exception)
     }
 
     $newObjectParams = @{
-        TypeName = 'System.Management.Automation.ErrorRecord'
+        TypeName     = 'System.Management.Automation.ErrorRecord'
         ArgumentList = @( $invalidOperationException.ToString(), 'MachineStateIncorrect',
-                          'InvalidOperation', $null )
+            'InvalidOperation', $null )
     }
 
     $errorRecordToThrow = New-Object @newObjectParams
@@ -142,7 +178,8 @@ function New-InvalidOperationException
         Falls back to en-US strings if the machine's culture is not supported.
 
     .PARAMETER ResourceName
-        The name of the resource as it appears before '.strings.psd1' of the localized string file.
+        The name of the resource as it appears before '.strings.psd1' of the localized
+        string file.
         For example:
             For xWindowsOptionalFeature: MSFT_xWindowsOptionalFeature
             For xService: MSFT_xServiceResource
@@ -197,11 +234,11 @@ function Set-DSCMachineRebootRequired
     $global:DSCMachineStatus = 1
 }
 
-Export-ModuleMember `
-    -Function @(
-        'Test-IsNanoServer',
-        'New-InvalidArgumentException',
-        'New-InvalidOperationException',
-        'Get-LocalizedData',
-        'Set-DSCMachineRebootRequired'
-    )
+Export-ModuleMember -Function @(
+    'Test-IsNanoServer',
+    'New-InvalidArgumentException',
+    'New-InvalidDataException',
+    'New-InvalidOperationException',
+    'Get-LocalizedData',
+    'Set-DSCMachineRebootRequired'
+)
