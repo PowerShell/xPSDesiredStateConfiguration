@@ -1,4 +1,4 @@
-[ClassVersion("1.0.0"), FriendlyName("xDSCWebService")] 
+[ClassVersion("1.0.0"), FriendlyName("xDSCWebService")]
 class MSFT_xDSCWebService : OMI_BaseResource
 {
   [Key] string EndpointName;
@@ -13,7 +13,7 @@ class MSFT_xDSCWebService : OMI_BaseResource
   [write] string DatabasePath;
   [write] string ModulePath;
   [write] string ConfigurationPath;
-  [read] string DSCServerUrl;  
+  [read] string DSCServerUrl;
   [write] string RegistrationKeyPath;
   [write] boolean AcceptSelfSignedCertificates;
   [write] boolean SqlProvider;
@@ -21,4 +21,5 @@ class MSFT_xDSCWebService : OMI_BaseResource
   [required, Description("This property will ensure that the Pull Server is created with the most secure practices")] boolean UseSecurityBestPractices;
   [write,ValueMap{"SecureTLSProtocols"},Values{"SecureTLSProtocols"}] string DisableSecurityBestPractices [];
   [write, Description("When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine")] boolean Enable32BitAppOnWin64;
+  [write, Description("Add firewall incoming exceptions for the configured PullServer Port. Default: true")] boolean ConfigureFirewall;
 };

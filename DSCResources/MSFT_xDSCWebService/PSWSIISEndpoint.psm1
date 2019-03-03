@@ -1,9 +1,6 @@
 # This module file contains a utility to perform PSWS IIS Endpoint setup
 # Module exports New-PSWSEndpoint function to perform the endpoint setup
 
-# Name and description for the Firewall rules. Used in multiple locations
-$FireWallRuleDisplayName = 'Desired State Configuration - Pull Server Port:{0}'
-
 <#
     .SYNOPSIS
         Validate supplied configuration to setup the PSWS Endpoint Function
@@ -458,33 +455,6 @@ function New-IISWebSite
 
 <#
     .SYNOPSIS
-        Allow Clients outsite the machine to access the setup endpoint on a
-        User Port.
-#>
-function Set-FirewallConfigurationToAllowPullServerAccess
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter()]
-        [System.String]
-        $firewallPort
-    )
-
-    $script:netsh = "$env:windir\system32\netsh.exe"
-
-    Write-Verbose -Message 'Disable Inbound Firewall Notification'
-    & $script:netsh advfirewall set currentprofile settings inboundusernotification disable
-
-    # remove all existing rules with that displayName
-    & $script:netsh advfirewall firewall delete rule name=DSCPullServer_IIS_Port protocol=tcp localport=$firewallPort | Out-Null
-
-    Write-Verbose -Message "Add Firewall Rule for port $firewallPort"
-    & $script:netsh advfirewall firewall add rule name=DSCPullServer_IIS_Port dir=in action=allow protocol=TCP localport=$firewallPort
-}
-
-<#
-    .SYNOPSIS
         Enable & Clear PSWS Operational/Analytic/Debug ETW Channels.
 #>
 function Enable-PSWSETW
@@ -617,11 +587,6 @@ function New-PSWSEndpoint
         [System.Boolean]
         $removeSiteFiles = $false,
 
-        # Enable Firewall Exception for the supplied port
-        [Parameter()]
-        [System.Boolean]
-        $EnableFirewallException,
-
         # Enable and Clear PSWS ETW
         [Parameter()]
         [System.Management.Automation.SwitchParameter]
@@ -657,12 +622,6 @@ function New-PSWSEndpoint
                         -language $language -dependentMUIFiles $dependentMUIFiles -psFiles $psFiles `
                         -removeSiteFiles $removeSiteFiles -certificateThumbPrint $certificateThumbPrint `
                         -enable32BitAppOnWin64 $Enable32BitAppOnWin64
-
-    if ($EnableFirewallException -eq $true)
-    {
-        Write-Verbose -Message "Enabling firewall exception for port $port"
-        $null = Set-FirewallConfigurationToAllowPullServerAccess $port
-    }
 
     if ($EnablePSWSETW)
     {
@@ -700,9 +659,6 @@ function Remove-PSWSEndpoint
 
     # Get the path so we can delete the files
     $filePath = $site.PhysicalPath
-    # Get the port number for the Firewall rule
-    $bindings = (Get-WebBinding -Name $siteName).bindingInformation
-    $port = [System.Text.RegularExpressions.Regex]::Match($bindings,':(\d+):').Groups[1].Value
 
     # Remove the actual site.
     Remove-Website -Name $siteName
@@ -728,10 +684,6 @@ function Remove-PSWSEndpoint
        # If we are the only site in the pool, remove the pool as well.
        Remove-WebAppPool -Name $pool
     }
-
-    # Remove all rules with that name
-    $ruleName = ($($FireWallRuleDisplayName) -f $port)
-    Get-NetFirewallRule | Where-Object DisplayName -eq "$ruleName" | Remove-NetFirewallRule
 }
 
 <#

@@ -1,6 +1,7 @@
 # Import the helper functions
-Import-Module -Name $PSScriptRoot\PSWSIISEndpoint.psm1 -Verbose:$false
-Import-Module -Name $PSScriptRoot\UseSecurityBestPractices.psm1 -Verbose:$false
+Import-Module -Name (Join-Path $PSScriptRoot 'PSWSIISEndpoint.psm1') -Verbose:$false
+Import-Module -Name (Join-Path $PSScriptRoot 'UseSecurityBestPractices.psm1') -Verbose:$false
+Import-Module -NAme (Join-Path $PSScriptRoot 'Firewall.psm1') -Verbose:$false
 
 #region LocalizedData
 $script:culture = 'en-US'
@@ -65,7 +66,11 @@ function Get-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
         [System.Boolean]
-        $Enable32BitAppOnWin64 = $false
+        $Enable32BitAppOnWin64 = $false,
+
+        [Parameter()]
+        [System.Boolean]
+        $ConfigureFirewall = $true
     )
 
     # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
@@ -136,6 +141,8 @@ function Get-TargetResource
         {
             $acceptSelfSignedCertificates = $true
         }
+
+        $ConfigureFirewall = Test-PullServerFirewallConfiguration -Port $iisPort
     }
     else
     {
@@ -158,6 +165,7 @@ function Get-TargetResource
         UseSecurityBestPractices        = $UseSecurityBestPractices
         DisableSecurityBestPractices    = $DisableSecurityBestPractices
         Enable32BitAppOnWin64           = $Enable32BitAppOnWin64
+        ConfigureFirewall               = $ConfigureFirewall
     }
 
     if ($CertificateThumbPrint -eq 'AllowUnencryptedTraffic')
@@ -291,7 +299,11 @@ function Set-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
         [System.Boolean]
-        $Enable32BitAppOnWin64 = $false
+        $Enable32BitAppOnWin64 = $false,
+
+        [Parameter()]
+        [System.Boolean]
+        $ConfigureFirewall = $true
     )
 
     # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
@@ -313,6 +325,10 @@ function Set-TargetResource
         throw $LocalizedData.ThrowUseSecurityBestPractice
     }
 
+    if ($ConfigureFirewall)
+    {
+        Write-Warning -Message $LocalizedData.ConfigFirewallDeprecated
+    }
     # Initialize with default values
 
     $pathPullServer = "$pshome\modules\PSDesiredStateConfiguration\PullServer"
@@ -354,16 +370,22 @@ function Set-TargetResource
     # ============ Absent block to remove existing site =========
     if(($Ensure -eq "Absent"))
     {
-         $website = Get-Website -Name $EndpointName
-         if($null -ne $website)
-         {
+        $website = Get-Website -Name $EndpointName
+        if($null -ne $website)
+        {
+            # Get the port number for the Firewall rule
+            $bindings = (Get-WebBinding -Name $EndpointName).bindingInformation
+            $port = [System.Text.RegularExpressions.Regex]::Match($bindings,':(\d+):').Groups[1].Value
+
             # there is a web site, but there shouldn't be one
             Write-Verbose -Message "Removing web site $EndpointName"
             PSWSIISEndpoint\Remove-PSWSEndpoint -SiteName $EndpointName
-         }
 
-         # we are done here, all stuff below is for 'Present'
-         return
+            Remove-PullServerFirewallConfiguration -Port $port
+        }
+
+        # we are done here, all stuff below is for 'Present'
+        return
     }
     # ===========================================================
 
@@ -382,9 +404,19 @@ function Set-TargetResource
                      -language $language `
                      -dependentMUIFiles  "$pathPullServer\$languagePath\Microsoft.Powershell.DesiredStateConfiguration.Service.Resources.dll" `
                      -certificateThumbPrint $certificateThumbPrint `
-                     -EnableFirewallException $true `
                      -Enable32BitAppOnWin64 $Enable32BitAppOnWin64 `
                      -Verbose
+
+    if ($ConfigureFirewall)
+    {
+        Write-Verbose -Message "Enabling firewall exception for port $port"
+        Add-PullServerFirewallConfiguration -Port $port
+    }
+    else
+    {
+        Write-Verbose -Message "Disabling firewall exception for port $port"
+        Remove-PullServerFirewallConfiguration -Port $port
+    }
 
     Update-LocationTagInApplicationHostConfigForAuthentication -WebSite $EndpointName -Authentication "anonymous"
     Update-LocationTagInApplicationHostConfigForAuthentication -WebSite $EndpointName -Authentication "basic"
@@ -565,7 +597,11 @@ function Test-TargetResource
         # When this property is set to true, Pull Server will run on a 32 bit process on a 64 bit machine
         [Parameter()]
         [System.Boolean]
-        $Enable32BitAppOnWin64 = $false
+        $Enable32BitAppOnWin64 = $false,
+
+        [Parameter()]
+        [System.Boolean]
+        $ConfigureFirewall = $true
     )
 
     # If Certificate Subject is not specified then a value for CertificateThumbprint must be explicitly set instead.
@@ -615,6 +651,21 @@ function Test-TargetResource
         Write-Verbose -Message 'Check Binding'
         $actualCertificateHash = $website.bindings.Collection[0].certificateHash
         $websiteProtocol       = $website.bindings.collection[0].Protocol
+
+        Write-Verbose -Message 'Checking firewall rule settings'
+        $ruleExists = Test-PullServerFirewallConfiguration -Port $Port
+        if ($ruleExists -and -not $ConfigureFirewall)
+        {
+            $desiredConfigurationMatch = $false
+            Write-Verbose -Message "Firewall rule exists for $Port and should not. Configuration does not match the desired state."
+            break
+        }
+        elseif (-not $ruleExists -and $ConfigureFirewall)
+        {
+            $desiredConfigurationMatch = $false
+            Write-Verbose -Message "Firewall rule does not exist for $Port and should. Configuration does not match the desired state."
+            break
+        }
 
         switch ($PSCmdlet.ParameterSetName)
         {
