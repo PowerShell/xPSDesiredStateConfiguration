@@ -732,26 +732,9 @@ function Enter-DscResourceTestEnvironment
     $dscResourceTestsPath = Join-Path -Path $moduleRootPath -ChildPath 'DSCResource.Tests'
     $testHelperFilePath = Join-Path -Path $dscResourceTestsPath -ChildPath 'TestHelper.psm1'
 
-    if (-not (Test-Path -Path $dscResourceTestsPath))
+    if (Test-DscResourceTestsNeedsInstallOrUpdate)
     {
-        Push-Location $moduleRootPath
-        git clone 'https://github.com/PowerShell/DscResource.Tests' --quiet
-        Pop-Location
-    }
-    else
-    {
-        $gitInstalled = $null -ne (Get-Command -Name 'git' -ErrorAction 'SilentlyContinue')
-
-        if ($gitInstalled)
-        {
-            Push-Location $dscResourceTestsPath
-            git pull origin dev --quiet
-            Pop-Location
-        }
-        else
-        {
-            Write-Verbose -Message 'Git not installed. Leaving current DSCResource.Tests as is.'
-        }
+        Install-DscResourceTests
     }
 
     Import-Module -Name $testHelperFilePath
@@ -760,6 +743,132 @@ function Enter-DscResourceTestEnvironment
         -DSCModuleName $DscResourceModuleName `
         -DSCResourceName $DscResourceName `
         -TestType $TestType
+}
+
+<#
+    .SYNOPSIS
+        Tests to see if DSCResource.Tests needs to be downloaded
+        or updated.
+
+    .DESCRIPTION
+        This function returns true if the DSCResource.Tests
+        content needs to be downloaded or updated.
+
+        A magic file in the .Git folder of DSCResource.Tests
+        is used to determine if the repository needs to be
+        updated.
+
+        If the last write time of the magic file is over 60
+        minutes old then this will cause the function to
+        return true.
+
+        The magic file is called DSC_LAST_FETCH.
+#>
+function Test-DscResourceTestsNeedsInstallOrUpdate
+{
+    [OutputType([System.Boolean])]
+    [CmdletBinding()]
+    param
+    (
+    )
+
+    $moduleRootPath = Split-Path -Path $PSScriptRoot -Parent
+    $dscResourceTestsPath = Join-Path -Path $moduleRootPath -ChildPath 'DSCResource.Tests'
+
+    if (Test-Path -Path $dscResourceTestsPath)
+    {
+        $magicFilePath = Join-Path -Path $dscResourceTestsPath -ChildPath '.git\DSC_LAST_FETCH'
+
+        if (Test-Path -Path $magicFilePath)
+        {
+            $magicFileLastWriteTime = (Get-Item -Path $magicFilePath).LastWriteTime
+            $timeWhenUpdateRequired = (Get-Date) + [timespan]::FromMinutes(60)
+
+            if ($magicFileLastWriteTime -and $magicFileLastWriteTime -lt $timeWhenUpdateRequired)
+            {
+                Write-Verbose -Message ('DSCResource.Tests was last updated on {0}. Update not required.' -f $magicFileLastWriteTime)
+                return $false
+            }
+            else
+            {
+                Write-Verbose -Message ('DSCResource.Tests was last updated on {0}. Update required.' -f $magicFileLastWriteTime)
+            }
+        }
+    }
+
+    Write-Verbose -Message 'DSCResource.Tests needs to be updated.'
+    return $true
+}
+
+<#
+    .SYNOPSIS
+        Installs the DSCResource.Tests content.
+
+    .DESCRIPTION
+        This function uses Git to install or update the
+        DSCResource.Tests repository.
+
+        It will then create or update the magic file in
+        the .git folder in the DSCResource.Tests folder.
+
+        The magic file is called DSC_LAST_FETCH.
+
+        If Git is not installed and the DSCResource.Tests
+        folder is not available then an exception will
+        be thrown.
+
+        If the DSCResource.Tests folder does exist but
+        Git is not installed then a warning will be
+        displayed and the repository will not be pulled.
+#>
+function Install-DscResourceTests
+{
+    [OutputType([System.Boolean])]
+    [CmdletBinding()]
+    param
+    (
+    )
+
+    $moduleRootPath = Split-Path -Path $PSScriptRoot -Parent
+    $dscResourceTestsPath = Join-Path -Path $moduleRootPath -ChildPath 'DSCResource.Tests'
+    $gitInstalled = $null -ne (Get-Command -Name 'git' -ErrorAction 'SilentlyContinue')
+    $writeMagicFile = $false
+
+    if (Test-Path -Path $dscResourceTestsPath)
+    {
+        if ($gitInstalled)
+        {
+            Push-Location -Path $dscResourceTestsPath
+            Write-Verbose -Message 'Updating DSCResource.Tests.'
+            git pull origin dev --quiet
+            $writeMagicFile = $true
+            Pop-Location
+        }
+        else
+        {
+            Write-Warning -Message 'Git not installed. DSCResource.Tests will not be updated.'
+        }
+    }
+    else
+    {
+        if (-not $gitInstalled)
+        {
+            throw 'Git not installed. Can not pull DSCResource.Tests.'
+        }
+
+        Push-Location -Path $moduleRootPath
+        Write-Verbose -Message 'Cloning DSCResource.Tests.'
+        git clone 'https://github.com/PowerShell/DscResource.Tests' --quiet
+        $writeMagicFile = $true
+        Pop-Location
+    }
+
+    if ($writeMagicFile)
+    {
+        # Write the magic file
+        $magicFilePath = Join-Path -Path $dscResourceTestsPath -ChildPath '.git\DSC_LAST_FETCH'
+        $null = Set-Content -Path $magicFilePath -Value (Get-Date) -Force
+    }
 }
 
 <#

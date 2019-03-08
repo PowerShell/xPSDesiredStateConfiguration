@@ -26,6 +26,12 @@
   `Tests\Unit\MSFT_xPackageResource.Tests.ps1`
   - Fixes issue where tests fail if run from a folder that contains spaces.
     [issue #580](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/580)
+- Changes to test helper Enter-DscResourceTestEnvironment so that it only
+  updates DSCResource.Tests when it is longer than 60 minutes since
+  it was last pulled. This is to improve performance of test execution
+  and reduce the likelihood of connectivity issues caused by inability to
+  pull DSCResource.Tests.
+  [issue #505](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/505)
 
 ## 8.5.0.0
 
