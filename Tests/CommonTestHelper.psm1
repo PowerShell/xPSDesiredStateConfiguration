@@ -786,17 +786,17 @@ function Test-DscResourceTestsNeedsInstallOrUpdate
 
             if ($magicFileLastWriteTime -and $magicFileLastWriteTime -lt $timeWhenUpdateRequired)
             {
-                Write-Verbose -Message ('DSCResource.Tests was last updated on {0}. Update not required.' -f $magicFileLastWriteTime)
+                Write-Verbose -Message ('DSCResource.Tests was last updated at {0}. Update not required.' -f $magicFileLastWriteTime) -Verbose
                 return $false
             }
             else
             {
-                Write-Verbose -Message ('DSCResource.Tests was last updated on {0}. Update required.' -f $magicFileLastWriteTime)
+                Write-Verbose -Message ('DSCResource.Tests was last updated at {0}. Update is required.' -f $magicFileLastWriteTime) -Verbose
             }
         }
     }
 
-    Write-Verbose -Message 'DSCResource.Tests needs to be updated.'
+    Write-Verbose -Message 'DSCResource.Tests needs to be updated.' -Verbose
     return $true
 }
 
@@ -839,7 +839,7 @@ function Install-DscResourceTests
         if ($gitInstalled)
         {
             Push-Location -Path $dscResourceTestsPath
-            Write-Verbose -Message 'Updating DSCResource.Tests.'
+            Write-Verbose -Message 'Updating DSCResource.Tests.' -Verbose
             git pull origin dev --quiet
             $writeMagicFile = $true
             Pop-Location
@@ -857,7 +857,7 @@ function Install-DscResourceTests
         }
 
         Push-Location -Path $moduleRootPath
-        Write-Verbose -Message 'Cloning DSCResource.Tests.'
+        Write-Verbose -Message 'Cloning DSCResource.Tests.' -Verbose
         git clone 'https://github.com/PowerShell/DscResource.Tests' --quiet
         $writeMagicFile = $true
         Pop-Location
