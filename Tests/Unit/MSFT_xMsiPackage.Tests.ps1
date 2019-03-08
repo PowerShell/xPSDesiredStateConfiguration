@@ -43,7 +43,7 @@ Describe 'xMsiPackage Unit Tests' {
         $script:testIdentifyingNumber = '{DEADBEEF-80C6-41E6-A1B9-8BDB8A05027F}'
         $script:testWrongProductId = 'wrongId'
         $script:testPath = 'file://test.msi'
-        $script:destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath 'C:\'
+        $script:destinationPath = Join-Path -Path $script:packageCacheLocation -ChildPath (Get-Location).Drive.Root
         $script:testUriHttp = [System.Uri] 'http://test.msi'
         $script:testUriHttps = [System.Uri] 'https://test.msi'
         $script:testUriFile = [System.Uri] 'file://test.msi'
