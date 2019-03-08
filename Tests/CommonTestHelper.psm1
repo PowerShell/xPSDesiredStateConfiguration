@@ -758,11 +758,15 @@ function Enter-DscResourceTestEnvironment
         is used to determine if the repository needs to be
         updated.
 
-        If the last write time of the magic file is over 60
-        minutes old then this will cause the function to
-        return true.
+        If the last write time of the magic file is over a
+        specified number of minutes old then this will cause
+        the function to return true.
 
         The magic file is called DSC_LAST_FETCH.
+
+    .PARAMETER RefreshAfterMinutes
+        The number of minutes old the magic file should be
+        before requiring an update. Defaults to 60 minutes.
 #>
 function Test-DscResourceTestsNeedsInstallOrUpdate
 {
@@ -770,6 +774,9 @@ function Test-DscResourceTestsNeedsInstallOrUpdate
     [CmdletBinding()]
     param
     (
+        [Parameter()]
+        [System.Int32]
+        $RefreshAfterMinutes = 60
     )
 
     $moduleRootPath = Split-Path -Path $PSScriptRoot -Parent
@@ -782,7 +789,7 @@ function Test-DscResourceTestsNeedsInstallOrUpdate
         if (Test-Path -Path $magicFilePath)
         {
             $magicFileLastWriteTime = (Get-Item -Path $magicFilePath).LastWriteTime
-            $timeWhenUpdateRequired = (Get-Date) + [timespan]::FromMinutes(60)
+            $timeWhenUpdateRequired = (Get-Date) + [timespan]::FromMinutes($RefreshAfterMinutes)
 
             if ($magicFileLastWriteTime -and $magicFileLastWriteTime -lt $timeWhenUpdateRequired)
             {
@@ -839,7 +846,7 @@ function Install-DscResourceTests
         {
             Push-Location -Path $dscResourceTestsPath
             Write-Verbose -Message 'Updating DSCResource.Tests.' -Verbose
-            git pull origin dev --quiet
+            & git @('pull','origin','dev','--quiet')
             $writeMagicFile = $true
             Pop-Location
         }
@@ -857,7 +864,7 @@ function Install-DscResourceTests
 
         Push-Location -Path $moduleRootPath
         Write-Verbose -Message 'Cloning DSCResource.Tests.' -Verbose
-        git clone 'https://github.com/PowerShell/DscResource.Tests' --quiet
+        & git @('clone','https://github.com/PowerShell/DscResource.Tests','--quiet')
         $writeMagicFile = $true
         Pop-Location
     }
