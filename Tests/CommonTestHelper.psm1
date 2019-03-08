@@ -823,7 +823,6 @@ function Test-DscResourceTestsNeedsInstallOrUpdate
 #>
 function Install-DscResourceTests
 {
-    [OutputType([System.Boolean])]
     [CmdletBinding()]
     param
     (
