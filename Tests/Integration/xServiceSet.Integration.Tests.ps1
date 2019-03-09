@@ -29,7 +29,7 @@ try
 {
     Describe 'xServiceSet Integration Tests' {
         BeforeAll {
-            # Import CommonResourceHelper for Get-AppveyorAdministratorCredential
+            # Import CommonResourceHelper for Get-TestAdministratorAccountCredential
             $moduleRootFilePath = Split-Path -Path $script:testsFolderFilePath -Parent
             $dscResourcesFolderFilePath = Join-Path -Path $moduleRootFilePath -ChildPath 'DscResources'
             $commonResourceHelperFilePath = Join-Path -Path $dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
@@ -138,7 +138,7 @@ try
                 Name = @( $script:service1Properties.Name )
                 Ensure = 'Present'
                 StartupType = 'Manual'
-                Credential = Get-AppVeyorAdministratorCredential
+                Credential = Get-TestAdministratorAccountCredential
                 State = 'Stopped'
             }
 

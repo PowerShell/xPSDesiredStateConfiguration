@@ -681,50 +681,6 @@ function Test-SetTargetResourceWithWhatIf
 
 <#
     .SYNOPSIS
-        Retrieves the administrator credential on an AppVeyor machine.
-        The password will be reset so that we know what the password is.
-
-    .NOTES
-        The AppVeyor credential will be cached after the first call to this function so that the
-        password is not reset if this function is called again.
-#>
-function Get-AppVeyorAdministratorCredential
-{
-    [OutputType([System.Management.Automation.PSCredential])]
-    [CmdletBinding()]
-    param ()
-
-    if ($null -eq $script:appVeyorAdministratorCredential)
-    {
-        $password = ''
-
-        $randomGenerator = New-Object -TypeName 'System.Random'
-
-        $passwordLength = Get-Random -Minimum 15 -Maximum 126
-
-        while ($password.Length -lt $passwordLength)
-        {
-            $password = $password + [System.Char] $randomGenerator.Next(45, 126)
-        }
-
-        # Change password
-        $appVeyorAdministratorUsername = 'appveyor'
-
-        $appVeyorAdministratorUser = [System.DirectoryServices.DirectoryEntry] ("WinNT://$($env:computerName)/$appVeyorAdministratorUsername")
-
-        $null = $appVeyorAdministratorUser.SetPassword($password)
-        [Microsoft.Win32.Registry]::SetValue('HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon', 'DefaultPassword', $password)
-
-        $securePassword = ConvertTo-SecureString -String $password -AsPlainText -Force
-
-        $script:appVeyorAdministratorCredential = New-Object -TypeName 'System.Management.Automation.PSCredential' -ArgumentList @( "$($env:computerName)\$appVeyorAdministratorUsername", $securePassword )
-    }
-
-    return $script:appVeyorAdministratorCredential
-}
-
-<#
-    .SYNOPSIS
         Enters a DSC Resource test environment.
 
     .PARAMETER DscResourceModuleName
@@ -1035,12 +991,116 @@ function Install-WindowsFeatureAndVerify
     return $featureInstalled
 }
 
+function Get-TestAdministratorAccountCredential
+{
+    [OutputType([System.Management.Automation.PSCredential])]
+    [CmdletBinding()]
+    param()
+
+    if (-not (Test-Path -Path Variable:Global:xPSDesiredStateConfigurationTestAdminCreds))
+    {
+        Create-TestAdministratorAccount
+    }
+
+    return $global:xPSDesiredStateConfigurationTestAdminCreds
+}
+
+function Create-TestAdministratorAccount
+{
+    [CmdletBinding()]
+    param()
+
+    # Get local Administrators group name
+    $adminGroupSID = New-Object -TypeName System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
+    $adminGroupName = $adminGroupSID.Translate([System.Security.Principal.NTAccount]).Value.Split('\')[1]
+
+    $testAdminUserName = 'xPSDSCTestAdmin'
+    $testAdminPassword = Get-TestPassword
+
+    $localDirectoryString = "WinNT://$($env:COMPUTERNAME)"
+    $localDirectory = [System.DirectoryServices.DirectoryEntry] $localDirectoryString
+
+    $adminGroupAddress = $localDirectoryString + '/' + $adminGroupName + ',group'
+    $adminGroup = [System.DirectoryServices.DirectoryEntry] $adminGroupAddress
+
+    $testAdminUserAddress = $localDirectoryString + '/' + $testAdminUserName + ',user'
+    $testAdminUser = [System.DirectoryServices.DirectoryEntry] $testAdminUserAddress
+
+    if ($null -eq $testAdminUser.distinguishedName)
+    {
+        Write-Verbose -Message "Creating test administrator account '$testAdminUserName'"
+
+        $testAdminUser = $localDirectory.Create('User', $testAdminUserName)
+    }
+
+    # Set password on the admin account
+    $testAdminUser.SetPassword($testAdminPassword)
+    $testAdminUser.SetInfo()
+
+    # Check group membership of the Administrators group
+    $memberOutput = net localgroup $adminGroupName
+
+    $foundMember = $false
+    $foundGroup = $true
+
+    foreach ($line in $memberOutput)
+    {
+        # The target user already exists in the group
+        if ($line -like $testAdminUserName)
+        {
+            Write-Verbose -Message "Account '$testAdminUserName' is already a member of group '$adminGroupName'"
+
+            $foundMember = $true
+        }
+        # The target group does not exist
+        elseif ($line -like 'The specified local group does not exist.')
+        {
+            Write-Error -Message "Failed to look up members of group '$adminGroupName'"
+
+            $foundGroup = $false
+        }
+    }
+
+    # If the we group membership and the test user is not a member, make it a member
+    if ($foundGroup -and !$foundMember)
+    {
+        Write-Verbose -Message "Adding account '$testAdminUserName' to group '$adminGroupName'"
+
+        $adminGroup.Add($testAdminUserAddress)
+    }
+
+    $securePassword = ConvertTo-SecureString -String $testAdminPassword -AsPlainText -Force
+
+    $global:xPSDesiredStateConfigurationTestAdminCreds = New-Object `
+        -TypeName 'System.Management.Automation.PSCredential' `
+        -ArgumentList @( "$($env:computerName)\$testAdminUserName", $securePassword )
+}
+
+function Get-TestPassword
+{
+    [OutputType([System.String])]
+    [CmdletBinding()]
+    param()
+
+    $password = ''
+
+    $randomGenerator = New-Object -TypeName 'System.Random'
+
+    $passwordLength = Get-Random -Minimum 15 -Maximum 126
+
+    while ($password.Length -lt $passwordLength)
+    {
+        $password = $password + [System.Char] $randomGenerator.Next(45, 126)
+    }
+
+    return $password
+}
+
 Export-ModuleMember -Function @(
     'Test-GetTargetResourceResult', `
     'Wait-ScriptBlockReturnTrue', `
     'Test-IsFileLocked', `
     'Test-SetTargetResourceWithWhatIf', `
-    'Get-AppVeyorAdministratorCredential', `
     'Enter-DscResourceTestEnvironment', `
     'Exit-DscResourceTestEnvironment', `
     'Invoke-GetTargetResourceUnitTest', `
@@ -1049,5 +1109,6 @@ Export-ModuleMember -Function @(
     'Invoke-ExpectedMocksAreCalledTest', `
     'Invoke-GenericUnitTest',
     'Test-SkipContinuousIntegrationTask',
-    'Install-WindowsFeatureAndVerify'
+    'Install-WindowsFeatureAndVerify',
+    'Get-TestAdministratorAccountCredential'
 )

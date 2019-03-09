@@ -93,7 +93,7 @@ try
             $resourceParameters = @{
                 FilePath = $script:testFilePath
                 FileContent = 'Test file content'
-                Credential = Get-AppVeyorAdministratorCredential
+                Credential = Get-TestAdministratorAccountCredential
             }
 
             It 'Should have removed test file before config runs' {

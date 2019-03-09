@@ -29,7 +29,7 @@ try
 {
     Describe 'xService Integration Tests' {
         BeforeAll {
-            # Import CommonResourceHelper for Test-IsNanoServer, Get-AppveyorAdministratorCredential
+            # Import CommonResourceHelper for Test-IsNanoServer, Get-TestAdministratorAccountCredential
             $moduleRootFilePath = Split-Path -Path $script:testsFolderFilePath -Parent
             $dscResourcesFolderFilePath = Join-Path -Path $moduleRootFilePath -ChildPath 'DscResources'
             $commonResourceHelperFilePath = Join-Path -Path $dscResourcesFolderFilePath -ChildPath 'CommonResourceHelper.psm1'
@@ -298,7 +298,7 @@ try
             $configurationName = 'TestCreateService'
             $resourceParameters = @{
                 Name = 'TestService'
-                Credential = Get-AppVeyorAdministratorCredential
+                Credential = Get-TestAdministratorAccountCredential
             }
 
             It 'Should compile and apply the MOF without throwing' {

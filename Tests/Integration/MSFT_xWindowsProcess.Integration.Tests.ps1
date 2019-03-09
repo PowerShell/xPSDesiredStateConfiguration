@@ -310,7 +310,7 @@ try
             )
         }
 
-        $testCredential = Get-AppVeyorAdministratorCredential
+        $testCredential = Get-TestAdministratorAccountCredential
 
         $testProcessPath = Join-Path -Path (Split-Path $PSScriptRoot -Parent) `
                                      -ChildPath 'WindowsProcessTestProcess.exe'
