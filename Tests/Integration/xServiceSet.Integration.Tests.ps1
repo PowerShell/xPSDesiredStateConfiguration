@@ -132,7 +132,7 @@ try
 
             $configurationName = 'TestEditOneServiceSet'
 
-            $testAdminCreds = (Get-TestAdministratorAccountCredential)
+            $testAdminCreds = Get-TestAdministratorAccountCredential
 
             $resourceParameters = @{
                 Name = @( $script:service1Properties.Name )

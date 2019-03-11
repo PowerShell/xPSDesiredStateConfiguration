@@ -21,6 +21,7 @@ try
     Describe 'xScript Integration Tests' {
 
         BeforeAll {
+            # Get test administrator account credentials
             $testCredential = Get-TestAdministratorAccountCredential
 
             # Import xScript module for Get-TargetResource, Test-TargetResource
@@ -37,13 +38,18 @@ try
             $script:testFolderPath = Join-Path -Path $env:SystemDrive -ChildPath 'Test Folder'
             $script:testFilePath = Join-Path -Path $script:testFolderPath -ChildPath 'TestFile.txt'
 
+            # Create the test folder if it doesn't exist
             if (-not (Test-Path -Path $script:testFolderPath))
             {
                 mkdir -Path $script:testFolderPath
             }
 
-            Add-PathPermission -Path $script:testFolderPath -IdentityReference $testCredential.UserName
+            # Make sure test admin account has permissions on the test folder
+            Add-PathPermission `
+                -Path $script:testFolderPath `
+                -IdentityReference $testCredential.UserName
 
+            # Remove the test file if it exists
             if (Test-Path -Path $script:testFilePath)
             {
                 Remove-Item -Path $script:testFilePath -Force

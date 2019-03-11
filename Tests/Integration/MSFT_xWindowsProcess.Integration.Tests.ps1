@@ -504,7 +504,9 @@ try
                 $pathResult | Should -Be $false
             }
 
-            Add-PathPermission -Path (Split-Path -Path $logFilePath) -IdentityReference $testCredential.UserName
+            Add-PathPermission `
+                -Path (Split-Path -Path $logFilePath) `
+                -IdentityReference $testCredential.UserName
 
             It 'Should compile without throwing' {
                 {
