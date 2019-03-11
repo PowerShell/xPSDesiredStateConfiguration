@@ -19,7 +19,6 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
 try
 {
     Describe 'xScript Integration Tests' {
-
         BeforeAll {
             # Get test administrator account credentials
             $testCredential = Get-TestAdministratorAccountCredential
