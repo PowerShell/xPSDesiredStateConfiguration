@@ -1002,13 +1002,13 @@ function Get-TestAdministratorAccountCredential
     [CmdletBinding()]
     param()
 
-    if (-not (Test-Path -Path Variable:Global:xPSDesiredStateConfigurationTestAdminCreds) -or `
-        $null -eq $global:xPSDesiredStateConfigurationTestAdminCreds)
+    if (-not (Test-Path -Path Variable:Script:xPSDesiredStateConfigurationTestAdminCreds) -or `
+        $null -eq $script:xPSDesiredStateConfigurationTestAdminCreds)
     {
         Initialize-TestAdministratorAccount
     }
 
-    return $global:xPSDesiredStateConfigurationTestAdminCreds
+    return $script:xPSDesiredStateConfigurationTestAdminCreds
 }
 
 <#
@@ -1033,8 +1033,6 @@ function Initialize-TestAdministratorAccount
     $testAdminPassword = Get-TestPassword
     $securePassword = ConvertTo-SecureString -String $testAdminPassword -AsPlainText -Force
 
-    $localDirectory = Get-LocalDirectory
-
     $adminGroup = Get-LocalGroupDE -GroupName $adminGroupName
     $remoteManagementGroup = Get-LocalGroupDE -GroupName $remoteManagementGroupName
 
@@ -1045,7 +1043,7 @@ function Initialize-TestAdministratorAccount
     Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $adminGroupName -GroupDE $adminGroup
     Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $remoteManagementGroupName -GroupDE $remoteManagementGroup
 
-    $global:xPSDesiredStateConfigurationTestAdminCreds = Get-PSCredentialObject -UserName "$($env:ComputerName)\$testAdminUserName" -Password $securePassword
+    $script:xPSDesiredStateConfigurationTestAdminCreds = Get-PSCredentialObject -UserName "$($env:ComputerName)\$testAdminUserName" -Password $securePassword
 }
 
 <#
@@ -1207,7 +1205,7 @@ function Add-PathPermission
     $rule = New-Object `
                 -TypeName System.Security.AccessControl.FileSystemAccessRule `
                 -ArgumentList @( $IdentityReference, $FileSystemRight, $InheritanceFlags, $PropagationFlags, $AccessControlType )
-    
+
     $null = $acl.SetAccessRule($rule)
 
     Set-ACL -Path $Path -AclObject $acl
@@ -1314,6 +1312,8 @@ function Get-LocalUserDE
 #>
 function Set-UserDEPassword
 {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingUserNameAndPassWordParams', '')]
     [CmdletBinding()]
     param
     (
@@ -1329,7 +1329,7 @@ function Set-UserDEPassword
 
     Write-Verbose -Message "Setting password on account '$($UserDE.Path)'" -Verbose
 
-    $null = $UserDE.SetPassword($Password) 
+    $null = $UserDE.SetPassword($Password)
     $null = $UserDE.SetInfo() | Out-Null
 }
 
