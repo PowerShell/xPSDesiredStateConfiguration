@@ -991,54 +991,147 @@ function Install-WindowsFeatureAndVerify
     return $featureInstalled
 }
 
+<#
+    .SYNOPSIS
+        Retrieves a PSCredential object representing a test Administrator
+        account.
+#>
 function Get-TestAdministratorAccountCredential
 {
     [OutputType([System.Management.Automation.PSCredential])]
     [CmdletBinding()]
     param()
 
-    if (-not (Test-Path -Path Variable:Global:xPSDesiredStateConfigurationTestAdminCreds))
+    if (-not (Test-Path -Path Variable:Global:xPSDesiredStateConfigurationTestAdminCreds) -or $null -eq $global:xPSDesiredStateConfigurationTestAdminCreds)
     {
-        Create-TestAdministratorAccount
+        Initialize-TestAdministratorAccount
     }
 
-    return $global:xPSDesiredStateConfigurationTestAdminCreds
+    [System.Management.Automation.PSCredential] $testAdminCreds = [System.Management.Automation.PSCredential] $global:xPSDesiredStateConfigurationTestAdminCreds
+    return $testAdminCreds
 }
 
-function Create-TestAdministratorAccount
+function Get-TestAdmin2
 {
+    [OutputType([System.Management.Automation.PSCredential])]
     [CmdletBinding()]
     param()
 
-    # Get local Administrators group name
-    $adminGroupSID = New-Object -TypeName System.Security.Principal.SecurityIdentifier([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid, $null)
-    $adminGroupName = $adminGroupSID.Translate([System.Security.Principal.NTAccount]).Value.Split('\')[1]
+    $creds = Get-TestAdministratorAccountCredential
+    return $creds
+}
 
-    $testAdminUserName = 'xPSDSCTestAdmin'
-    $testAdminPassword = Get-TestPassword
+function Get-LocalDirectory
+{
+    [OutputType([System.DirectoryServices.DirectoryEntry])]
+    [CmdletBinding()]
+    param()
+
+    Write-Verbose -Message 'Getting Local Directory Entry' -Verbose
 
     $localDirectoryString = "WinNT://$($env:COMPUTERNAME)"
     $localDirectory = [System.DirectoryServices.DirectoryEntry] $localDirectoryString
 
-    $adminGroupAddress = $localDirectoryString + '/' + $adminGroupName + ',group'
-    $adminGroup = [System.DirectoryServices.DirectoryEntry] $adminGroupAddress
+    return $localDirectory
+}
 
-    $testAdminUserAddress = $localDirectoryString + '/' + $testAdminUserName + ',user'
-    $testAdminUser = [System.DirectoryServices.DirectoryEntry] $testAdminUserAddress
+function Get-LocalGroupDE
+{
+    [OutputType([System.DirectoryServices.DirectoryEntry])]
+    [CmdletBinding()]
+    param
+    (
+        [System.String]
+        $GroupName
+    )
 
-    if ($null -eq $testAdminUser.distinguishedName)
+    Write-Verbose -Message "Getting Local Group '$GroupName' Directory Entry" -Verbose
+
+    $localDirectory = Get-LocalDirectory
+
+    $groupDE = [System.DirectoryServices.DirectoryEntry] (($localDirectory.Path) + '/' + $GroupName + ',group')
+
+    return $groupDE
+}
+
+function Get-LocalUserDE
+{
+    [OutputType([System.DirectoryServices.DirectoryEntry])]
+    [CmdletBinding()]
+    param
+    (
+        [System.String]
+        $UserName
+    )
+
+    Write-Verbose -Message "Getting Local User '$UserName' Directory Entry" -Verbose
+
+    $localDirectory = Get-LocalDirectory
+
+    $userDE = [System.DirectoryServices.DirectoryEntry] (($localDirectory.Path) + '/' + $UserName + ',user')
+
+    if ($null -eq $userDE.distinguishedName)
     {
-        Write-Verbose -Message "Creating test administrator account '$testAdminUserName'"
+        Write-Verbose -Message "Creating account '$UserName'" -Verbose
 
-        $testAdminUser = $localDirectory.Create('User', $testAdminUserName)
+        $userDE = $localDirectory.Create('User', $UserName)
     }
 
-    # Set password on the admin account
-    $testAdminUser.SetPassword($testAdminPassword)
-    $testAdminUser.SetInfo()
+    return $userDE
+}
 
-    # Check group membership of the Administrators group
-    $memberOutput = net localgroup $adminGroupName
+function Set-UserDEPassword
+{
+    [CmdletBinding()]
+    param
+    (
+        [System.DirectoryServices.DirectoryEntry]
+        $UserDE,
+
+        [System.String]
+        $Password
+    )
+
+    Write-Verbose -Message "Setting password on account '$($UserDE.Path)'" -Verbose
+
+    $UserDE.SetPassword($Password) | Out-Null
+    $UserDE.SetInfo() | Out-Null
+}
+
+function Get-WellKnownGroupName
+{
+    [CmdletBinding()]
+    param
+    (
+        [System.Security.Principal.WellKnownSidType]
+        $WellKnownSidType
+    )
+
+    $groupSID = New-Object -TypeName System.Security.Principal.SecurityIdentifier($WellKnownSidType, $null)
+    $groupName = $groupSID.Translate([System.Security.Principal.NTAccount]).Value.Split('\')[1]
+
+    return $groupName
+}
+
+function Add-MemberToGroup
+{
+    [CmdletBinding()]
+    param
+    (
+        [System.String]
+        $UserName,
+
+        [System.DirectoryServices.DirectoryEntry]
+        $UserDE,
+
+        [System.String]
+        $GroupName,
+
+        [System.DirectoryServices.DirectoryEntry]
+        $GroupDE
+    )
+
+    $memberOutput = net localgroup $GroupName
 
     $foundMember = $false
     $foundGroup = $true
@@ -1046,16 +1139,16 @@ function Create-TestAdministratorAccount
     foreach ($line in $memberOutput)
     {
         # The target user already exists in the group
-        if ($line -like $testAdminUserName)
+        if ($line -like $UserName)
         {
-            Write-Verbose -Message "Account '$testAdminUserName' is already a member of group '$adminGroupName'"
+            Write-Verbose -Message "Account '$UserName' is already a member of group '$GroupName'" -Verbose
 
             $foundMember = $true
         }
         # The target group does not exist
         elseif ($line -like 'The specified local group does not exist.')
         {
-            Write-Error -Message "Failed to look up members of group '$adminGroupName'"
+            Write-Error -Message "Failed to look up members of group '$GroupName'"
 
             $foundGroup = $false
         }
@@ -1064,18 +1157,75 @@ function Create-TestAdministratorAccount
     # If the we group membership and the test user is not a member, make it a member
     if ($foundGroup -and !$foundMember)
     {
-        Write-Verbose -Message "Adding account '$testAdminUserName' to group '$adminGroupName'"
+        Write-Verbose -Message "Adding account '$UserName' to group '$GroupName'" -Verbose
 
-        $adminGroup.Add($testAdminUserAddress)
+        $GroupDE.Add($UserDE.Path) | Out-Null
     }
-
-    $securePassword = ConvertTo-SecureString -String $testAdminPassword -AsPlainText -Force
-
-    $global:xPSDesiredStateConfigurationTestAdminCreds = New-Object `
-        -TypeName 'System.Management.Automation.PSCredential' `
-        -ArgumentList @( "$($env:computerName)\$testAdminUserName", $securePassword )
 }
 
+<#
+    .SYNOPSIS
+        Creates a test administrator user account if it doesn't exist. Adds
+        the account to the local built-in Administrators group. Resets the
+        password on the account with a randomly generated password.
+#>
+function Initialize-TestAdministratorAccount
+{
+    [CmdletBinding()]
+    param()
+
+    # Get local Administrators group name
+    $adminGroupName = Get-WellKnownGroupName -WellKnownSidType ([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid)
+    $remoteManagementGroupName = 'Remote Management Users'
+
+    $testAdminUserName = 'xPSDSCTestAdmin'
+    $testAdminPassword = Get-TestPassword
+    $securePassword = ConvertTo-SecureString -String $testAdminPassword -AsPlainText -Force
+
+    $localDirectory = Get-LocalDirectory
+
+    $adminGroup = Get-LocalGroupDE -GroupName $adminGroupName
+    $remoteManagementGroup = Get-LocalGroupDE -GroupName $remoteManagementGroupName
+
+    $testAdminUser = Get-LocalUserDE -UserName $testAdminUserName
+
+    # Set password on the admin account
+    Set-UserDEPassword -UserDE $testAdminUser -Password $testAdminPassword
+
+    # Add to required groups
+    Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $adminGroupName -GroupDE $adminGroup
+    Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $remoteManagementGroupName -GroupDE $remoteManagementGroup
+
+    [System.Management.Automation.PSCredential] $global:xPSDesiredStateConfigurationTestAdminCreds = [System.Management.Automation.PSCredential] (Get-PSCredentialObject -UserName "$($env:ComputerName)\$testAdminUserName" -Password $securePassword)
+}
+
+function Get-PSCredentialObject
+{
+    [OutputType([System.Management.Automation.PSCredential])]
+    [CmdletBinding()]
+    param
+    (
+        [System.String]
+        $UserName,
+
+        [System.Security.SecureString]
+        $Password
+    )
+
+    [System.Management.Automation.PSCredential] $credentials = [System.Management.Automation.PSCredential] (
+        New-Object `
+            -TypeName 'System.Management.Automation.PSCredential' `
+            -ArgumentList @( $UserName, $Password )
+    )
+
+    return $credentials
+}
+
+<#
+    .SYNOPSIS
+        Generates a random string which is intended to be used as an account
+        password.
+#>
 function Get-TestPassword
 {
     [OutputType([System.String])]
@@ -1096,6 +1246,41 @@ function Get-TestPassword
     return $password
 }
 
+function Add-PathPermission
+{
+    [CmdletBinding()]
+    param
+    (
+        [System.String]
+        $Path,
+
+        [System.String]
+        $FileSystemRight = 'FullControl',
+
+        [System.String]
+        $AccessControlType = 'Allow',
+
+        [System.String]
+        $IdentityReference
+    )
+
+    $acl = Get-Acl -Path $Path
+
+    $inheritanceFlags = @(
+        [System.Security.AccessControl.InheritanceFlags]::ContainerInherit
+        [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+    )
+
+    $propagationFlags = [System.Security.AccessControl.PropagationFlags]::None
+    $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList @( $IdentityReference, $FileSystemRight, $inheritanceFlags, $propagationFlags, $AccessControlType )
+    
+    $acl.SetAccessRule($rule)
+
+    Set-ACL -Path $Path -AclObject $acl
+}
+
+Export-ModuleMember -Function *
+<#
 Export-ModuleMember -Function @(
     'Test-GetTargetResourceResult', `
     'Wait-ScriptBlockReturnTrue', `
@@ -1111,4 +1296,4 @@ Export-ModuleMember -Function @(
     'Test-SkipContinuousIntegrationTask',
     'Install-WindowsFeatureAndVerify',
     'Get-TestAdministratorAccountCredential'
-)
+)#>

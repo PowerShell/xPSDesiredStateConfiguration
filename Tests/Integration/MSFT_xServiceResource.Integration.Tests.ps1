@@ -1,8 +1,5 @@
 <#
-    These tests should only be run in AppVeyor since they currently require the AppVeyor
-    administrator account credential to run.
-
-    Also please note that these tests are currently dependent on each other.
+    Please note that these tests are currently dependent on each other.
     They must be run in the order given and if one test fails, subsequent tests will
     also fail.
 #>

@@ -1,8 +1,5 @@
 <#
-    These tests should only be run in AppVeyor since the second half of the tests require
-    the AppVeyor administrator account credential to run.
-
-    Also please note that some of these tests depend on each other.
+    Please note that some of these tests depend on each other.
     They must be run in the order given - if one test fails, subsequent tests may
     also fail.
 #>
@@ -362,7 +359,7 @@ try
                 $pathResult | Should -Be $false
             }
         }
-
+        
         Context 'Should start a new testProcess instance as running' {
             $configurationName = 'MSFT_xWindowsProcess_StartProcessWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
@@ -507,6 +504,8 @@ try
                 $pathResult | Should -Be $false
             }
 
+            Add-PathPermission -Path (Split-Path -Path $logFilePath) -IdentityReference $testCredential.UserName
+
             It 'Should compile without throwing' {
                 {
                     .$configFile -ConfigurationName $configurationName
@@ -525,7 +524,7 @@ try
             $null = Start-Sleep -Seconds 2
 
             It 'Should start another process running' {
-                Start-Process -FilePath $testProcessPath -ArgumentList @($logFilePath)
+                Start-Process -FilePath $testProcessPath -ArgumentList @($logFilePath) -Credential $testCredential
             }
 
             It 'Should be able to call Get-DscConfiguration without throwing' {
