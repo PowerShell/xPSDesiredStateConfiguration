@@ -1089,6 +1089,8 @@ function Get-TestPassword
     [CmdletBinding()]
     param()
 
+    $password = ''
+
     $randomGenerator = New-Object -TypeName 'System.Random'
 
     $passwordLength = Get-Random -Minimum 15 -Maximum 126
@@ -1332,18 +1334,19 @@ function Set-UserDEPassword
 }
 
 Export-ModuleMember -Function @(
-    'Test-GetTargetResourceResult', `
-    'Wait-ScriptBlockReturnTrue', `
-    'Test-IsFileLocked', `
-    'Test-SetTargetResourceWithWhatIf', `
-    'Enter-DscResourceTestEnvironment', `
-    'Exit-DscResourceTestEnvironment', `
-    'Invoke-GetTargetResourceUnitTest', `
-    'Invoke-SetTargetResourceUnitTest', `
-    'Invoke-TestTargetResourceUnitTest', `
-    'Invoke-ExpectedMocksAreCalledTest', `
-    'Invoke-GenericUnitTest',
-    'Test-SkipContinuousIntegrationTask',
+    'Add-PathPermission',
+    'Enter-DscResourceTestEnvironment',
+    'Exit-DscResourceTestEnvironment',
+    'Get-TestAdministratorAccountCredential',
     'Install-WindowsFeatureAndVerify',
-    'Get-TestAdministratorAccountCredential'
+    'Invoke-ExpectedMocksAreCalledTest',
+    'Invoke-GenericUnitTest',
+    'Invoke-GetTargetResourceUnitTest',
+    'Invoke-SetTargetResourceUnitTest',
+    'Invoke-TestTargetResourceUnitTest',
+    'Test-GetTargetResourceResult',
+    'Test-IsFileLocked',
+    'Test-SetTargetResourceWithWhatIf',
+    'Test-SkipContinuousIntegrationTask',
+    'Wait-ScriptBlockReturnTrue'
 )
