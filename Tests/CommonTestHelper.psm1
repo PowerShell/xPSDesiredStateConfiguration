@@ -1200,10 +1200,12 @@ function Add-PathPermission
         $Path,
 
         [ValidateNotNullOrEmpty()]
+        [ValidateSet('Allow', 'Deny')]
         [System.String]
         $AccessControlType = 'Allow',
 
         [ValidateNotNullOrEmpty()]
+        [ValidateSet({[System.Security.AccessControl.FileSystemRights].GetEnumNames()})]
         [System.String]
         $FileSystemRight = 'FullControl',
 
