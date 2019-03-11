@@ -1023,27 +1023,46 @@ function Initialize-TestAdministratorAccount
     param()
 
     # Get local Administrators group name
-    $adminGroupName = Get-WellKnownGroupName -WellKnownSidType ([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid)
+    $adminGroupName = Get-WellKnownGroupName `
+                        -WellKnownSidType ([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid)
 
     # Note: If we can find the WellKnownSidType for 'Remote Management Users'
     # we should switch to looking up the group name based on that instead.
     $remoteManagementGroupName = 'Remote Management Users'
 
     $testAdminUserName = 'xPSDSCTestAdmin'
+
     $testAdminPassword = Get-TestPassword
-    $securePassword = ConvertTo-SecureString -String $testAdminPassword -AsPlainText -Force
+    $securePassword = ConvertTo-SecureString `
+                        -String $testAdminPassword `
+                        -AsPlainText `
+                        -Force
 
     $adminGroup = Get-LocalGroupDE -GroupName $adminGroupName
     $remoteManagementGroup = Get-LocalGroupDE -GroupName $remoteManagementGroupName
 
     $testAdminUser = Get-LocalUserDE -UserName $testAdminUserName
 
-    Set-UserDEPassword -UserDE $testAdminUser -Password $testAdminPassword
+    Set-UserDEPassword `
+        -UserDE $testAdminUser `
+        -Password $testAdminPassword
 
-    Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $adminGroupName -GroupDE $adminGroup
-    Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $remoteManagementGroupName -GroupDE $remoteManagementGroup
+    Add-MemberToGroup `
+        -UserName $testAdminUserName `
+        -UserDE $testAdminUser `
+        -GroupName $adminGroupName `
+        -GroupDE $adminGroup
 
-    $script:xPSDesiredStateConfigurationTestAdminCreds = Get-PSCredentialObject -UserName "$($env:ComputerName)\$testAdminUserName" -Password $securePassword
+    Add-MemberToGroup `
+        -UserName $testAdminUserName `
+        -UserDE $testAdminUser `
+        -GroupName $remoteManagementGroupName `
+        -GroupDE $remoteManagementGroup
+
+    $script:xPSDesiredStateConfigurationTestAdminCreds = `
+        Get-PSCredentialObject `
+            -UserName "$($env:ComputerName)\$testAdminUserName" `
+            -Password $securePassword
 }
 
 <#
@@ -1067,11 +1086,9 @@ function Get-PSCredentialObject
         $Password
     )
 
-    [System.Management.Automation.PSCredential] $credentials = [System.Management.Automation.PSCredential] (
-        New-Object `
-            -TypeName 'System.Management.Automation.PSCredential' `
-            -ArgumentList @( $UserName, $Password )
-    )
+    $credentials = New-Object `
+                        -TypeName 'System.Management.Automation.PSCredential' `
+                        -ArgumentList @( $UserName, $Password )
 
     return $credentials
 }
