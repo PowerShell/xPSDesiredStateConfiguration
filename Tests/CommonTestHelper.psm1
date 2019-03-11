@@ -1024,6 +1024,9 @@ function Initialize-TestAdministratorAccount
 
     # Get local Administrators group name
     $adminGroupName = Get-WellKnownGroupName -WellKnownSidType ([System.Security.Principal.WellKnownSidType]::BuiltinAdministratorsSid)
+
+    # Note: If we can find the WellKnownSidType for 'Remote Management Users'
+    # we should switch to looking up the group name based on that instead.
     $remoteManagementGroupName = 'Remote Management Users'
 
     $testAdminUserName = 'xPSDSCTestAdmin'
@@ -1037,14 +1040,12 @@ function Initialize-TestAdministratorAccount
 
     $testAdminUser = Get-LocalUserDE -UserName $testAdminUserName
 
-    # Set password on the admin account
     Set-UserDEPassword -UserDE $testAdminUser -Password $testAdminPassword
 
-    # Add to required groups
     Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $adminGroupName -GroupDE $adminGroup
     Add-MemberToGroup -UserName $testAdminUserName -UserDE $testAdminUser -GroupName $remoteManagementGroupName -GroupDE $remoteManagementGroup
 
-    [System.Management.Automation.PSCredential] $global:xPSDesiredStateConfigurationTestAdminCreds = [System.Management.Automation.PSCredential] (Get-PSCredentialObject -UserName "$($env:ComputerName)\$testAdminUserName" -Password $securePassword)
+    $global:xPSDesiredStateConfigurationTestAdminCreds = Get-PSCredentialObject -UserName "$($env:ComputerName)\$testAdminUserName" -Password $securePassword
 }
 
 <#
@@ -1087,8 +1088,6 @@ function Get-TestPassword
     [OutputType([System.String])]
     [CmdletBinding()]
     param()
-
-    $password = ''
 
     $randomGenerator = New-Object -TypeName 'System.Random'
 
@@ -1159,7 +1158,7 @@ function Add-MemberToGroup
     {
         Write-Verbose -Message "Adding account '$UserName' to group '$GroupName'" -Verbose
 
-        $GroupDE.Add($UserDE.Path) | Out-Null
+        $null = $GroupDE.Add($UserDE.Path)
     }
 }
 
@@ -1189,20 +1188,25 @@ function Add-PathPermission
 
         [ValidateNotNullOrEmpty()]
         [System.String]
-        $FileSystemRight = 'FullControl'
+        $FileSystemRight = 'FullControl',
+
+        [System.Security.AccessControl.InheritanceFlags[]]
+        $InheritanceFlags = @(
+            [System.Security.AccessControl.InheritanceFlags]::ContainerInherit
+            [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+        ),
+
+        [System.Security.AccessControl.PropagationFlags]
+        $PropagationFlags = [System.Security.AccessControl.PropagationFlags]::None
     )
 
     $acl = Get-Acl -Path $Path
 
-    $inheritanceFlags = @(
-        [System.Security.AccessControl.InheritanceFlags]::ContainerInherit
-        [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
-    )
-
-    $propagationFlags = [System.Security.AccessControl.PropagationFlags]::None
-    $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList @( $IdentityReference, $FileSystemRight, $inheritanceFlags, $propagationFlags, $AccessControlType )
+    $rule = New-Object `
+                -TypeName System.Security.AccessControl.FileSystemAccessRule `
+                -ArgumentList @( $IdentityReference, $FileSystemRight, $InheritanceFlags, $PropagationFlags, $AccessControlType )
     
-    $acl.SetAccessRule($rule)
+    $null = $acl.SetAccessRule($rule)
 
     Set-ACL -Path $Path -AclObject $acl
 }
@@ -1323,8 +1327,8 @@ function Set-UserDEPassword
 
     Write-Verbose -Message "Setting password on account '$($UserDE.Path)'" -Verbose
 
-    $UserDE.SetPassword($Password) | Out-Null
-    $UserDE.SetInfo() | Out-Null
+    $null = $UserDE.SetPassword($Password) 
+    $null = $UserDE.SetInfo() | Out-Null
 }
 
 Export-ModuleMember -Function @(
