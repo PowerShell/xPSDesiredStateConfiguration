@@ -526,6 +526,7 @@ try
             # Wait a moment for the process to stop/start
             $null = Start-Sleep -Seconds 2
 
+            # Start another instance of the same process using the same credentials.
             It 'Should start another process running' {
                 Start-Process `
                     -FilePath $testProcessPath `
