@@ -504,6 +504,7 @@ try
                 $pathResult | Should -Be $false
             }
 
+            # Make sure test admin account has permissions on log folder
             Add-PathPermission `
                 -Path (Split-Path -Path $logFilePath) `
                 -IdentityReference $testCredential.UserName
