@@ -499,15 +499,15 @@ try
             $configurationName = 'MSFT_xWindowsProcess_StartMultipleProcessesWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
 
-            It 'Should not have a logfile already present' {
-                $pathResult = Test-Path $logFilePath
-                $pathResult | Should -Be $false
-            }
-
             # Make sure test admin account has permissions on log folder
             Add-PathPermission `
                 -Path (Split-Path -Path $logFilePath) `
                 -IdentityReference $testCredential.UserName
+
+            It 'Should not have a logfile already present' {
+                $pathResult = Test-Path $logFilePath
+                $pathResult | Should -Be $false
+            }
 
             It 'Should compile without throwing' {
                 {
