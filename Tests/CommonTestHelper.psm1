@@ -1213,7 +1213,7 @@ function Add-PathPermission
             [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
         ),
 
-        [System.Security.AccessControl.PropagationFlags]
+        [System.Security.AccessControl.PropagationFlags[]]
         $PropagationFlags = [System.Security.AccessControl.PropagationFlags]::None
     )
 
