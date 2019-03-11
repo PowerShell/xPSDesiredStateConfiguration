@@ -720,7 +720,7 @@ function Enter-DscResourceTestEnvironment
 
     if (Test-DscResourceTestsNeedsInstallOrUpdate)
     {
-        Install-DscResourceTests
+        Install-DscResourceTestsModule
     }
 
     Import-Module -Name $testHelperFilePath
@@ -810,7 +810,7 @@ function Test-DscResourceTestsNeedsInstallOrUpdate
         Git is not installed then a warning will be
         displayed and the repository will not be pulled.
 #>
-function Install-DscResourceTests
+function Install-DscResourceTestsModule
 {
     [CmdletBinding()]
     param
@@ -1314,6 +1314,7 @@ function Set-UserDEPassword
 {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingUserNameAndPassWordParams', '')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [CmdletBinding()]
     param
     (
