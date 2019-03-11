@@ -1221,7 +1221,13 @@ function Add-PathPermission
 
     $rule = New-Object `
                 -TypeName System.Security.AccessControl.FileSystemAccessRule `
-                -ArgumentList @( $IdentityReference, $FileSystemRight, $InheritanceFlags, $PropagationFlags, $AccessControlType )
+                -ArgumentList @(
+                    $IdentityReference,
+                    $FileSystemRight,
+                    $InheritanceFlags,
+                    $PropagationFlags,
+                    $AccessControlType
+                )
 
     $null = $acl.SetAccessRule($rule)
 
@@ -1243,7 +1249,10 @@ function Get-WellKnownGroupName
         $WellKnownSidType
     )
 
-    $groupSID = New-Object -TypeName System.Security.Principal.SecurityIdentifier($WellKnownSidType, $null)
+    $groupSID = New-Object `
+                    -TypeName System.Security.Principal.SecurityIdentifier `
+                    -ArgumentList @( $WellKnownSidType, $null )
+
     $groupName = $groupSID.Translate([System.Security.Principal.NTAccount]).Value.Split('\')[1]
 
     return $groupName
@@ -1286,7 +1295,8 @@ function Get-LocalGroupDE
 
     Write-Verbose -Message "Getting Local Group '$GroupName' Directory Entry" -Verbose
 
-    $groupDE = [System.DirectoryServices.DirectoryEntry] (((Get-LocalDirectory).Path) + '/' + $GroupName + ',group')
+    $groupAddress = (((Get-LocalDirectory).Path) + '/' + $GroupName + ',group')
+    $groupDE = [System.DirectoryServices.DirectoryEntry] $groupAddress
 
     return $groupDE
 }
@@ -1311,7 +1321,8 @@ function Get-LocalUserDE
 
     $localDirectory = Get-LocalDirectory
 
-    $userDE = [System.DirectoryServices.DirectoryEntry] (($localDirectory.Path) + '/' + $UserName + ',user')
+    $userAddress = ($localDirectory.Path) + '/' + $UserName + ',user'
+    $userDE = [System.DirectoryServices.DirectoryEntry] $userAddress
 
     if ($null -eq $userDE.distinguishedName)
     {

@@ -16,34 +16,6 @@ $script:testEnvironment = Enter-DscResourceTestEnvironment `
     -DscResourceName 'MSFT_xScriptResource' `
     -TestType 'Integration'
 
-            $testCredential = Get-TestAdministratorAccountCredential
-
-            # Import xScript module for Get-TargetResource, Test-TargetResource
-            $moduleRootFilePath = Split-Path -Path $script:testsFolderFilePath -Parent
-            $dscResourcesFolderFilePath = Join-Path -Path $moduleRootFilePath -ChildPath 'DscResources'
-            $scriptResourceFolderFilePath = Join-Path -Path $dscResourcesFolderFilePath -ChildPath 'MSFT_xScriptResource'
-            $scriptResourceModuleFilePath = Join-Path -Path $scriptResourceFolderFilePath -ChildPath 'MSFT_xScriptResource.psm1'
-            Import-Module -Name $scriptResourceModuleFilePath
-
-            $script:configurationNoCredentialFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xScriptResource_NoCredential.config.ps1'
-            $script:configurationWithCredentialFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'MSFT_xScriptResource_WithCredential.config.ps1'
-
-            # Cannot use $TestDrive here because script is run outside of Pester
-            $script:testFolderPath = Join-Path -Path $env:SystemDrive -ChildPath 'Test Folder'
-            $script:testFilePath = Join-Path -Path $script:testFolderPath -ChildPath 'TestFile.txt'
-
-            if (-not (Test-Path -Path $script:testFolderPath))
-            {
-                mkdir -Path $script:testFolderPath
-            }
-
-            Add-PathPermission -Path $script:testFolderPath -IdentityReference $testCredential.UserName
-
-            if (Test-Path -Path $script:testFilePath)
-            {
-                Remove-Item -Path $script:testFilePath -Force
-            }
-
 try
 {
     Describe 'xScript Integration Tests' {
