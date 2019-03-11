@@ -359,7 +359,7 @@ try
                 $pathResult | Should -Be $false
             }
         }
-        
+
         Context 'Should start a new testProcess instance as running' {
             $configurationName = 'MSFT_xWindowsProcess_StartProcessWithCredential'
             $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
@@ -524,7 +524,10 @@ try
             $null = Start-Sleep -Seconds 2
 
             It 'Should start another process running' {
-                Start-Process -FilePath $testProcessPath -ArgumentList @($logFilePath) -Credential $testCredential
+                Start-Process `
+                    -FilePath $testProcessPath `
+                    -ArgumentList @($logFilePath) `
+                    -Credential $testCredential
             }
 
             It 'Should be able to call Get-DscConfiguration without throwing' {
