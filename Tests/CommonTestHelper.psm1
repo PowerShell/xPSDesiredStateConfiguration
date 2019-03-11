@@ -1170,7 +1170,7 @@ function Add-MemberToGroup
         }
     }
 
-    # If the we group membership and the test user is not a member, make it a member
+    # If we found the group and the test user is not a member, make it a member
     if ($foundGroup -and !$foundMember)
     {
         Write-Verbose -Message "Adding account '$UserName' to group '$GroupName'" -Verbose
