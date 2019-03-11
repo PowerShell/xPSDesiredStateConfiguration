@@ -52,15 +52,15 @@
 - Adds helper functions for use when creating test administrator user accounts,
   and updates the following tests to use credentials created with these
   functions:
-    - MSFT_xScriptResource.Integration.Tests.ps1
-    - MSFT_xServiceResource.Integration.Tests.ps1
-    - MSFT_xWindowsProcess.Integration.Tests.ps1
-    - xServiceSet.Integration.Tests.ps1
-  - Fixes the following issues:
-    - [issue #582](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/582)
-    - [issue #583](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/583)
-    - [issue #584](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/584)
-    - [issue #585](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/585)
+  - MSFT_xScriptResource.Integration.Tests.ps1
+  - MSFT_xServiceResource.Integration.Tests.ps1
+  - MSFT_xWindowsProcess.Integration.Tests.ps1
+  - xServiceSet.Integration.Tests.ps1
+- Fixes the following issues:
+  - [issue #582](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/582)
+  - [issue #583](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/583)
+  - [issue #584](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/584)
+  - [issue #585](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/585)
 
 ## 8.5.0.0
 
