@@ -49,6 +49,13 @@
   pull DSCResource.Tests.
   [issue #505](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/505)
 - Updated `CommonTestHelper.psm1` to resolve style guideline violations.
+- Adds helper functions for use when creating test administrator user accounts,
+  and updates the following tests to use credentials created with these
+  functions.
+    - MSFT_xScriptResource.Integration.Tests.ps1
+    - MSFT_xServiceResource.Integration.Tests.ps1
+    - MSFT_xWindowsProcess.Integration.Tests.ps1
+    - xServiceSet.Integration.Tests.ps1
 
 ## 8.5.0.0
 
