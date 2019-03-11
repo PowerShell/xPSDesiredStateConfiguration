@@ -1002,165 +1002,13 @@ function Get-TestAdministratorAccountCredential
     [CmdletBinding()]
     param()
 
-    if (-not (Test-Path -Path Variable:Global:xPSDesiredStateConfigurationTestAdminCreds) -or $null -eq $global:xPSDesiredStateConfigurationTestAdminCreds)
+    if (-not (Test-Path -Path Variable:Global:xPSDesiredStateConfigurationTestAdminCreds) -or `
+        $null -eq $global:xPSDesiredStateConfigurationTestAdminCreds)
     {
         Initialize-TestAdministratorAccount
     }
 
-    [System.Management.Automation.PSCredential] $testAdminCreds = [System.Management.Automation.PSCredential] $global:xPSDesiredStateConfigurationTestAdminCreds
-    return $testAdminCreds
-}
-
-function Get-TestAdmin2
-{
-    [OutputType([System.Management.Automation.PSCredential])]
-    [CmdletBinding()]
-    param()
-
-    $creds = Get-TestAdministratorAccountCredential
-    return $creds
-}
-
-function Get-LocalDirectory
-{
-    [OutputType([System.DirectoryServices.DirectoryEntry])]
-    [CmdletBinding()]
-    param()
-
-    Write-Verbose -Message 'Getting Local Directory Entry' -Verbose
-
-    $localDirectoryString = "WinNT://$($env:COMPUTERNAME)"
-    $localDirectory = [System.DirectoryServices.DirectoryEntry] $localDirectoryString
-
-    return $localDirectory
-}
-
-function Get-LocalGroupDE
-{
-    [OutputType([System.DirectoryServices.DirectoryEntry])]
-    [CmdletBinding()]
-    param
-    (
-        [System.String]
-        $GroupName
-    )
-
-    Write-Verbose -Message "Getting Local Group '$GroupName' Directory Entry" -Verbose
-
-    $localDirectory = Get-LocalDirectory
-
-    $groupDE = [System.DirectoryServices.DirectoryEntry] (($localDirectory.Path) + '/' + $GroupName + ',group')
-
-    return $groupDE
-}
-
-function Get-LocalUserDE
-{
-    [OutputType([System.DirectoryServices.DirectoryEntry])]
-    [CmdletBinding()]
-    param
-    (
-        [System.String]
-        $UserName
-    )
-
-    Write-Verbose -Message "Getting Local User '$UserName' Directory Entry" -Verbose
-
-    $localDirectory = Get-LocalDirectory
-
-    $userDE = [System.DirectoryServices.DirectoryEntry] (($localDirectory.Path) + '/' + $UserName + ',user')
-
-    if ($null -eq $userDE.distinguishedName)
-    {
-        Write-Verbose -Message "Creating account '$UserName'" -Verbose
-
-        $userDE = $localDirectory.Create('User', $UserName)
-    }
-
-    return $userDE
-}
-
-function Set-UserDEPassword
-{
-    [CmdletBinding()]
-    param
-    (
-        [System.DirectoryServices.DirectoryEntry]
-        $UserDE,
-
-        [System.String]
-        $Password
-    )
-
-    Write-Verbose -Message "Setting password on account '$($UserDE.Path)'" -Verbose
-
-    $UserDE.SetPassword($Password) | Out-Null
-    $UserDE.SetInfo() | Out-Null
-}
-
-function Get-WellKnownGroupName
-{
-    [CmdletBinding()]
-    param
-    (
-        [System.Security.Principal.WellKnownSidType]
-        $WellKnownSidType
-    )
-
-    $groupSID = New-Object -TypeName System.Security.Principal.SecurityIdentifier($WellKnownSidType, $null)
-    $groupName = $groupSID.Translate([System.Security.Principal.NTAccount]).Value.Split('\')[1]
-
-    return $groupName
-}
-
-function Add-MemberToGroup
-{
-    [CmdletBinding()]
-    param
-    (
-        [System.String]
-        $UserName,
-
-        [System.DirectoryServices.DirectoryEntry]
-        $UserDE,
-
-        [System.String]
-        $GroupName,
-
-        [System.DirectoryServices.DirectoryEntry]
-        $GroupDE
-    )
-
-    $memberOutput = net localgroup $GroupName
-
-    $foundMember = $false
-    $foundGroup = $true
-
-    foreach ($line in $memberOutput)
-    {
-        # The target user already exists in the group
-        if ($line -like $UserName)
-        {
-            Write-Verbose -Message "Account '$UserName' is already a member of group '$GroupName'" -Verbose
-
-            $foundMember = $true
-        }
-        # The target group does not exist
-        elseif ($line -like 'The specified local group does not exist.')
-        {
-            Write-Error -Message "Failed to look up members of group '$GroupName'"
-
-            $foundGroup = $false
-        }
-    }
-
-    # If the we group membership and the test user is not a member, make it a member
-    if ($foundGroup -and !$foundMember)
-    {
-        Write-Verbose -Message "Adding account '$UserName' to group '$GroupName'" -Verbose
-
-        $GroupDE.Add($UserDE.Path) | Out-Null
-    }
+    return $global:xPSDesiredStateConfigurationTestAdminCreds
 }
 
 <#
@@ -1199,15 +1047,23 @@ function Initialize-TestAdministratorAccount
     [System.Management.Automation.PSCredential] $global:xPSDesiredStateConfigurationTestAdminCreds = [System.Management.Automation.PSCredential] (Get-PSCredentialObject -UserName "$($env:ComputerName)\$testAdminUserName" -Password $securePassword)
 }
 
+<#
+    .SYNOPSIS
+        Returns a PSCredential object representing the specified user name and
+        password.
+#>
 function Get-PSCredentialObject
 {
     [OutputType([System.Management.Automation.PSCredential])]
     [CmdletBinding()]
     param
     (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [System.String]
         $UserName,
 
+        [Parameter(Mandatory = $true)]
         [System.Security.SecureString]
         $Password
     )
@@ -1246,22 +1102,94 @@ function Get-TestPassword
     return $password
 }
 
+<#
+    .SYNOPSIS
+        Checks whether the specified user is a member of the specified group,
+        and adds them to the group if they are not a member.
+#>
+function Add-MemberToGroup
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $UserName,
+
+        [Parameter(Mandatory = $true)]
+        [System.DirectoryServices.DirectoryEntry]
+        $UserDE,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $GroupName,
+
+        [Parameter(Mandatory = $true)]
+        [System.DirectoryServices.DirectoryEntry]
+        $GroupDE
+    )
+
+    $memberOutput = net localgroup $GroupName
+
+    $foundMember = $false
+    $foundGroup = $true
+
+    foreach ($line in $memberOutput)
+    {
+        # The target user already exists in the group
+        if ($line -like $UserName)
+        {
+            Write-Verbose -Message "Account '$UserName' is already a member of group '$GroupName'" -Verbose
+
+            $foundMember = $true
+        }
+        # The target group does not exist
+        elseif ($line -like 'The specified local group does not exist.')
+        {
+            Write-Error -Message "Failed to look up members of group '$GroupName'"
+
+            $foundGroup = $false
+        }
+    }
+
+    # If the we group membership and the test user is not a member, make it a member
+    if ($foundGroup -and !$foundMember)
+    {
+        Write-Verbose -Message "Adding account '$UserName' to group '$GroupName'" -Verbose
+
+        $GroupDE.Add($UserDE.Path) | Out-Null
+    }
+}
+
+<#
+    .SYNOPSIS
+        Generates a random string which is intended to be used as an account
+        password.
+#>
 function Add-PathPermission
 {
     [CmdletBinding()]
     param
     (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $IdentityReference,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [System.String]
         $Path,
 
-        [System.String]
-        $FileSystemRight = 'FullControl',
-
+        [ValidateNotNullOrEmpty()]
         [System.String]
         $AccessControlType = 'Allow',
 
+        [ValidateNotNullOrEmpty()]
         [System.String]
-        $IdentityReference
+        $FileSystemRight = 'FullControl'
     )
 
     $acl = Get-Acl -Path $Path
@@ -1279,8 +1207,126 @@ function Add-PathPermission
     Set-ACL -Path $Path -AclObject $acl
 }
 
-Export-ModuleMember -Function *
 <#
+    .SYNOPSIS
+        Retrieves the group name corresponding to the specfied
+        WellKnownSidType.
+#>
+function Get-WellKnownGroupName
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.Security.Principal.WellKnownSidType]
+        $WellKnownSidType
+    )
+
+    $groupSID = New-Object -TypeName System.Security.Principal.SecurityIdentifier($WellKnownSidType, $null)
+    $groupName = $groupSID.Translate([System.Security.Principal.NTAccount]).Value.Split('\')[1]
+
+    return $groupName
+}
+
+<#
+    .SYNOPSIS
+        Creates a DirectoryEntry object representing the local directory of the
+        test computer.
+#>
+function Get-LocalDirectory
+{
+    [OutputType([System.DirectoryServices.DirectoryEntry])]
+    [CmdletBinding()]
+    param()
+
+    Write-Verbose -Message 'Getting Local Directory Entry'
+
+    $localDirectoryString = "WinNT://$($env:COMPUTERNAME)"
+    $localDirectory = [System.DirectoryServices.DirectoryEntry] $localDirectoryString
+
+    return $localDirectory
+}
+
+<#
+    .SYNOPSIS
+        Creates a DirectoryEntry object representing the specified local group.
+#>
+function Get-LocalGroupDE
+{
+    [OutputType([System.DirectoryServices.DirectoryEntry])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $GroupName
+    )
+
+    Write-Verbose -Message "Getting Local Group '$GroupName' Directory Entry" -Verbose
+
+    $groupDE = [System.DirectoryServices.DirectoryEntry] (((Get-LocalDirectory).Path) + '/' + $GroupName + ',group')
+
+    return $groupDE
+}
+
+<#
+    .SYNOPSIS
+        Creates a DirectoryEntry object representing the specified local user.
+#>
+function Get-LocalUserDE
+{
+    [OutputType([System.DirectoryServices.DirectoryEntry])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $UserName
+    )
+
+    Write-Verbose -Message "Getting Local User '$UserName' Directory Entry" -Verbose
+
+    $localDirectory = Get-LocalDirectory
+
+    $userDE = [System.DirectoryServices.DirectoryEntry] (($localDirectory.Path) + '/' + $UserName + ',user')
+
+    if ($null -eq $userDE.distinguishedName)
+    {
+        Write-Verbose -Message "Creating account '$UserName'" -Verbose
+
+        $userDE = $localDirectory.Create('User', $UserName)
+    }
+
+    return $userDE
+}
+
+<#
+    .SYNOPSIS
+        Sets a password on the specified user object.
+#>
+function Set-UserDEPassword
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.DirectoryServices.DirectoryEntry]
+        $UserDE,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $Password
+    )
+
+    Write-Verbose -Message "Setting password on account '$($UserDE.Path)'" -Verbose
+
+    $UserDE.SetPassword($Password) | Out-Null
+    $UserDE.SetInfo() | Out-Null
+}
+
 Export-ModuleMember -Function @(
     'Test-GetTargetResourceResult', `
     'Wait-ScriptBlockReturnTrue', `
@@ -1296,4 +1342,4 @@ Export-ModuleMember -Function @(
     'Test-SkipContinuousIntegrationTask',
     'Install-WindowsFeatureAndVerify',
     'Get-TestAdministratorAccountCredential'
-)#>
+)
