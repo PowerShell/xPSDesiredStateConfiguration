@@ -1359,7 +1359,7 @@ function Set-UserDEPassword
     Write-Verbose -Message "Setting password on account '$($UserDE.Path)'" -Verbose
 
     $null = $UserDE.SetPassword($Password)
-    $null = $UserDE.SetInfo() | Out-Null
+    $null = $UserDE.SetInfo()
 }
 
 Export-ModuleMember -Function @(
