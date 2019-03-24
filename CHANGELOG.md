@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+-Fixes style inconsistencies in PublishModulesAndMofsToPullServer.psm1.
 - Fixes all instances of the following PSScriptAnalyzer issues:
   - PSUseOutputTypeCorrectly
   - PSAvoidUsingConvertToSecureStringWithPlainText
