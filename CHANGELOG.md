@@ -2,7 +2,8 @@
 
 ## Unreleased
 
--Fixes style inconsistencies in PublishModulesAndMofsToPullServer.psm1.
+- Fixes style inconsistencies in PublishModulesAndMofsToPullServer.psm1.
+  [issue #530](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/530)
 - Fixes all instances of the following PSScriptAnalyzer issues:
   - PSUseOutputTypeCorrectly
   - PSAvoidUsingConvertToSecureStringWithPlainText
