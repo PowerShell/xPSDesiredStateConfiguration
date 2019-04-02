@@ -150,6 +150,8 @@ try
             function Get-Website {}
             function Get-WebBinding {}
 
+            function Stop-Website {}
+
             $webConfigPath = 'TestDrive:\inetpub\PesterTestSite\Web.config'
             $null = New-Item -ItemType Directory -Path (Split-Path -Parent $webConfigPath)
             $null = New-Item -Path $webConfigPath -Value $webConfig
@@ -179,6 +181,7 @@ try
             Mock -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'RegistrationKeyPath'} -MockWith {return $serviceData.RegistrationKeyPath}
             Mock -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'dbprovider'}          -MockWith {return $serviceData.dbprovider}
             Mock -CommandName Get-WebConfigAppSetting -ParameterFilter {$AppSettingName -eq 'dbconnectionstr'}     -MockWith {return $serviceData.dbconnectionstr}
+            Mock -CommandName Stop-Website -MockWith { Write-Verbose "MOCK:Stop-WebSite $Name" }
             #endregion
 
             Context -Name 'DSC Web Service is installed without certificate' -Fixture {
@@ -461,6 +464,9 @@ try
             function Get-Website {}
             function Get-WebBinding {}
 
+            function Stop-Website {}
+
+
             #region Mocks
             Mock -CommandName Get-Command -ParameterFilter {$Name -eq '.\appcmd.exe'} -MockWith {
                 <#
@@ -500,8 +506,9 @@ try
 
             Context -Name 'DSC Service is installed and Ensure is Absent' -Fixture {
                 #region Mocks
-                Mock -CommandName Get-Website -MockWith {'Website'}
+                Mock -CommandName Get-Website -MockWith { return $websiteDataHTTP }
                 Mock -CommandName Remove-PSWSEndpoint
+                Mock -CommandName Stop-Website
                 #endregion
 
                 It 'Should call expected mocks' {
@@ -510,6 +517,7 @@ try
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-Website
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Command
                     Assert-MockCalled -Exactly -Times 1 -CommandName Remove-PSWSEndpoint
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Stop-Website
                 }
             }
 
@@ -745,6 +753,7 @@ try
 
             function Get-Website {}
             function Get-WebBinding {}
+            function Stop-Website {}
 
             #region Mocks
             Mock -CommandName Get-Command -ParameterFilter {$Name -eq '.\appcmd.exe'} -MockWith {
@@ -775,19 +784,23 @@ try
 
             Context -Name 'DSC Web Service is installed as HTTP' -Fixture {
                 Mock -CommandName Get-Website -MockWith {$WebsiteDataHTTP}
+                Mock -CommandName Test-PullServerFirewallConfiguration -MockWith { $true }
 
                 It 'Should return $false when Ensure is Absent' {
                     Test-TargetResource @testParameters -Ensure Absent | Should -Be $false
                 }
+
                 It 'Should return $false if Port doesn''t match' {
                     Test-TargetResource @testParameters -Ensure Present -Port 8081 | Should -Be $false
                 }
+
                 It 'Should return $false if Certificate Thumbprint is set' {
                     $altTestParameters = $testParameters.Clone()
                     $altTestParameters.CertificateThumbprint = $certificateData[0].Thumbprint
 
                     Test-TargetResource @altTestParameters -Ensure Present | Should -Be $false
                 }
+
                 It 'Should return $false if Physical Path doesn''t match' {
                     Mock -CommandName Test-WebsitePath -MockWith {$true} -Verifiable
 
@@ -804,6 +817,7 @@ try
 
                     Assert-VerifiableMock
                 }
+
                 It 'Should return $false when dbProvider is not set' {
                     Mock -CommandName Get-WebConfigAppSetting -MockWith {''} -Verifiable
 
@@ -945,6 +959,7 @@ try
             Context -Name 'DSC Web Service is installed as HTTPS' -Fixture {
                 #region Mocks
                 Mock -CommandName Get-Website -MockWith {$websiteDataHTTPS}
+                Mock -CommandName Test-PullServerFirewallConfiguration -MockWith { $true }
                 #endregion
 
                 It 'Should return $false if Certificate Thumbprint is set to AllowUnencryptedTraffic' {
@@ -993,6 +1008,8 @@ try
             function Get-Website {}
             function Get-WebBinding {}
 
+            function Stop-Website {}
+
             $endpointPhysicalPath = 'TestDrive:\SitePath1'
             Mock -CommandName Get-ItemProperty -MockWith {$endpointPhysicalPath}
 
@@ -1011,6 +1028,8 @@ try
 
             function Get-Website {}
             function Get-WebBinding {}
+
+            function Stop-Website {}
 
             $webConfigPath = 'TestDrive:\Web.config'
             $null = New-Item -Path $webConfigPath -Value $webConfig
@@ -1062,6 +1081,8 @@ try
             function Get-Website {}
             function Get-WebBinding {}
 
+            function Stop-Website {}
+
             $webConfigPath = 'TestDrive:\Web.config'
             $null = New-Item -Path $webConfigPath -Value $webConfig
 
@@ -1102,6 +1123,8 @@ try
             function Get-Website {}
             function Get-WebBinding {}
 
+            function Stop-Website {}
+
             $webConfigPath = 'TestDrive:\Web.config'
             $null = New-Item -Path $webConfigPath -Value $webConfig
 
@@ -1123,6 +1146,8 @@ try
             function Get-Website {}
             function Get-WebBinding {}
 
+            function Stop-Website {}
+
             $webConfigPath = 'TestDrive:\Web.config'
             $null = New-Item -Path $webConfigPath -Value $webConfig
 
@@ -1138,6 +1163,8 @@ try
 
             function Get-Website {}
             function Get-WebBinding {}
+
+            function Stop-Website {}
 
             $appHostConfigSection = [System.Management.Automation.PSObject] @{OverrideMode = ''}
             $appHostConfig        = [System.Management.Automation.PSObject] @{}
@@ -1160,6 +1187,8 @@ try
 
             function Get-Website {}
             function Get-WebBinding {}
+
+            function Stop-Website {}
 
             Mock -CommandName Get-ChildItem -MockWith {,@($certificateData)}
             It 'Should return the certificate thumbprint when the certificate is found' {
