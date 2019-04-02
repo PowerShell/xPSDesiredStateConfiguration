@@ -212,6 +212,7 @@ function Set-TargetResource
 
         # Port number of the DSC Pull Server IIS Endpoint
         [Parameter()]
+        [ValidateRange(1, 65535)]
         [System.UInt32]
         $Port = 8080,
 
@@ -374,14 +375,25 @@ function Set-TargetResource
         if($null -ne $website)
         {
             # Get the port number for the Firewall rule
-            $bindings = (Get-WebBinding -Name $EndpointName).bindingInformation
-            $port = [System.Text.RegularExpressions.Regex]::Match($bindings,':(\d+):').Groups[1].Value
+            Write-Verbose -Message "Processing bindings for $EndpointName"
+            $portList = Get-WebBinding -Name $EndpointName | ForEach-Object {
+                [System.Text.RegularExpressions.Regex]::Match($_.bindingInformation,':(\d+):').Groups[1].Value
+            }
 
+            if ('Started' -eq $website.state)
+            {
+                Write-Verbose -Message "Stopping WebSite $EndpointName"
+                $website = Stop-Website -Name $EndpointName -PathThru
+                if ('Started' -eq $website.state)
+                {
+                    Write-Error -Message "Unable to stop WebSite $EndpointName" -ErrorAction:Stop
+                }
+            }
             # there is a web site, but there shouldn't be one
             Write-Verbose -Message "Removing web site $EndpointName"
             PSWSIISEndpoint\Remove-PSWSEndpoint -SiteName $EndpointName
 
-            Remove-PullServerFirewallConfiguration -Port $port
+            $portList | ForEach-Object { Remove-PullServerFirewallConfiguration -Port $_ }
         }
 
         # we are done here, all stuff below is for 'Present'
