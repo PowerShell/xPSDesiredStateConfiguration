@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- MSFT_xWindowsProcess:
+  - Fixes issue where a process will fail to be created if a $Path is passed
+    that contains one or more spaces, and the resource is using $Credentials.
+  - Fixes issue where a process will fail to be created if $Arguments are
+    passed that contain one or more spaces (with or without credentials).
+  - Fixes issue where Integration tests fail if empty Arguments are passed.
+  [issue #605](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/605)
+  
 ## 8.6.0.0
 
 - Fixes style inconsistencies in PublishModulesAndMofsToPullServer.psm1.

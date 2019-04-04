@@ -319,6 +319,10 @@ function Set-TargetResource
             {
                 $startProcessArguments['ArgumentList'] = $Arguments
             }
+            else
+            {
+                $startProcessArguments['ArgumentList'] = "''"
+            }
 
             if ($PSCmdlet.ShouldProcess($Path, $script:localizedData.StartingProcessWhatif))
             {
@@ -362,6 +366,7 @@ function Set-TargetResource
                 {
                     try
                     {
+                        $startProcessArguments.ArgumentList = Add-SurroundingDoubleQuotesToString -StringIn $startProcessArguments.ArgumentList
                         Start-Process @startProcessArguments
                     }
                     catch [System.Exception]
@@ -650,7 +655,9 @@ function Get-ProcessCimInstance
 
     foreach ($process in $processCimInstances)
     {
-        if ((Get-ArgumentsFromCommandLineInput -CommandLineInput $process.CommandLine) -eq $Arguments)
+        $commandLineArgs = Get-ArgumentsFromCommandLineInput -CommandLineInput $process.CommandLine
+
+        if ([String]::IsNullOrEmpty($Arguments) -or $commandLineArgs -eq $Arguments -or $commandLineArgs -eq (Add-SurroundingDoubleQuotesToString -StringIn $Arguments))
         {
             $processesWithMatchingArguments += $process
         }
@@ -794,7 +801,7 @@ function Get-ArgumentsFromCommandLineInput
         return [System.String]::Empty
     }
 
-    return $CommandLineInput.Substring($endofCommandIndex + 1).Trim()
+    return (Add-SurroundingDoubleQuotesToString -StringIn ($CommandLineInput.Substring($endofCommandIndex + 1).Trim()))
 }
 
 <#
@@ -1010,6 +1017,9 @@ function Start-ProcessAsLocalSystemUser
         It grants the process ability for second-hop.
     #>
     Import-DscNativeMethods
+
+    $Path = Add-SurroundingDoubleQuotesToString -StringIn $Path
+    $Arguments = Add-SurroundingDoubleQuotesToString -StringIn $Arguments
 
     [PSDesiredStateConfiguration.NativeMethods]::CreateProcessAsUser( "$Path $Arguments", $splitCredentialResult.Domain,
                                                                       $splitCredentialResult.UserName, $Credential.Password,
@@ -1512,6 +1522,39 @@ namespace PSDesiredStateConfiguration
 "@
     # if not on Nano:
     Add-Type -TypeDefinition $dscNativeMethodsSource -ReferencedAssemblies 'System.ServiceProcess'
+}
+
+<#
+    .SYNOPSIS
+        Takes the given string, adds surrounding double quotes to the
+        string if it does not already have them, and returns the new string.
+
+    .PARAMETER StringIn
+        The string to add quotes to, if missing. 
+#>
+function Add-SurroundingDoubleQuotesToString
+{
+    [OutputType([System.String])]
+    [CmdletBinding()]
+    param
+    (
+        [Parameter()]
+        [System.String]
+        $StringIn,
+
+        [Parameter()]
+        [System.Boolean]
+        $QuoteEmptyStrings = $false
+    )
+
+    if ($QuoteEmptyStrings -and [String]::IsNullOrEmpty($StringIn) -or $StringIn -notlike "`"*`"")
+    {
+        return "`"$StringIn`""
+    }
+    else
+    {
+        return $StringIn
+    }
 }
 
 Export-ModuleMember -Function *-TargetResource

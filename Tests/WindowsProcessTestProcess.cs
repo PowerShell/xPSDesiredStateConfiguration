@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Threading;
 
 // This is a test process used for testing configuring running and stopping a process on a machine
@@ -14,12 +14,15 @@ namespace WindowsProcessTestProcess
             {
                 string filePath = args[0];
 
-                using (StreamWriter outputFile = new StreamWriter(filePath))
+                if (!string.IsNullOrEmpty(filePath) && filePath != "''" && filePath != "\"\"")
                 {
-                    // Write to a log file so that we can see if the process ran
-                    foreach (var line in lines)
+                    using (StreamWriter outputFile = new StreamWriter(filePath))
                     {
-                        outputFile.WriteLine(line);
+                        // Write to a log file so that we can see if the process ran
+                        foreach (var line in lines)
+                        {
+                            outputFile.WriteLine(line);
+                        }
                     }
                 }
             }
