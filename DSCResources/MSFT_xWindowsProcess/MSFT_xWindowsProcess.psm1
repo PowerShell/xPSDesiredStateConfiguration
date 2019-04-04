@@ -657,7 +657,9 @@ function Get-ProcessCimInstance
     {
         $commandLineArgs = Get-ArgumentsFromCommandLineInput -CommandLineInput $process.CommandLine
 
-        if ([String]::IsNullOrEmpty($Arguments) -or $commandLineArgs -eq $Arguments -or $commandLineArgs -eq (Add-SurroundingDoubleQuotesToString -StringIn $Arguments))
+        if ([String]::IsNullOrEmpty($Arguments) -or `
+            $commandLineArgs -eq $Arguments -or `
+            $commandLineArgs -eq (Add-SurroundingDoubleQuotesToString -StringIn $Arguments))
         {
             $processesWithMatchingArguments += $process
         }
@@ -1533,7 +1535,7 @@ namespace PSDesiredStateConfiguration
         The string to add quotes to, if missing.
 
     .PARAMETER QuoteEmptyStrings
-        Whether quotes should be added to empty strings. Defaults to False. 
+        Whether quotes should be added to empty strings. Defaults to False.
 #>
 function Add-SurroundingDoubleQuotesToString
 {

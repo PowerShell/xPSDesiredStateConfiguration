@@ -9,7 +9,7 @@
     passed that contain one or more spaces (with or without credentials).
   - Fixes issue where Integration tests fail if empty Arguments are passed.
   [issue #605](https://github.com/PowerShell/xPSDesiredStateConfiguration/issues/605)
-  
+
 ## 8.6.0.0
 
 - Fixes style inconsistencies in PublishModulesAndMofsToPullServer.psm1.

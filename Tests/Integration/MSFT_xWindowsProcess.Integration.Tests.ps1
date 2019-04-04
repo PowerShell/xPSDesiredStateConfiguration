@@ -194,9 +194,18 @@ function Start-TestProcessUsingDscAndVerify
             Test-LogFileNotPresent -Arguments $Arguments
         }
 
-        Start-DscConfigurationAndVerify -ConfigFile $configFile -ConfigurationName $configurationName -ConfigurationPath $configurationPath -DscParams $dscParams
+        Start-DscConfigurationAndVerify `
+            -ConfigFile $configFile `
+            -ConfigurationName $configurationName `
+            -ConfigurationPath $configurationPath `
+            -DscParams $dscParams
 
-        Start-GetDscConfigurationAndVerify -Path $Path -Arguments $Arguments -Ensure 'Present' -ProcessCount 1 -CreateLog $true
+        Start-GetDscConfigurationAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Present' `
+            -ProcessCount 1 `
+            -CreateLog $true
     }
 }
 
@@ -264,12 +273,23 @@ function Stop-TestProcessUsingDscAndVerify
             Remove-Item -Path $Arguments
         }
 
-        Start-DscConfigurationAndVerify -ConfigFile $configFile -ConfigurationName $configurationName -ConfigurationPath $configurationPath -DscParams $dscParams
+        Start-DscConfigurationAndVerify `
+            -ConfigFile $configFile `
+            -ConfigurationName $configurationName `
+            -ConfigurationPath $configurationPath `
+            -DscParams $dscParams
 
-        Start-GetDscConfigurationAndVerify -Path $Path -Arguments $Arguments -Ensure 'Absent' -ProcessCount $null -CreateLog $false
+        Start-GetDscConfigurationAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Absent' `
+            -ProcessCount $null `
+            -CreateLog $false
     }
 
-    Get-Process -Name WindowsProcessTestProcess -ErrorAction SilentlyContinue | Stop-Process -Confirm:$false -Force
+    # Force a stop on any running test processes just in case they failed to stop via DSC
+    Get-Process -Name WindowsProcessTestProcess -ErrorAction SilentlyContinue | `
+        Stop-Process -Confirm:$false -Force
 }
 
 <#
@@ -341,7 +361,11 @@ function Start-AdditionalTestProcessAndVerify
 
         Test-LogFileNotPresent -Arguments $Arguments
 
-        Start-DscConfigurationAndVerify -ConfigFile $configFile -ConfigurationName $configurationName -ConfigurationPath $configurationPath -DscParams $dscParams
+        Start-DscConfigurationAndVerify `
+            -ConfigFile $configFile `
+            -ConfigurationName $configurationName `
+            -ConfigurationPath $configurationPath `
+            -DscParams $dscParams
 
         # Start another instance of the same process using the same credentials.
         $startProcessParams = @{
@@ -365,7 +389,12 @@ function Start-AdditionalTestProcessAndVerify
         Start-Process @startProcessParams
 
         # Run Get-DscConfiguration and verify that 2 processes are detected
-        Start-GetDscConfigurationAndVerify -Path $Path -Arguments $Arguments -Ensure 'Present' -ProcessCount 2 -CreateLog $true
+        Start-GetDscConfigurationAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Present' `
+            -ProcessCount 2 `
+            -CreateLog $true
     }
 }
 
@@ -527,22 +556,60 @@ function Invoke-CommonResourceTesting
         }
 
         # Stop all test process instances and DSC configurations.
-        Stop-TestProcessUsingDscAndVerify -Path $Path -Arguments $Arguments -Ensure 'Absent' -ProcessCount $null -CreateLog $false -DscParams $dscParams
+        Stop-TestProcessUsingDscAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Absent' `
+            -ProcessCount $null `
+            -CreateLog $false `
+            -DscParams $dscParams
 
         # Start test process using DSC.
-        Start-TestProcessUsingDscAndVerify -Path $Path -Arguments $Arguments -Ensure 'Present' -ProcessCount 1 -CreateLog $true -DscParams $dscParams
+        Start-TestProcessUsingDscAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Present' `
+            -ProcessCount 1 `
+            -CreateLog $true `
+            -DscParams $dscParams
 
         # Run same config again. Should not start a second new testProcess instance when one is already running.
-        Start-TestProcessUsingDscAndVerify -Path $Path -Arguments $Arguments -Ensure 'Present' -ProcessCount 1 -LogPresent $true -CreateLog $false -ContextLabel 'Should detect when multiple process instances are running' -DscParams $dscParams
+        Start-TestProcessUsingDscAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Present' `
+            -ProcessCount 1 `
+            -LogPresent $true `
+            -CreateLog $false `
+            -ContextLabel 'Should detect when multiple process instances are running' `
+            -DscParams $dscParams
 
         # Stop all test process instances and DSC configurations.
-        Stop-TestProcessUsingDscAndVerify -Path $Path -Arguments $Arguments -Ensure 'Absent' -ProcessCount $null -CreateLog $false -DscParams $dscParams
+        Stop-TestProcessUsingDscAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Absent' `
+            -ProcessCount $null `
+            -CreateLog $false `
+            -DscParams $dscParams
 
         # Start test process using DSC, then start a test process outside of DSC
-        Start-AdditionalTestProcessAndVerify -Path $Path -Arguments $Arguments -Ensure 'Absent' -ProcessCount 2 -CreateLog $true -DscParams $dscParams
+        Start-AdditionalTestProcessAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Absent' `
+            -ProcessCount 2 `
+            -CreateLog $true `
+            -DscParams $dscParams
 
         # Stop all test process instances and DSC configurations.
-        Stop-TestProcessUsingDscAndVerify -Path $Path -Arguments $Arguments -Ensure 'Absent' -ProcessCount $null -CreateLog $false -DscParams $dscParams
+        Stop-TestProcessUsingDscAndVerify `
+            -Path $Path `
+            -Arguments $Arguments `
+            -Ensure 'Absent' `
+            -ProcessCount $null `
+            -CreateLog $false `
+            -DscParams $dscParams
     }
 }
 
