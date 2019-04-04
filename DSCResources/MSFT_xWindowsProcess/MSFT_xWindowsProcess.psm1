@@ -801,7 +801,7 @@ function Get-ArgumentsFromCommandLineInput
         return [System.String]::Empty
     }
 
-    return (Add-SurroundingDoubleQuotesToString -StringIn ($CommandLineInput.Substring($endofCommandIndex + 1).Trim()))
+    return $CommandLineInput.Substring($endofCommandIndex + 1).Trim()
 }
 
 <#

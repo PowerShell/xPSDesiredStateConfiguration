@@ -487,7 +487,7 @@ try
 
             It 'Should return the correct process when it exists and arguments are passed' {
                 $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess1.Path `
-                                                  -Arguments "`"$($script:mockProcess1.Arguments)`""
+                                                  -Arguments $script:mockProcess1.Arguments
                 $resultProcess | Should -Be @($script:mockProcess1)
 
                 Assert-MockCalled -CommandName Get-Process -Exactly 1 -Scope It
@@ -500,7 +500,7 @@ try
 
             It 'Should return the correct processes when multiple exist' {
                 $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess1.Path `
-                                                  -Arguments "`"$($script:mockProcess1.Arguments)`""
+                                                  -Arguments $script:mockProcess1.Arguments
 
                 Compare-Object -ReferenceObject $expectedProcesses -DifferenceObject $resultProcess | Should -Be $null
 
@@ -546,7 +546,7 @@ try
             It 'Should return only processes that match Credential' {
                 $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess3.Path `
                                                         -Credential $script:testCredential `
-                                                        -Arguments "`"$($script:mockProcess3.Arguments)`"" `
+                                                        -Arguments $script:mockProcess3.Arguments `
                                                         -UseGetCimInstanceThreshold 1
                 $resultProcess | Should -Be @($script:mockProcess3, $script:mockProcess3)
 
@@ -562,7 +562,7 @@ try
             It 'Should return only processes that match Credential and Arguments' {
                 $resultProcess = Get-ProcessCimInstance -Path $script:mockProcess3.Path `
                                                         -Credential $script:testCredential `
-                                                        -Arguments "`"$($script:mockProcess3.Arguments)`"" `
+                                                        -Arguments $script:mockProcess3.Arguments `
                                                         -UseGetCimInstanceThreshold 1
                 $resultProcess | Should -Be @($script:mockProcess3, $script:mockProcess3)
 
@@ -617,13 +617,13 @@ try
             It 'Should return the correct arguments when single quotes are used' {
                 $inputString = 'test.txt a b c'
                 $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
-                $argumentsReturned | Should -Be "`"a b c`""
+                $argumentsReturned | Should -Be 'a b c'
             }
 
             It 'Should return the correct arguments when double quotes are used' {
                 $inputString = '"test file   test"   a b c'
                 $argumentsReturned = Get-ArgumentsFromCommandLineInput -CommandLineInput $inputString
-                $argumentsReturned | Should -Be "`"a b c`""
+                $argumentsReturned | Should -Be 'a b c'
             }
 
             It 'Should return an empty string when an empty string is passed in' {
