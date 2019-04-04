@@ -147,8 +147,11 @@ function Start-GetDscConfigurationAndVerify
     .PARAMETER LogPresent
         Specifies whether a log file should already be present at Function entry.
 
-    .PARAMETER CreateLog
-        Specifies whether a log file should have been created.
+    .PARAMETER ContextLabel
+        The Context label to pass to Pester.
+
+    .PARAMETER DscParams
+        Parameters to pass to Start and Get-DscConfiguration.
 #>
 function Start-TestProcessUsingDscAndVerify
 {
@@ -216,6 +219,12 @@ function Start-TestProcessUsingDscAndVerify
 
     .PARAMETER CreateLog
         Specifies whether a log file should have been created.
+
+    .PARAMETER ContextLabel
+        The Context label to pass to Pester.
+
+    .PARAMETER DscParams
+        Parameters to pass to Start and Get-DscConfiguration.
 #>
 function Stop-TestProcessUsingDscAndVerify
 {
@@ -287,6 +296,12 @@ function Stop-TestProcessUsingDscAndVerify
 
     .PARAMETER CreateLog
         Specifies whether a log file should have been created.
+
+    .PARAMETER ContextLabel
+        The Context label to pass to Pester.
+
+    .PARAMETER DscParams
+        Parameters to pass to Start and Get-DscConfiguration.
 #>
 function Start-AdditionalTestProcessAndVerify
 {

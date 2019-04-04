@@ -1530,7 +1530,10 @@ namespace PSDesiredStateConfiguration
         string if it does not already have them, and returns the new string.
 
     .PARAMETER StringIn
-        The string to add quotes to, if missing. 
+        The string to add quotes to, if missing.
+
+    .PARAMETER QuoteEmptyStrings
+        Whether quotes should be added to empty strings. Defaults to False. 
 #>
 function Add-SurroundingDoubleQuotesToString
 {
