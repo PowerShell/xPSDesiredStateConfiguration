@@ -24,8 +24,7 @@ try
 
             # Setup test process paths.
             $script:system32Path = Join-Path -Path $env:SystemRoot -ChildPath System32
-            $script:notepadExePath = Join-Path -Path $system32Path -ChildPath notepad.exe -Resolve
-            $script:powershellExePath = Join-Path -Path (Join-Path -Path (Join-Path -Path $system32Path -ChildPath WindowsPowerShell) -ChildPath v1.0) -ChildPath powershell.exe -Resolve
+            $script:notepadExePath = Join-Path -Path (Join-Path -Path $env:SystemRoot -ChildPath System32) -ChildPath notepad.exe -Resolve
             $script:iexplorerExePath = Join-Path -Path (Join-Path -Path $env:ProgramFiles -ChildPath 'internet explorer') -ChildPath iexplore.exe -Resolve
 
             $script:processPaths = @( $script:notepadExePath, $script:iexplorerExePath)
