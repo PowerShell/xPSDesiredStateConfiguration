@@ -465,39 +465,39 @@ try
     $iexplorerExePath = Join-Path -Path (Join-Path -Path $env:ProgramFiles -ChildPath 'internet explorer') -ChildPath iexplore.exe -Resolve
 
     # Setup test combination variables
-    $testFolderCombos = @(
+    $testPathAndArgsCombos = @(
         @{
-            Description = 'Process Path Without Spaces, No Log'
+            Description = 'Process Path Without Spaces, No Arguments'
             Path = $notepadExePath
             Arguments = ''
         }
 
         @{
-            Description = 'Process Path With Spaces, No Log'
+            Description = 'Process Path With Spaces, No Arguments'
             Path = $iexplorerExePath
             Arguments = ''
         }
 
         @{
-            Description = 'Process Path Without Spaces, Log Path Without Spaces'
+            Description = 'Process Path Without Spaces, Arguments Without Spaces'
             Path = $powershellExePath
             Arguments = "30|Start-Sleep"
         }
 
         @{
-            Description = 'Process Path With Spaces, Log Path Without Spaces'
+            Description = 'Process Path With Spaces, Arguments Without Spaces'
             Path = $iexplorerExePath
             Arguments = 'https://github.com/PowerShell/xPSDesiredStateConfiguration'
         }
 
         @{
-            Description = 'Process Path Without Spaces, Log Path With Spaces'
+            Description = 'Process Path Without Spaces, Arguments With Spaces'
             Path = $powershellExePath
             Arguments = "Start-Sleep -Seconds 30"
         }
 
         @{
-            Description = 'Process Path With Spaces, Log Path With Spaces'
+            Description = 'Process Path With Spaces, Arguments With Spaces'
             Path = $iexplorerExePath
             Arguments = "https://github.com/PowerShell/xPSDesiredStateConfiguration with spaces"
         }
@@ -518,18 +518,18 @@ try
     )
 
     # Perform tests on each variable combination
-    foreach ($folderCombo in $testFolderCombos)
+    foreach ($pathAndArgsCombo in $testPathAndArgsCombos)
     {
         foreach ($credentialCombo in $credentialCombos)
         {
             $params = @{
-                Path = $folderCombo.Path
-                Arguments = $folderCombo.Arguments
+                Path = $pathAndArgsCombo.Path
+                Arguments = $pathAndArgsCombo.Arguments
                 Credential = $credentialCombo.Credential
                 ConfigFile = $credentialCombo.ConfigFile
             }
 
-            $params.Add('DescribeLabel', "$($folderCombo.Description), $($credentialCombo.Description)")
+            $params.Add('DescribeLabel', "$($pathAndArgsCombo.Description), $($credentialCombo.Description)")
             $params.Remove('FolderDescription')
             $params.Remove('CredentialDescription')
 
