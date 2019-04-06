@@ -317,11 +317,7 @@ function Set-TargetResource
 
             if (-not [System.String]::IsNullOrEmpty($Arguments))
             {
-                $startProcessArguments['ArgumentList'] = $Arguments
-            }
-            else
-            {
-                $startProcessArguments['ArgumentList'] = "''"
+                $startProcessArguments['ArgumentList'] = Add-SurroundingDoubleQuotesToString -StringIn $Arguments
             }
 
             if ($PSCmdlet.ShouldProcess($Path, $script:localizedData.StartingProcessWhatif))
@@ -366,7 +362,6 @@ function Set-TargetResource
                 {
                     try
                     {
-                        $startProcessArguments.ArgumentList = Add-SurroundingDoubleQuotesToString -StringIn $startProcessArguments.ArgumentList
                         Start-Process @startProcessArguments
                     }
                     catch [System.Exception]

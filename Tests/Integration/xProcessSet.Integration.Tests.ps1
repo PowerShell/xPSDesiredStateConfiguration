@@ -22,24 +22,20 @@ try
         BeforeAll {
             $script:configurationFilePath = Join-Path -Path $PSScriptRoot -ChildPath 'xProcessSet.config.ps1'
 
-            $originalProcessPath = Join-Path -Path $script:testsFolderFilePath -ChildPath 'WindowsProcessTestProcessSet.exe'
-            $copiedProcessPath = Join-Path -Path $TestDrive -ChildPath 'TestWindowsProcess2.exe'
+            # Setup test process paths.
+            $script:system32Path = Join-Path -Path $env:SystemRoot -ChildPath System32
+            $script:notepadExePath = Join-Path -Path $system32Path -ChildPath notepad.exe -Resolve
+            $script:powershellExePath = Join-Path -Path (Join-Path -Path (Join-Path -Path $system32Path -ChildPath WindowsPowerShell) -ChildPath v1.0) -ChildPath powershell.exe -Resolve
+            $script:iexplorerExePath = Join-Path -Path (Join-Path -Path $env:ProgramFiles -ChildPath 'internet explorer') -ChildPath iexplore.exe -Resolve
 
-            Copy-Item -Path $originalProcessPath -Destination $copiedProcessPath -Force
-
-            $script:processPaths = @( $originalProcessPath, $copiedProcessPath)
+            $script:processPaths = @( $script:notepadExePath, $script:iexplorerExePath)
         }
 
         AfterAll {
             foreach ($processPath in $script:processPaths)
             {
-                $processName = [System.IO.Path]::GetFileNameWithoutExtension($processPath)
-                $process = Get-Process -Name $processName -ErrorAction 'SilentlyContinue'
-
-                if ($null -ne $process)
-                {
-                    Stop-Process -Name $processName -ErrorAction 'SilentlyContinue' -Force
-                }
+                Get-Process | Where-Object -FilterScript {$_.Path -like $processPath} | `
+                    Stop-Process -Confirm:$false -Force
             }
         }
 

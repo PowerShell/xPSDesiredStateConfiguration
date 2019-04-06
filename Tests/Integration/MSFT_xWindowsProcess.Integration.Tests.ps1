@@ -83,9 +83,6 @@ function Start-DscConfigurationAndVerify
     .PARAMETER ProcessCount
         The expected count of running processes for the specified Process.
         Allows Null.
-
-    .PARAMETER CreateLog
-        Specifies whether a log file should have been created.
 #>
 function Start-GetDscConfigurationAndVerify
 {
@@ -102,10 +99,7 @@ function Start-GetDscConfigurationAndVerify
         $Ensure,
 
         [Nullable[System.Int32]]
-        $ProcessCount,
-
-        [System.Boolean]
-        $CreateLog
+        $ProcessCount
     )
 
     It 'Should call Get-DscConfiguration without throwing and get expected results' {
@@ -115,15 +109,6 @@ function Start-GetDscConfigurationAndVerify
         $script:currentConfig.Arguments | Should -Be $Arguments
         $script:currentConfig.Ensure | Should -Be $Ensure
         $script:currentConfig.ProcessCount | Should -Be $ProcessCount
-    }
-
-    if ($CreateLog)
-    {
-        Test-LogFilePresent -Arguments $Arguments
-    }
-    else
-    {
-        Test-LogFileNotPresent -Arguments $Arguments
     }
 }
 
@@ -143,9 +128,6 @@ function Start-GetDscConfigurationAndVerify
     .PARAMETER ProcessCount
         The expected count of running processes for the specified Process.
         Allows Null.
-
-    .PARAMETER LogPresent
-        Specifies whether a log file should already be present at Function entry.
 
     .PARAMETER ContextLabel
         The Context label to pass to Pester.
@@ -170,12 +152,6 @@ function Start-TestProcessUsingDscAndVerify
         [Nullable[System.Int32]]
         $ProcessCount,
 
-        [System.Boolean]
-        $LogPresent,
-
-        [System.Boolean]
-        $CreateLog,
-
         [System.String]
         $ContextLabel = 'Should start a new instance of the test process',
 
@@ -189,11 +165,6 @@ function Start-TestProcessUsingDscAndVerify
         $dscParams.OutputPath = $configurationPath
         $dscParams.Ensure = 'Present'
 
-        if (!$LogPresent)
-        {
-            Test-LogFileNotPresent -Arguments $Arguments
-        }
-
         Start-DscConfigurationAndVerify `
             -ConfigFile $configFile `
             -ConfigurationName $configurationName `
@@ -204,8 +175,7 @@ function Start-TestProcessUsingDscAndVerify
             -Path $Path `
             -Arguments $Arguments `
             -Ensure 'Present' `
-            -ProcessCount 1 `
-            -CreateLog $true
+            -ProcessCount 1
     }
 }
 
@@ -225,9 +195,6 @@ function Start-TestProcessUsingDscAndVerify
     .PARAMETER ProcessCount
         The expected count of running processes for the specified Process.
         Allows Null.
-
-    .PARAMETER CreateLog
-        Specifies whether a log file should have been created.
 
     .PARAMETER ContextLabel
         The Context label to pass to Pester.
@@ -252,9 +219,6 @@ function Stop-TestProcessUsingDscAndVerify
         [Nullable[System.Int32]]
         $ProcessCount,
 
-        [System.Boolean]
-        $CreateLog,
-
         [System.String]
         $ContextLabel = 'Should stop all instances of the test process',
 
@@ -268,11 +232,6 @@ function Stop-TestProcessUsingDscAndVerify
         $dscParams.OutputPath = $configurationPath
         $dscParams.Ensure = 'Absent'
 
-        if (Test-PathSafe -Path $Arguments)
-        {
-            Remove-Item -Path $Arguments
-        }
-
         Start-DscConfigurationAndVerify `
             -ConfigFile $configFile `
             -ConfigurationName $configurationName `
@@ -283,12 +242,11 @@ function Stop-TestProcessUsingDscAndVerify
             -Path $Path `
             -Arguments $Arguments `
             -Ensure 'Absent' `
-            -ProcessCount $null `
-            -CreateLog $false
+            -ProcessCount $null
     }
 
     # Force a stop on any running test processes just in case they failed to stop via DSC
-    Get-Process -Name WindowsProcessTestProcess -ErrorAction SilentlyContinue | `
+    Get-Process | Where-Object -FilterScript {$_.Path -like $Path} | `
         Stop-Process -Confirm:$false -Force
 }
 
@@ -310,12 +268,6 @@ function Stop-TestProcessUsingDscAndVerify
     .PARAMETER ProcessCount
         The expected count of running processes for the specified Process.
         Allows Null.
-
-    .PARAMETER LogPresent
-        Specifies whether a log file should already be present at Function entry.
-
-    .PARAMETER CreateLog
-        Specifies whether a log file should have been created.
 
     .PARAMETER ContextLabel
         The Context label to pass to Pester.
@@ -340,12 +292,6 @@ function Start-AdditionalTestProcessAndVerify
         [Nullable[System.Int32]]
         $ProcessCount,
 
-        [System.Boolean]
-        $LogPresent,
-
-        [System.Boolean]
-        $CreateLog,
-
         [System.String]
         $ContextLabel = 'Should return the correct amount of processes when more than 1 are running',
 
@@ -358,8 +304,6 @@ function Start-AdditionalTestProcessAndVerify
         $configurationPath = Join-Path -Path $TestDrive -ChildPath $configurationName
         $dscParams.OutputPath = $configurationPath
         $dscParams.Ensure = 'Present'
-
-        Test-LogFileNotPresent -Arguments $Arguments
 
         Start-DscConfigurationAndVerify `
             -ConfigFile $configFile `
@@ -376,10 +320,6 @@ function Start-AdditionalTestProcessAndVerify
         {
             $startProcessParams.ArgumentList = @("`"$Arguments`"")
         }
-        else
-        {
-            $startProcessParams.ArgumentList = "''"
-        }
 
         if ($null -ne $Credential)
         {
@@ -393,89 +333,7 @@ function Start-AdditionalTestProcessAndVerify
             -Path $Path `
             -Arguments $Arguments `
             -Ensure 'Present' `
-            -ProcessCount 2 `
-            -CreateLog $true
-    }
-}
-
-<#
-    .SYNOPSIS
-        Safely tests whether or not a file Path exist. Returns True if the
-        Path exists, or if it is null or empty.
-
-    .PARAMETER Path
-        The file Path to safely test for.
-#>
-function Test-PathSafe
-{
-    [CmdletBinding()]
-    param
-    (
-        [System.String]
-        $Path
-    )
-
-    $pathSafe = $false
-
-    if(!([String]::IsNullOrEmpty($Path)))
-    {
-        try
-        {
-            $pathSafe = Test-Path -Path $Path
-        }
-        catch
-        {
-            Write-Warning -Message 'Test-PathSafe: Caught exception trying to process Path'
-        }
-    }
-
-    return $pathSafe
-}
-
-<#
-    .SYNOPSIS
-        Tests whether the DSC resource handled the Arguments parameter properly.
-        Tests pass if Arguments is null or empty, or if the Path specified in
-        Arguments exists.
-
-    .PARAMETER Arguments
-        Corresponds to the Arguments parameter of xWindowsProcess.
-#>
-function Test-LogFilePresent
-{
-    [CmdletBinding()]
-    param
-    (
-        [System.String]
-        $Arguments
-    )
-
-    It 'Should create a logfile when Arguments is used' {
-        $pathResult = ([String]::IsNullOrEmpty($Arguments)) -or (Test-PathSafe -Path $Arguments)
-        $pathResult | Should -Be $true
-    }
-}
-
-<#
-    .SYNOPSIS
-        Tests whether the DSC resource handled the Arguments parameter properly.
-        Tests pass if Arguments if the Path specified in Arguments do not exist.
-
-    .PARAMETER Arguments
-        Corresponds to the Arguments parameter of xWindowsProcess.
-#>
-function Test-LogFileNotPresent
-{
-    [CmdletBinding()]
-    param
-    (
-        [System.String]
-        $Arguments
-    )
-
-    It 'Should not have a logfile present' {
-        $pathResult = Test-PathSafe -Path $Arguments
-        $pathResult | Should -Be $false
+            -ProcessCount 2
     }
 }
 
@@ -533,14 +391,6 @@ function Invoke-CommonResourceTesting
             )
         }
 
-        if ($null -ne $Credential -and !([String]::IsNullOrEmpty($Arguments)))
-        {
-            # Make sure test admin account has permissions on log folder
-            Add-PathPermission `
-                -Path (Split-Path -Path $Arguments) `
-                -IdentityReference $Credential.UserName
-        }
-
         $dscParams = @{
             Path = $Path
             Arguments = $Arguments
@@ -561,7 +411,6 @@ function Invoke-CommonResourceTesting
             -Arguments $Arguments `
             -Ensure 'Absent' `
             -ProcessCount $null `
-            -CreateLog $false `
             -DscParams $dscParams
 
         # Start test process using DSC.
@@ -570,17 +419,14 @@ function Invoke-CommonResourceTesting
             -Arguments $Arguments `
             -Ensure 'Present' `
             -ProcessCount 1 `
-            -CreateLog $true `
             -DscParams $dscParams
 
-        # Run same config again. Should not start a second new testProcess instance when one is already running.
+        # Run same config again. Should not start a second new test Process instance when one is already running.
         Start-TestProcessUsingDscAndVerify `
             -Path $Path `
             -Arguments $Arguments `
             -Ensure 'Present' `
             -ProcessCount 1 `
-            -LogPresent $true `
-            -CreateLog $false `
             -ContextLabel 'Should detect when multiple process instances are running' `
             -DscParams $dscParams
 
@@ -590,7 +436,6 @@ function Invoke-CommonResourceTesting
             -Arguments $Arguments `
             -Ensure 'Absent' `
             -ProcessCount $null `
-            -CreateLog $false `
             -DscParams $dscParams
 
         # Start test process using DSC, then start a test process outside of DSC
@@ -599,7 +444,6 @@ function Invoke-CommonResourceTesting
             -Arguments $Arguments `
             -Ensure 'Absent' `
             -ProcessCount 2 `
-            -CreateLog $true `
             -DscParams $dscParams
 
         # Stop all test process instances and DSC configurations.
@@ -608,76 +452,54 @@ function Invoke-CommonResourceTesting
             -Arguments $Arguments `
             -Ensure 'Absent' `
             -ProcessCount $null `
-            -CreateLog $false `
             -DscParams $dscParams
     }
 }
 
 try
 {
-    # Setup test folders and files
-    $originalTestProcessFolderPath = Split-Path $PSScriptRoot -Parent
-    $originalTestProcessPath = Join-Path -Path $originalTestProcessFolderPath -ChildPath 'WindowsProcessTestProcess.exe'
-
-    $folderNoSpaces = Join-Path -Path $env:SystemDrive -ChildPath 'TestNoSpaces'
-    $folderWithSpaces = Join-Path -Path $env:SystemDrive -ChildPath 'Test With Spaces'
-
-    $testProcessNoSpaces = Join-Path -Path $folderNoSpaces -ChildPath 'WindowsProcessTestProcess.exe'
-    $testLogNoSpaces = Join-Path -Path $folderNoSpaces -ChildPath 'processTestLog.txt'
-
-    $testProcessWithSpaces = Join-Path -Path $folderWithSpaces -ChildPath 'WindowsProcessTestProcess.exe'
-    $testLogWithSpaces = Join-Path -Path $folderWithSpaces -ChildPath 'processTestLog.txt'
-
-    if (!(Test-Path -Path $folderNoSpaces))
-    {
-        mkdir -Path $folderNoSpaces -ErrorAction Stop
-    }
-
-    if (!(Test-Path -Path $folderWithSpaces))
-    {
-        mkdir -Path $folderWithSpaces -ErrorAction Stop
-    }
-
-    if (!(Test-Path -Path $testProcessNoSpaces))
-    {
-        Copy-Item -Path $originalTestProcessPath -Destination $folderNoSpaces -ErrorAction Stop
-    }
-
-    if (!(Test-Path -Path $testProcessWithSpaces))
-    {
-        Copy-Item -Path $originalTestProcessPath -Destination $folderWithSpaces -ErrorAction Stop
-    }
+    # Setup test process paths.
+    $system32Path = Join-Path -Path $env:SystemRoot -ChildPath System32
+    $notepadExePath = Join-Path -Path $system32Path -ChildPath notepad.exe -Resolve
+    $powershellExePath = Join-Path -Path (Join-Path -Path (Join-Path -Path $system32Path -ChildPath WindowsPowerShell) -ChildPath v1.0) -ChildPath powershell.exe -Resolve
+    $iexplorerExePath = Join-Path -Path (Join-Path -Path $env:ProgramFiles -ChildPath 'internet explorer') -ChildPath iexplore.exe -Resolve
 
     # Setup test combination variables
     $testFolderCombos = @(
         @{
             Description = 'Process Path Without Spaces, No Log'
-            Path = $testProcessNoSpaces
+            Path = $notepadExePath
+            Arguments = ''
+        }
+
+        @{
+            Description = 'Process Path With Spaces, No Log'
+            Path = $iexplorerExePath
             Arguments = ''
         }
 
         @{
             Description = 'Process Path Without Spaces, Log Path Without Spaces'
-            Path = $testProcessNoSpaces
-            Arguments = $testLogNoSpaces
+            Path = $powershellExePath
+            Arguments = "30|Start-Sleep"
         }
 
         @{
             Description = 'Process Path With Spaces, Log Path Without Spaces'
-            Path = $testProcessWithSpaces
-            Arguments = $testLogNoSpaces
+            Path = $iexplorerExePath
+            Arguments = 'https://github.com/PowerShell/xPSDesiredStateConfiguration'
         }
 
         @{
             Description = 'Process Path Without Spaces, Log Path With Spaces'
-            Path = $testProcessNoSpaces
-            Arguments = $testLogWithSpaces
+            Path = $powershellExePath
+            Arguments = "Start-Sleep -Seconds 30"
         }
 
         @{
             Description = 'Process Path With Spaces, Log Path With Spaces'
-            Path = $testProcessWithSpaces
-            Arguments = $testLogWithSpaces
+            Path = $iexplorerExePath
+            Arguments = "https://github.com/PowerShell/xPSDesiredStateConfiguration with spaces"
         }
     )
 
