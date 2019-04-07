@@ -113,3 +113,32 @@ Configuration MSFT_xDSCWebService_PullTestWithoutSecurityBestPractices_Config
         }
     }
 }
+
+<#
+    .SYNOPSIS
+        Sets up a DSC pull server without firewall exceptions
+#>
+Configuration MSFT_xDSCWebService_PullTestWithoutFirewall_Config
+{
+    Import-DscResource -ModuleName 'xPSDesiredStateConfiguration'
+
+    node $AllNodes.NodeName
+    {
+        xDSCWebService Integration_Test
+        {
+            Ensure                       = 'Present'
+            AcceptSelfSignedCertificates = $true
+            CertificateThumbPrint        = $Node.CertificateThumbprint
+            ConfigurationPath            = $Node.ConfigurationPath
+            Enable32BitAppOnWin64        = $false
+            EndpointName                 = $Node.EndpointName
+            ModulePath                   = $Node.ModulePath
+            Port                         = $Node.Port
+            PhysicalPath                 = $Node.PhysicalPath
+            RegistrationKeyPath          = $Node.RegistrationKeyPath
+            State                        = 'Started'
+            UseSecurityBestPractices     = $true
+            ConfigureFirewall            = $false
+        }
+    }
+}
