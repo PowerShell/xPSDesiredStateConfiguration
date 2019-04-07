@@ -383,7 +383,7 @@ function Set-TargetResource
             if ('Started' -eq $website.state)
             {
                 Write-Verbose -Message "Stopping WebSite $EndpointName"
-                $website = Stop-Website -Name $EndpointName -PathThru
+                $website = Stop-Website -Name $EndpointName -Passthru
                 if ('Started' -eq $website.state)
                 {
                     Write-Error -Message "Unable to stop WebSite $EndpointName" -ErrorAction:Stop
