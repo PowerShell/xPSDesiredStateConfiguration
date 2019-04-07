@@ -81,6 +81,7 @@ function Remove-PullServerFirewallConfiguration
 function Test-PullServerFirewallConfiguration
 {
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [Parameter()]
