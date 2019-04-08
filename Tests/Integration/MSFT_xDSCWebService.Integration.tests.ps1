@@ -80,37 +80,90 @@ function Invoke-CommonResourceTesting
     .SYNOPSIS
         Performs common tests to ensure that the DSC pull server was properly
         installed.
+
+    .PARAMETER WebsiteName
+        name of the Pull Server website
+
+    .PARAMETER ResourceState
+        state of the resource (website)
+
+    .PARAMETER WebsiteState
+        State of the website
 #>
-function Test-DSCPullServerIsPresent
+function Test-DSCPullServer
 {
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $WebsiteName,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('Present', 'Absent')]
+        [System.String]
+        $ResourceState,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $WebsiteState
+    )
+
     It 'Should create a web.config file at the web site root' {
         Test-Path -Path (Join-Path -Path $ConfigurationData.AllNodes.PhysicalPath -ChildPath 'web.config') | Should -Be $true
     }
 
-    It 'Should exist a WebSite called PSDSCPullServer' {
-        $website = Get-WebSite -Name 'PSDSCPullServer'
-        if (-not $website)
-        {
-            Write-Error -Message 'WebSite PSDSCPullServer does not exist'
+    switch ($ResourceState)
+    {
+        'Present' {
+            It ("Should exist a WebSite called $WebsiteName") {
+                Get-WebSite -Name $WebsiteName | Should Not Be $null
+            }
+
+            It ("WebSite $WebsiteName should be started") {
+                $website = Get-WebSite -Name $WebsiteName
+                $website | Should Not Be $null
+                $website.state | Should BeExactly $WebsiteState
+            }
         }
 
-        if ('Started' -ne $website.state)
-        {
-            Write-Error -Message "WebSite $($website.name) is not started. $($website.state)"
+        'Absent' {
+            It ("Should not exist a WebSite called $WebsiteName") {
+                Get-WebSite -Name $WebsiteName | Should Be $null
+            }
         }
     }
 }
 
+<#
+    .SYNOPSIS
+        Performs a test on defined firewall rules
+
+    .PARAMETER RuleName
+        name of the firewall rule
+
+    .PARAMETER State
+        state of the rule
+#>
 function Test-DSCPullServerFirewallRule
 {
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.String]
+        $RuleName,
+
+        [Parameter(Mandatory = $true)]
         [ValidateSet('Present', 'Absent')]
         [System.String]
         $State
     )
+
+    Write-Verbose -Message "Test-DSCPullServerFirewallRule $RuleName for state $State."
 
     $cnt = 0
     if ('Present' -eq $State)
@@ -118,10 +171,12 @@ function Test-DSCPullServerFirewallRule
         $cnt = 1
     }
 
-    It ("Should $(if ('Present' -eq $State) { '' } else { 'not' }) create a firewall rule for the chosen port")  {
-        (Get-NetFirewallRule | Where-Object -FilterScript {
-            $_.DisplayName -eq 'DSCPullServer_IIS_Port'
-        } | Measure-Object).Count | Should -Be $cnt
+    It ("Should $(if ('Present' -eq $State) { '' } else { 'not ' })create a firewall rule $RuleName for the chosen port")  {
+        $ruleCnt = (Get-NetFirewallRule | Where-Object -FilterScript {
+            $_.DisplayName -eq $RuleName #'DSCPullServer_IIS_Port'
+        } | Measure-Object).Count
+        Write-Verbose -Message "Found $ruleCnt firewall rules with name '$RuleName'"
+        $ruleCnt | Should -Be $cnt
     }
 }
 
@@ -175,12 +230,8 @@ try
 
                 Invoke-CommonResourceTesting -ConfigurationName $configurationName
 
-                Test-DSCPullServerIsPresent
-
-                if (-not (Test-DSCPullServerFirewallRule -State 'Present'))
-                {
-                    Write-Error -Message 'Firewall exception should have been configured.'
-                }
+                Test-DSCPullServer -WebsiteName 'PSDSCPullServer' -State 'Present' -WebsiteState 'Started'
+                Test-DSCPullServerFirewallRule -RuleName 'DSCPullServer_IIS_Port' -State 'Present'
             }
         }
 
@@ -197,12 +248,8 @@ try
 
             Invoke-CommonResourceTesting -ConfigurationName $configurationName
 
-            Test-DSCPullServerIsPresent
-
-            if (-not (Test-DSCPullServerFirewallRule -State 'Absent'))
-            {
-                Write-Error -Message 'Firewall exception should not have been configured.'
-            }
+            Test-DSCPullServer -WebsiteName 'PSDSCPullServer' -State 'Present' -WebsiteState 'Started'
+            Test-DSCPullServerFirewallRule -RuleName 'DSCPullServer_IIS_Port' -State 'Absent'
         }
     }
     #endregion
