@@ -230,7 +230,7 @@ try
 
                 Invoke-CommonResourceTesting -ConfigurationName $configurationName
 
-                Test-DSCPullServer -WebsiteName 'PSDSCPullServer' -State 'Present' -WebsiteState 'Started'
+                Test-DSCPullServer -WebsiteName 'PSDSCPullServer' -ResourceState 'Present' -WebsiteState 'Started'
                 Test-DSCPullServerFirewallRule -RuleName 'DSCPullServer_IIS_Port' -State 'Present'
             }
         }
@@ -248,7 +248,7 @@ try
 
             Invoke-CommonResourceTesting -ConfigurationName $configurationName
 
-            Test-DSCPullServer -WebsiteName 'PSDSCPullServer' -State 'Present' -WebsiteState 'Started'
+            Test-DSCPullServer -WebsiteName 'PSDSCPullServer' -ResourceState 'Present' -WebsiteState 'Started'
             Test-DSCPullServerFirewallRule -RuleName 'DSCPullServer_IIS_Port' -State 'Absent'
         }
     }
