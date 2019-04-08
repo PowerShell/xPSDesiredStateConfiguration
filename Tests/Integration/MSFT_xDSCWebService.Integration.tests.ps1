@@ -176,6 +176,11 @@ try
                 Invoke-CommonResourceTesting -ConfigurationName $configurationName
 
                 Test-DSCPullServerIsPresent
+
+                if (-not (Test-DSCPullServerFirewallRule -State 'Present'))
+                {
+                    Write-Error -Message 'Firewall exception should have been configured.'
+                }
             }
         }
 
@@ -194,7 +199,7 @@ try
 
             Test-DSCPullServerIsPresent
 
-            if (Test-DSCPullServerFirewallException)
+            if (-not (Test-DSCPullServerFirewallRule -State 'Absent'))
             {
                 Write-Error -Message 'Firewall exception should not have been configured.'
             }
