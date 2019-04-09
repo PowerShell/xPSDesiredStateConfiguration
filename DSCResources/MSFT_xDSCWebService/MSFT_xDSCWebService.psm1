@@ -371,8 +371,7 @@ function Set-TargetResource
     # ============ Absent block to remove existing site =========
     if(($Ensure -eq "Absent"))
     {
-        $website = Get-Website -Name $EndpointName
-        if($null -ne $website)
+        if(Test-Path -LiteralPath "IIS:\Sites\$EndpointName")
         {
             # Get the port number for the Firewall rule
             Write-Verbose -Message "Processing bindings for $EndpointName"
@@ -380,15 +379,6 @@ function Set-TargetResource
                 [System.Text.RegularExpressions.Regex]::Match($_.bindingInformation,':(\d+):').Groups[1].Value
             }
 
-            if ('Started' -eq $website.state)
-            {
-                Write-Verbose -Message "Stopping WebSite $EndpointName"
-                $website = Stop-Website -Name $EndpointName -Passthru
-                if ('Started' -eq $website.state)
-                {
-                    Write-Error -Message "Unable to stop WebSite $EndpointName" -ErrorAction:Stop
-                }
-            }
             # there is a web site, but there shouldn't be one
             Write-Verbose -Message "Removing web site $EndpointName"
             PSWSIISEndpoint\Remove-PSWSEndpoint -SiteName $EndpointName

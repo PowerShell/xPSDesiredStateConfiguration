@@ -648,41 +648,59 @@ function Remove-PSWSEndpoint
     (
         # Unique Name of the IIS Site
         [Parameter()]
+        [ValidateNotNullOrEmpty()]
         [System.String]
         $siteName
     )
 
     # Get the site to remove
-    $site = Get-Item -Path "IIS:\sites\$siteName"
-    # And the pool it is using
-    $pool = $site.applicationPool
-
-    # Get the path so we can delete the files
-    $filePath = $site.PhysicalPath
-
-    # Remove the actual site.
-    Remove-Website -Name $siteName
-    <#
-      There may be running requests, wait a little
-      I had an issue where the files were still in use
-      when I tried to delete them
-    #>
-    Start-Sleep -Milliseconds 200
-
-    # Remove the files for the site
-    If (Test-Path -Path $filePath)
+    $site = Get-Website -Name $siteName
+    if ($site)
     {
-        Get-ChildItem -Path $filePath -Recurse | Remove-Item -Recurse
-        Remove-Item -Path $filePath
+        if ('Started' -eq $site.state)
+        {
+            Write-Verbose -Message "Stopping WebSite $($site.name)"
+            $website = Stop-Website -Name $site.name -Passthru
+            if ('Started' -eq $website.state)
+            {
+                Write-Error -Message "Unable to stop WebSite $($site.name)" -ErrorAction:Stop
+            }
+        }
+
+        # And the pool it is using
+        $pool = $site.applicationPool
+
+        # Get the path so we can delete the files
+        $filePath = $site.PhysicalPath
+
+        # Remove the actual site.
+        Remove-Website -Name $siteName
+        <#
+          There may be running requests, wait a little
+          I had an issue where the files were still in use
+          when I tried to delete them
+        #>
+        Start-Sleep -Milliseconds 2000
+
+        # Remove the files for the site
+        If (Test-Path -Path $filePath)
+        {
+            Get-ChildItem -Path $filePath -Recurse | Remove-Item -Recurse -Force
+            Remove-Item -Path $filePath -Force
+        }
+
+        # Find out whether any other site is using this pool
+        $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "']"
+        $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath 'machine/webroot/apphost' -name path).ItemXPath
+        if (-not $apps -or $apps.count -eq 1)
+        {
+           # If we are the only site in the pool, remove the pool as well.
+           Remove-WebAppPool -Name $pool
+        }
     }
-
-    # Find out whether any other site is using this pool
-    $filter = "/system.applicationHost/sites/site/application[@applicationPool='" + $pool + "']"
-    $apps = (Get-WebConfigurationProperty -Filter $filter -PSPath 'machine/webroot/apphost' -name path).ItemXPath
-    if (-not $apps -or $apps.count -eq 1)
+    else
     {
-       # If we are the only site in the pool, remove the pool as well.
-       Remove-WebAppPool -Name $pool
+        Write-Verbose -Message "Website with name [$siteName] does not exist"
     }
 }
 

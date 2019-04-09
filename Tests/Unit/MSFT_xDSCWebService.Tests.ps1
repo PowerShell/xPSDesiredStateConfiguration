@@ -495,29 +495,37 @@ try
             #endregion
 
             Context -Name 'DSC Service is not installed and Ensure is Absent' -Fixture {
+                #region Mocks
+                Mock -CommandName Test-Path -ParameterFilter { $LiteralPath -like "IIS:\Sites\*" } -MockWith { $false }
+                Mock -CommandName Remove-PSWSEndpoint
+                #endregion
+
                 It 'Should call expected mocks' {
                     Set-TargetResource @testParameters -Ensure Absent
 
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-Website
                     Assert-MockCalled -Exactly -Times 1 -CommandName Get-OSVersion
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Get-Website
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-Path
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Remove-PSWSEndpoint
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Command
                 }
             }
 
             Context -Name 'DSC Service is installed and Ensure is Absent' -Fixture {
                 #region Mocks
+                Mock -CommandName Test-Path -ParameterFilter { $LiteralPath -like "IIS:\Sites\*" } -MockWith { $LiteralPath -eq "IIS:\Sites\$($testParameters.EndpointName)" }
                 Mock -CommandName Get-Website -MockWith { return $websiteDataHTTP }
                 Mock -CommandName Remove-PSWSEndpoint
-                Mock -CommandName Stop-Website
                 #endregion
 
                 It 'Should call expected mocks' {
                     Set-TargetResource @testParameters -Ensure Absent
 
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Get-Website
+                    Assert-MockCalled -Exactly -Times 0 -CommandName Get-Website
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Get-OSVersion
                     Assert-MockCalled -Exactly -Times 0 -CommandName Get-Command
+                    Assert-MockCalled -Exactly -Times 1 -CommandName Test-Path
                     Assert-MockCalled -Exactly -Times 1 -CommandName Remove-PSWSEndpoint
-                    Assert-MockCalled -Exactly -Times 1 -CommandName Stop-Website
                 }
             }
 
