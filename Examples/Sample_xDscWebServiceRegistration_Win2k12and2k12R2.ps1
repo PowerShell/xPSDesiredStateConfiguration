@@ -1,17 +1,24 @@
 <#
     .SYNOPSIS
         The Sample_xDscWebServiceRegistration_Win2k12and2k12R2 configuration
+        sets up a DSC pull server
+
+    .DESCRIPTION
+        The Sample_xDscWebServiceRegistration_Win2k12and2k12R2 configuration
         sets up a DSC pull server that is capable for client nodes to register
         with it.
 
-        Prerequisite: Install a certificate in 'CERT:\LocalMachine\MY\' store
-                      For testing environments, you could use a self-signed
-                      certificate. (New-SelfSignedCertificate cmdlet could
-                      generate one for you). For production environments, you
-                      will need a certificate signed by valid CA. Registration
-                      only works over https protocols. So to use registration
-                      feature, a secure pull server setup with certificate is
-                      necessary.
+        Prerequisite: 1 - Install a certificate in 'CERT:\LocalMachine\MY\' store
+                          For testing environments, you could use a self-signed
+                          certificate. (New-SelfSignedCertificate cmdlet could
+                          generate one for you). For production environments, you
+                          will need a certificate signed by valid CA. Registration
+                          only works over https protocols. So to use registration
+                          feature, a secure pull server setup with certificate is
+                          necessary.
+                      2 - To configure a Firewall Rule (Exception) to allow external
+                          connections the [NetworkingDsc](https://github.com/PowerShell/NetworkingDsc)
+                          DSC module is required.
 
     .PARAMETER NodeName
         The name of the node being configured as a DSC Pull Server.
@@ -40,17 +47,23 @@ Configuration Sample_xDscWebServiceRegistration_Win2k12and2k12R2
         [System.String[]]
         $NodeName = 'localhost',
 
-        [Parameter()]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [System.String]
         $CertificateThumbPrint,
 
-        [Parameter()]
+        [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [System.String]
-        $RegistrationKey
+        $RegistrationKey,
+
+        [Parameter()]
+        [ValidateRange(1, 65535)]
+        [System.UInt16]
+        $Port = 8080
     )
 
+    Import-DscResource -ModuleName NetworkingDsc
     Import-DSCResource -ModuleName xPSDesiredStateConfiguration
     # To explicitly import the resource WindowsFeature and File.
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -67,7 +80,7 @@ Configuration Sample_xDscWebServiceRegistration_Win2k12and2k12R2
         {
             Ensure                       = 'Present'
             EndpointName                 = 'PSDSCPullServer'
-            Port                         = 8080
+            Port                         = $Port
             PhysicalPath                 = "$env:SystemDrive\inetpub\PSDSCPullServer"
             CertificateThumbPrint        = $CertificateThumbPrint
             ModulePath                   = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules"
@@ -78,6 +91,7 @@ Configuration Sample_xDscWebServiceRegistration_Win2k12and2k12R2
             AcceptSelfSignedCertificates = $true
             UseSecurityBestPractices     = $true
             Enable32BitAppOnWin64        = $true
+            ConfigureFirewall            = $false
         }
 
         File RegistrationKeyFile
@@ -86,6 +100,20 @@ Configuration Sample_xDscWebServiceRegistration_Win2k12and2k12R2
             Type            = 'File'
             DestinationPath = "$env:ProgramFiles\WindowsPowerShell\DscService\RegistrationKeys.txt"
             Contents        = $RegistrationKey
+        }
+
+        Firewall PSDSCPullServerRule
+        {
+            Ensure      = 'Present'
+            Name        = "DSC_PullServer_$Port"
+            DisplayName = "DSC PullServer $Port"
+            Group       = 'DSC PullServer'
+            Enabled     = $true
+            Action      = 'Allow'
+            Direction   = 'InBound'
+            LocalPort   = $Port
+            Protocol    = 'TCP'
+            DependsOn   = '[xDscWebService]PSDSCPullServer'
         }
     }
 }
@@ -124,14 +152,19 @@ Configuration Sample_MetaConfigurationToRegisterWithSecurePullServer
         $NodeName = 'localhost',
 
         [Parameter()]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true)]
         [System.String]
         $RegistrationKey,
 
         [Parameter()]
         [ValidateNotNullOrEmpty()]
         [System.String]
-        $ServerName = 'localhost'
+        $ServerName = 'localhost',
+
+        [Parameter()]
+        [ValidateRange(1, 65535)]
+        [System.UInt16]
+        $Port = 8080
     )
 
     Node $NodeName
@@ -143,14 +176,14 @@ Configuration Sample_MetaConfigurationToRegisterWithSecurePullServer
 
         ConfigurationRepositoryWeb CONTOSO-PullSrv
         {
-            ServerURL          = "https://$ServerName`:8080/PSDSCPullServer.svc"
+            ServerURL          = "https://$ServerName`:$Port/PSDSCPullServer.svc"
             RegistrationKey    = $RegistrationKey
             ConfigurationNames = @('ClientConfig')
         }
 
         ReportServerWeb CONTOSO-PullSrv
         {
-            ServerURL       = "https://$ServerName`:8080/PSDSCPullServer.svc"
+            ServerURL       = "https://$ServerName`:$Port/PSDSCPullServer.svc"
             RegistrationKey = $RegistrationKey
         }
     }

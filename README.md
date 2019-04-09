@@ -188,6 +188,15 @@ None
   best practice security settings.
 * **Enable32BitAppOnWin64**: When this property is set to true, Pull Server
   will run on a 32 bit process on a 64 bit machine.
+* **ConfigureFirewall**: When this property is set to true, a Windows Firewall    rule will be created, which allows incoming HTTP traffic for the selected **Port**. Default: **true**
+
+**Remark:**
+
+Configuring a Windows Firewall rule (exception) for a DSC Pull Server instance by using the xDscWebService resource is **considered deprecated** and thus will be removed in the future. 
+
+DSC will issue a warning when the **ConfigureFirewall** property is set to **true**. Currently the default value is **true** to maintain backwards compatibility with existing configurations. At a later time the default value will be set to **false** and in the last step the direct support to create a firewall rule will be removed.
+
+All users are requested to adjust existing configurations so that the **ConfigureFirewall** is set to **false** and a required Windows Firewall rule is created by using the **Firewall** resource from the [NetworkingDsc](https://github.com/PowerShell/NetworkingDsc) module. 
 
 ### xGroup
 

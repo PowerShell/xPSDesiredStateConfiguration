@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixes [issue #536] and starts the deprecation process for configuring a windows firewall (exception) rule using xDSCWebService
+
 ## 8.6.0.0
 
 - Fixes style inconsistencies in PublishModulesAndMofsToPullServer.psm1.
