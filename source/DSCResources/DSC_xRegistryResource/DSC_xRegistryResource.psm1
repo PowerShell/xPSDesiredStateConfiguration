@@ -568,13 +568,13 @@ function Get-PathRoot
         $Path
     )
 
-    $pathParent = Split-Path -Path $Path -Parent
-    $pathRoot = $Path
-
-    while (-not [System.String]::IsNullOrEmpty($pathParent))
+    if ($Path.Contains('\'))
     {
-        $pathRoot = Split-Path -Path $pathParent -Leaf
-        $pathParent = Split-Path -Path $pathParent -Parent
+        $pathRoot = $Path.Split('\')[0]
+    }
+    else
+    {
+        $pathRoot = $Path
     }
 
     return $pathRoot
