@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- DSC_xRegistryResource
+  - Fixed an issue that failed to create a registry with ":" in the path.
+    [issue #671](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/671)
+
+
 ## [9.0.0] - 2020-01-15
 
 ### Added
