@@ -2837,6 +2837,25 @@ try
                         $getPathRootResult | Should -Be $pathRoot
                     }
                 }
+
+                Context 'Path with colons specified' {
+                    $pathRoot = 'PathRoot'
+                    $pathLeafWithColon = 'Leaf:Colon'
+
+                    $getPathRootParameters = @{
+                        Path = Join-Path -Path $pathRoot -ChildPath $pathLeafWithColon
+                    }
+
+                    It 'Should not throw' {
+                        { $null = Get-PathRoot @getPathRootParameters } | Should -Not -Throw
+                    }
+
+                    $getPathRootResult = Get-PathRoot @getPathRootParameters
+
+                    It 'Should return the root of the given path' {
+                        $getPathRootResult | Should -Be $pathRoot
+                    }
+                }
             }
 
             Describe 'xRegistry\ConvertTo-RegistryDriveName' {

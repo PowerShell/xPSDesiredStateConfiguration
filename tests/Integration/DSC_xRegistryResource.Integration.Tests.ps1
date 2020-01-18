@@ -289,6 +289,33 @@ try
                     $registryValueExists | Should -BeTrue
                 }
 
+                It 'Should create a new key and value with path containing colons (PSDrive style path)' {
+                    $registryKeyPathWithColons = Join-Path -Path $script:registryKeyPath -ChildPath 'T:e:s:t:K:e:y'
+                    $valueName = 'Testing'
+                    $valueData = 'TestValue'
+
+                    # Create the new registry key value
+                    Set-TargetResource -Key $registryKeyPathWithColons -ValueName $valueName -ValueData $valueData
+
+                    # Verify that the registry key value has been created with the correct data and type
+                    $registryValueExists = Test-RegistryValueExists -KeyPath $registryKeyPathWithColons -ValueName $valueName  -ValueData $valueData
+                    $registryValueExists | Should -BeTrue
+                }
+
+                It 'Should create a new key and value with path containing colons (Common registry style path)' {
+                    $registryKeyPathWithColons = Join-Path -Path $script:registryKeyPath -ChildPath 'T:e:s:t:K:e:y'
+                    $commonRegistryKeyPathWithColons = $registryKeyPathWithColons -replace 'HKLM:', 'HKEY_LOCAL_MACHINE'
+                    $valueName = 'Testing'
+                    $valueData = 'TestValue'
+
+                    # Create the new registry key value
+                    Set-TargetResource -Key $commonRegistryKeyPathWithColons -ValueName $valueName -ValueData $valueData
+
+                    # Verify that the registry key value has been created with the correct data and type
+                    $registryValueExists = Test-RegistryValueExists -KeyPath $registryKeyPathWithColons -ValueName $valueName  -ValueData $valueData
+                    $registryValueExists | Should -BeTrue
+                }
+
                 It 'Should overwrite an existing key and value with desired value type' {
                     $valueName = 'TestValue'
                     $valueData = '123'
