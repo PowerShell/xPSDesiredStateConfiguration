@@ -387,6 +387,11 @@ function Get-TargetResourceOnFullSKU
             $members = Get-MembersOnFullSKU -Group $group -PrincipalContextCache $principalContextCache `
                 -Credential $Credential -Disposables $disposables
 
+            if ($members -is [String])
+            {
+                $members = @($members)
+            }
+
             return @{
                 GroupName = $group.Name
                 Ensure = 'Present'
@@ -456,6 +461,11 @@ function Get-TargetResourceOnNanoServer
 
     # The group was found. Find the group members.
     $members = Get-MembersOnNanoServer -Group $group
+
+    if ($members -is [String])
+    {
+        $members = @($members)
+    }
 
     return @{
         GroupName = $group.Name
