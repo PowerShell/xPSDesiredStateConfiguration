@@ -324,7 +324,8 @@ try
             if ($script:onNanoServer)
             {
                 Context 'xGroupResource\Get-TargetResourceOnNanoServer' {
-                    $testMembers = @('User1', 'User2')
+                    $testMembersSingle = @('User1')
+                    $testMembersMultiple = @('User1', 'User2')
 
                     Mock -CommandName 'Get-MembersOnNanoServer' -MockWith { return @() }
 
@@ -367,11 +368,11 @@ try
                         $getTargetResourceResult.Members | Should -Be $null
                     }
 
-                    It 'Should return correct hashtable values when Get-LocalGroup returns a valid, existing group with members' {
+                    It 'Should return correct hashtable values when Get-LocalGroup returns a valid, existing group with a single member' {
                         $script:testLocalGroup.Description = $script:testGroupDescription
 
                         Mock -CommandName 'Get-LocalGroup' -MockWith { return $script:testLocalGroup }
-                        Mock -CommandName 'Get-MembersOnNanoServer' -MockWith { return $testMembers }
+                        Mock -CommandName 'Get-MembersOnNanoServer' -MockWith { return $testMembersSingle }
 
                         $getTargetResourceResult = Get-TargetResourceOnNanoServer -GroupName $script:testGroupName
 
@@ -383,7 +384,26 @@ try
                         $getTargetResourceResult.GroupName | Should -Be $script:testGroupName
                         $getTargetResourceResult.Ensure | Should -Be 'Present'
                         $getTargetResourceResult.Description | Should -Be $script:testGroupDescription
-                        $getTargetResourceResult.Members | Should -Be $testMembers
+                        $getTargetResourceResult.Members | Should -Be $testMembersSingle
+                    }
+
+                    It 'Should return correct hashtable values when Get-LocalGroup returns a valid, existing group with multiple members' {
+                        $script:testLocalGroup.Description = $script:testGroupDescription
+
+                        Mock -CommandName 'Get-LocalGroup' -MockWith { return $script:testLocalGroup }
+                        Mock -CommandName 'Get-MembersOnNanoServer' -MockWith { return $testMembersMultiple }
+
+                        $getTargetResourceResult = Get-TargetResourceOnNanoServer -GroupName $script:testGroupName
+
+                        Assert-MockCalled -CommandName 'Get-LocalGroup' -ParameterFilter { $Name -eq $script:testGroupName }
+                        Assert-MockCalled -CommandName 'Get-MembersOnNanoServer' -ParameterFilter { $Group -eq $script:testLocalGroup }
+
+                        $getTargetResourceResult -is [System.Collections.Hashtable] | Should -BeTrue
+                        $getTargetResourceResult.Keys.Count | Should -Be 4
+                        $getTargetResourceResult.GroupName | Should -Be $script:testGroupName
+                        $getTargetResourceResult.Ensure | Should -Be 'Present'
+                        $getTargetResourceResult.Description | Should -Be $script:testGroupDescription
+                        $getTargetResourceResult.Members | Should -Be $testMembersMultiple
                     }
                 }
 
@@ -861,7 +881,8 @@ try
             else
             {
                 Context 'xGroupResource\Get-TargetResourceOnFullSKU' {
-                    $testMembers = @($script:testuserPrincipal1.Name, $script:testuserPrincipal2.Name)
+                    $testMembersSingle = @($script:testuserPrincipal1.Name)
+                    $testMembersMultiple = @($script:testuserPrincipal1.Name, $script:testuserPrincipal2.Name)
 
                     Mock -CommandName 'Get-Group' -MockWith { }
                     Mock -CommandName 'Get-MembersOnFullSKU' -MockWith { return @() }
@@ -898,11 +919,11 @@ try
                         $getTargetResourceResult.Members | Should -Be $null
                     }
 
-                    It 'Should return correct hashtable values when Get-Group returns a valid, existing group with members' {
+                    It 'Should return correct hashtable values when Get-Group returns a valid, existing group with a single member' {
                         $testGroup.Description = $script:testGroupDescription
 
                         Mock -CommandName 'Get-Group' -MockWith { return $script:testGroup }
-                        Mock -CommandName 'Get-MembersOnFullSKU' -MockWith { return $testMembers }
+                        Mock -CommandName 'Get-MembersOnFullSKU' -MockWith { return $testMembersSingle }
 
                         $getTargetResourceResult = Get-TargetResourceOnFullSKU -GroupName $script:testGroupName
 
@@ -915,7 +936,27 @@ try
                         $getTargetResourceResult.GroupName | Should -Be $script:testGroupName
                         $getTargetResourceResult.Ensure | Should -Be 'Present'
                         $getTargetResourceResult.Description | Should -Be $script:testGroupDescription
-                        $getTargetResourceResult.Members | Should -Be $testMembers
+                        $getTargetResourceResult.Members | Should -Be $testMembersSingle
+                    }
+
+                    It 'Should return correct hashtable values when Get-Group returns a valid, existing group with multiple members' {
+                        $testGroup.Description = $script:testGroupDescription
+
+                        Mock -CommandName 'Get-Group' -MockWith { return $script:testGroup }
+                        Mock -CommandName 'Get-MembersOnFullSKU' -MockWith { return $testMembersMultiple }
+
+                        $getTargetResourceResult = Get-TargetResourceOnFullSKU -GroupName $script:testGroupName
+
+                        Assert-MockCalled -CommandName 'Get-Group' -ParameterFilter { $GroupName -eq $script:testGroupName }
+                        Assert-MockCalled -CommandName 'Get-MembersOnFullSKU' -ParameterFilter { $Group -eq $script:testGroup }
+                        Assert-MockCalled -CommandName 'Remove-DisposableObject'
+
+                        $getTargetResourceResult -is [System.Collections.Hashtable] | Should -BeTrue
+                        $getTargetResourceResult.Keys.Count | Should -Be 4
+                        $getTargetResourceResult.GroupName | Should -Be $script:testGroupName
+                        $getTargetResourceResult.Ensure | Should -Be 'Present'
+                        $getTargetResourceResult.Description | Should -Be $script:testGroupDescription
+                        $getTargetResourceResult.Members | Should -Be $testMembersMultiple
                     }
                 }
 
