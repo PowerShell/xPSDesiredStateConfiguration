@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Pester issue has been resolved - Fixes [Issue #698](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/698).
 - xGroup
   - Ensure group membership is always returned as an array - Fixes [Issue #353](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/353).
+  - Support adding IIS AppPool users as group members - Fixes [Issue #350](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/350).
 
 ### Changed
 

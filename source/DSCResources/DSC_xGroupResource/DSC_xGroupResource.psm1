@@ -1990,6 +1990,11 @@ function ConvertTo-Principal
 
     if (Test-IsLocalMachine -Scope $scope)
     {
+        if ($scope -ne $env:computerName)
+        {
+            $identityValue = $MemberName
+        }
+
         # If local machine qualified, get the PrincipalContext for the local machine
         Write-Verbose -Message ($script:localizedData.ResolvingLocalAccount -f $identityValue)
     }
@@ -2216,7 +2221,7 @@ function Test-IsLocalMachine
         $Scope
     )
 
-    $localMachineScopes = @( '.', $env:computerName, 'localhost', '127.0.0.1', 'NT Authority', 'NT Service', 'BuiltIn' )
+    $localMachineScopes = @( '.', $env:computerName, 'localhost', '127.0.0.1', 'NT Authority', 'NT Service', 'BuiltIn', "IIS APPPOOL" )
 
     if ($localMachineScopes -icontains $Scope)
     {
@@ -2313,7 +2318,7 @@ function Split-MemberName
     {
         $scope = $MemberName.Substring(0, $separatorIndex)
 
-        if (Test-IsLocalMachine -Scope $scope)
+        if ( ( Test-IsLocalMachine -Scope $scope ) -and $scope -in @( '.', $env:computerName, 'localhost', '127.0.0.1' ) )
         {
             $scope = $env:computerName
         }
@@ -2399,9 +2404,24 @@ function Find-Principal
     }
     else
     {
-        return [System.DirectoryServices.AccountManagement.Principal]::FindByIdentity($PrincipalContext, $IdentityValue)
-    }
+        $ntAccount = [System.Security.Principal.NTAccount]::new($IdentityValue)
+        try
+        {
+            $identitySid = $ntAccount.Translate([System.Security.Principal.SecurityIdentifier])
+        }
+        catch
+        {
+            $identitySid = $null
+        }
 
+        if ($null -ne $identitySid)
+        {
+            return [System.DirectoryServices.AccountManagement.Principal]::FindByIdentity($PrincipalContext, [System.DirectoryServices.AccountManagement.IdentityType]::Sid, $identitySid.Value)
+        }
+        else {
+            return [System.DirectoryServices.AccountManagement.Principal]::FindByIdentity($PrincipalContext, $IdentityValue)
+        }
+    }
 }
 
 <#

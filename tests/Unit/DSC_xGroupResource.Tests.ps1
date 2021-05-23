@@ -273,7 +273,7 @@ try
                 Mock -CommandName 'Test-IsLocalMachine' -MockWith { return $true }
 
                 It 'Should split a member name in the domain\username format with the machine domain' {
-                    $testMemberName = 'domain\username'
+                    $testMemberName = "$script:localDomain\username"
                     $splitMemberNameResult = Split-MemberName -MemberName $testMemberName
 
                     Assert-MockCalled -CommandName 'Test-IsLocalMachine'
@@ -300,7 +300,7 @@ try
                 }
 
                 It 'Should split a member name in the CN=username,DC=domain format with local domain' {
-                    $testMemberName = 'CN=username,DC=domain'
+                    $testMemberName = "CN=username,DC=$script:localDomain"
                     $splitMemberNameResult = Split-MemberName -MemberName $testMemberName
 
                     $splitMemberNameResult | Should -Be @( $script:localDomain, $testMemberName )
