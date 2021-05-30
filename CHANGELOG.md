@@ -5,9 +5,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- xPackage
-  - Fixed a bug not allowing using the file hash of an installer [Issue #702](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/702).
-
 ### Fixed
 
 - xRemoteFile
@@ -22,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Pester issue has been resolved - Fixes [Issue #698](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/698).
 - xGroup
   - Ensure group membership is always returned as an array - Fixes [Issue #353](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/353).
+- xPackage
+  - Fixed a bug not allowing using the file hash of an installer [Issue #702](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/702).
+  - Uninstalling software (Ensure = Absent) did not work due to improper handling of arguments. This fixes #704.
 
 ### Changed
 
