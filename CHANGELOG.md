@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - xRemoteFile
   - Fixed message inconsistencies in `DSC_xRemoteFile.strings.psd1` - Fixes [Issue #716](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/716).
+  - CheckSum (if provided) is given priority on whether file is considered present, even if cached attributes don't match - Fixes [Issue #723](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/723).
 - xPSDesiredStateConfiguration
   - Fixed build failures caused by changes in `ModuleBuilder` module v1.7.0
     by changing `CopyDirectories` to `CopyPaths` - Fixes [Issue #687](https://github.com/dsccommunity/xPSDesiredStateConfiguration/issues/687).

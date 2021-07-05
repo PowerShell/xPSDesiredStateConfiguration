@@ -521,8 +521,7 @@ function Test-TargetResource
             }
 
             if ($ChecksumType -ine 'None' `
-                    -and -not [String]::IsNullOrEmpty($Checksum) `
-                    -and $fileExists -eq $true)
+                    -and -not [String]::IsNullOrEmpty($Checksum))
             {
                 $fileHashSplat = @{
                     Path      = $DestinationPath
@@ -573,8 +572,7 @@ function Test-TargetResource
                 }
 
                 if ($ChecksumType -ine 'None' `
-                    -and -not [String]::IsNullOrEmpty($Checksum) `
-                    -and $fileExists -eq $true)
+                    -and -not [String]::IsNullOrEmpty($Checksum))
             {
                 $fileHashSplat = @{
                     Path      = $expectedDestinationPath
